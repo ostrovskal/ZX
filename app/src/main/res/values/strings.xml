@@ -1,0 +1,85 @@
+<resources>
+    <string name="themeDef" translatable="false">def</string>
+    <string name="menuLoadCloud">Loading…</string>
+    <string name="menuOpenSave">Open/Save…</string>
+    <string name="menuSettings">Settings…</string>
+    <string name="menuProperties">Properties…</string>
+    <string name="menuSelectDisk">Select disk…</string>
+    <string name="menuSound">Sound</string>
+    <string name="menuPokes">Pokes</string>
+    <string name="menuMru">Last…</string>
+    <string name="menuReset">Reset</string>
+    <string name="menuRestore">Restore</string>
+    <string name="menuExecute">Executed</string>
+    <string name="menuExit">Exit</string>
+    <string name="menuModel">Model…</string>
+    <string name="menuKeyboard">Keyboard</string>
+    <string name="menuJoystick">Joystick</string>
+    <string name="menuTurbo">Turbo mode</string>
+    <string name="menuFilter">Filtered</string>
+    <string name="menuTape">Trap tape</string>
+    <string name="menuDisk1" translatable="false">A:</string>
+    <string name="menuDisk2" translatable="false">B:</string>
+    <string name="menuDisk3" translatable="false">C:</string>
+    <string name="menuDisk4" translatable="false">D:</string>
+    <string name="menu48kk">Kompanion 48K</string>
+    <string name="menu48k">Sinclair 48K</string>
+    <string name="menu128k">Sinclair 128K</string>
+    <string name="menuPentagon">Pentagon 128K</string>
+    <string name="menuScorpion">Scorpion 256K</string>
+    <string name="menuMruEmpty" translatable="false">Empty</string>
+    <string name="hintName">name</string>
+    <string name="headerIO">Operations</string>
+    <string name="downloadCloud">Download…</string>
+    <string name="headerCloud">Loading from Cloud</string>
+    <string name="connectCloud">Connected…</string>
+    <string name="connectError">Unable to connect to the server. Check your internet connection!</string>
+    <string name="pokeHead" translatable="false">Pokes</string>
+    <string name="hintAddress">address</string>
+    <string name="hintValue">value</string>
+    <string name="settingsHead">Settings</string>
+    <string name="settingsFPS" translatable="false">FPS</string>
+    <string name="settingsFrames">Skip frames</string>
+    <string name="settingsJoyType">Apportion</string>
+    <string name="settingsJoyPreset">Samples</string>
+    <string name="settingsCPU" translatable="false">CPU</string>
+    <string name="settingsBLINK" translatable="false">BLINK</string>
+    <string name="settingsJOY" translatable="false">JOYSTICK</string>
+    <string name="settingsBORDER" translatable="false">BORDER</string>
+    <string name="settingsKEY" translatable="false">KEYBOARD</string>
+    <string name="settingsColorRed">RED</string>
+    <string name="settingsColorYellow">YELLOW</string>
+    <string name="settingsColorLRed">LIGHT RED</string>
+    <string name="settingsColorBlue">BLUE</string>
+    <string name="settingsColorBlack">BLACK</string>
+    <string name="settingsColorCyan">CYAN</string>
+    <string name="settingsColorGreen">GREEN</string>
+    <string name="settingsColorLBlack">LIGHT BLACK</string>
+    <string name="settingsColorLGreen">LIGHT GREEN</string>
+    <string name="settingsColorLBlue">LIGHT BLUE</string>
+    <string name="settingsColorLCyan">LIGHT CYAN</string>
+    <string name="settingsColorLYellow">LIGHT YELLOW</string>
+    <string name="settingsColorMagenta">MAGENTA</string>
+    <string name="settingsColorWhite">WHITE</string>
+    <string name="settingsColorLWhite">LIGHT WHITE</string>
+    <string name="settingsColorLMagenta">LIGHT MAGENTA</string>
+    <string name="settingsJoyLeft">LEFT</string>
+    <string name="settingsJoyRight">RIGHT</string>
+    <string name="settingsJoyUp">UP</string>
+    <string name="settingsJoyDown">DOWN</string>
+    <string name="settingsJoyX" translatable="false">X</string>
+    <string name="settingsJoyY" translatable="false">Y</string>
+    <string name="settingsJoyA" translatable="false">A</string>
+    <string name="settingsJoyB" translatable="false">B</string>
+    <string name="settingsSound8Bit">8 Bit</string>
+    <string name="settingsSoundBeeper">Beeper</string>
+    <string name="settingsSoundAY">AY</string>
+    <string name="settingsSoundSave">Direct save</string>
+    <string name="settingsSndVolAY">Volume AY</string>
+    <string name="settingsSndVolBP">Volume BP</string>
+    <string name="settingsSndFreq">Frequency</string>
+    <string name="settingsSndTypeAY">Stereo AY</string>
+    <string name="descImage" translatable="false">desc</string>
+    <string name="ioLoadError">Failed to read. The file is corrupt!</string>
+    <string name="ioSaveError">Failed to write. Unknown file format!</string>
+</resources>

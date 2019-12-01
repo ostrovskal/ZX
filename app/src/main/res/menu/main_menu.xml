@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_cloud"
+        android:title="@string/menuLoadCloud"
+        android:icon="@drawable/action_cloud"
+        android:showAsAction="never" />
+    <item
+        android:id="@+id/menu_io"
+        android:title="@string/menuOpenSave"
+        android:icon="@drawable/action_folder"
+        android:showAsAction="always" />
+    <item
+        android:id="@+id/menu_settings"
+        android:title="@string/menuSettings"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:showAsAction="always" />
+    <item
+        android:id="@+id/menu_props"
+        android:title="@string/menuProperties"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:showAsAction="always" >
+        <menu>
+            <group android:checkableBehavior="all">
+                <item
+                    android:id="@+id/menu_sound"
+                    android:title="@string/menuSound"
+                    android:showAsAction="never" />
+
+                <item
+                    android:id="@+id/menu_keyboard"
+                    android:title="@string/menuKeyboard"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_joystick"
+                    android:title="@string/menuJoystick"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_tape"
+                    android:title="@string/menuTape"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_filter"
+                    android:title="@string/menuFilter"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_turbo"
+                    android:title="@string/menuTurbo"
+                    android:showAsAction="never"/>
+            </group>
+        </menu>
+    </item>
+    <item
+        android:id="@+id/menu_disk"
+        android:title="@string/menuSelectDisk"
+        android:icon="@android:drawable/ic_popup_disk_full"
+        android:showAsAction="never">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/menu_disk1"
+                    android:title="@string/menuDisk1"
+                    android:showAsAction="never" />
+                <item
+                    android:id="@+id/menu_disk2"
+                    android:title="@string/menuDisk2"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_disk3"
+                    android:title="@string/menuDisk3"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_disk4"
+                    android:title="@string/menuDisk4"
+                    android:showAsAction="never"/>
+            </group>
+        </menu>
+    </item>
+    <item
+        android:id="@+id/menu_model"
+        android:title="@string/menuModel"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:showAsAction="ifRoom">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/menu_48kk"
+                    android:title="@string/menu48kk"
+                    android:showAsAction="never" />
+                <item
+                    android:id="@+id/menu_48k"
+                    android:title="@string/menu48k"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_128k"
+                    android:title="@string/menu128k"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_pentagon"
+                    android:title="@string/menuPentagon"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@+id/menu_scorpion"
+                    android:title="@string/menuScorpion"
+                    android:showAsAction="never"/>
+            </group>
+        </menu>
+    </item>
+    <item
+        android:id="@+id/menu_mru"
+        android:title="@string/menuMru"
+        android:showAsAction="never" >
+        <menu>
+            <item android:id="@+id/menu_mru1" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru2" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru3" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru4" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru5" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru6" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru7" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru8" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru9" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+            <item android:id="@+id/menu_mru10" android:title="@string/menuMruEmpty" android:showAsAction="never" />
+        </menu>
+    </item>
+    <item
+        android:id="@+id/menu_pokes"
+        android:title="@string/menuPokes"
+        android:showAsAction="never" />
+    <item
+        android:id="@+id/menu_reset"
+        android:title="@string/menuReset"
+        android:showAsAction="never" />
+    <item
+        android:id="@+id/menu_restore"
+        android:title="@string/menuRestore"
+        android:showAsAction="never" />
+    <group android:checkableBehavior="all">
+        <item
+            android:id="@+id/menu_execute"
+            android:title="@string/menuExecute"
+            android:showAsAction="never" />
+    </group>
+    <item
+        android:id="@+id/menu_exit"
+        android:title="@string/menuExit"
+        android:showAsAction="never" />
+</menu>

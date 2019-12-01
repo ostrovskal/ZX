@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tag_main" translatable="false">main</string>
+    <string name="tag_settings" translatable="false">settings</string>
+    <string name="tag_io" translatable="false">io</string>
+    <string name="tag_pokes" translatable="false">pokes</string>
+    <string name="tag_cloud" translatable="false">cloud</string>
+
+    <string name="clazz_main" translatable="false">ru.ostrovskal.zx.forms.ZxFormMain</string>
+    <string name="clazz_settings" translatable="false">ru.ostrovskal.zx.forms.ZxFormSettings</string>
+    <string name="clazz_io" translatable="false">ru.ostrovskal.zx.forms.ZxFormIO</string>
+    <string name="clazz_pokes" translatable="false">ru.ostrovskal.zx.forms.ZxFormPokes</string>
+    <string name="clazz_cloud" translatable="false">ru.ostrovskal.zx.forms.ZxFormCloud</string>
+
+</resources>

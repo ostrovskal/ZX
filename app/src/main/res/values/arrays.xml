@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="settingsCommonTexts">
+        <item>@string/settingsCPU</item>
+        <item>@string/settingsBLINK</item>
+        <item>@string/settingsJOY</item>
+        <item>@string/settingsBORDER</item>
+        <item>@string/settingsKEY</item>
+    </array>
+    <array name="settingsColorNames">
+        <item>@string/settingsColorBlack</item>
+        <item>@string/settingsColorBlue</item>
+        <item>@string/settingsColorRed</item>
+        <item>@string/settingsColorMagenta</item>
+        <item>@string/settingsColorGreen</item>
+        <item>@string/settingsColorCyan</item>
+        <item>@string/settingsColorYellow</item>
+        <item>@string/settingsColorWhite</item>
+        <item>@string/settingsColorLBlack</item>
+        <item>@string/settingsColorLBlue</item>
+        <item>@string/settingsColorLRed</item>
+        <item>@string/settingsColorLMagenta</item>
+        <item>@string/settingsColorLGreen</item>
+        <item>@string/settingsColorLCyan</item>
+        <item>@string/settingsColorLYellow</item>
+        <item>@string/settingsColorLWhite</item>
+    </array>
+    
+    <array name="settingsJoyTexts">
+        <item>@string/settingsJoyLeft</item>
+        <item>@string/settingsJoyRight</item>
+        <item>@string/settingsJoyUp</item>
+        <item>@string/settingsJoyDown</item>
+        <item>@string/settingsJoyX</item>
+        <item>@string/settingsJoyY</item>
+        <item>@string/settingsJoyA</item>
+        <item>@string/settingsJoyB</item>
+    </array>
+    <array name="settingsSndTexts">
+        <item>@string/settingsSoundAY</item>
+        <item>@string/settingsSndFreq</item>
+        <item>@string/settingsSndVolBP</item>
+        <item>@string/settingsSndVolAY</item>
+        <item>@string/settingsSoundBeeper</item>
+        <item>@string/settingsSoundAY</item>
+        <item>@string/settingsSound8Bit</item>
+        <item>@string/settingsSoundSave</item>
+    </array>
+
+    <string-array name="settings" translatable="false">
+        <item>first_launch,true</item>
+        <item>trap_tape,false</item>
+        <item>show_joy,false</item>
+        <item>show_key,true</item>
+        <item>show_fps,false</item>
+        <item>turbo_mode,false</item>
+        <item>snd_launch,true</item>
+        <item>snd_bp,true</item>
+        <item>snd_ay,false</item>
+        <item>snd_8bit,false</item>
+        <item>snd_save,false</item>
+        <item>skip_frames,true</item>
+        <item>execute,true</item>
+
+        <item>unusedBool,false</item>
+        <item>unusedBool,false</item>
+        <item>unusedBool,false</item>
+        <item>unusedBool,false</item>
+        <item>unusedBool,false</item>
+        <item>unusedBool,false</item>
+        <item>unusedBool,false</item>
+        <item>unusedBool,false</item>
+        <item>unusedBool1,true</item>
+
+        <item>active_disk,0</item>
+        <item>border_size,4</item>
+        <item>model_type,1</item>
+        <item>snd_type_ay,0</item>
+        <item>snd_freq,0</item>
+        <item>snd_vol_bp,15</item>
+        <item>snd_vol_ay,100</item>
+        <item>blink_speed,4</item>
+        <item>cpu_speed,10</item>
+        <item>key_size,5</item>
+        <item>joy_size,3</item>
+
+        <item>unusedByte,0</item>
+        <item>unusedByte,0</item>
+        <item>unusedByte,0</item>
+        <item>unusedByte,0</item>
+        <item>unusedByte,0</item>
+        <item>unusedByte,0</item>
+        <item>unusedByte,0</item>
+        <item>unusedByte,0</item>
+        <item>unusedByte1,1</item>
+
+        <item>color_black,ff000000</item>
+        <item>color_blue,ffc03020</item>
+        <item>color_red,ff1040c0</item>
+        <item>color_magenta,ffc040c0</item>
+        <item>color_green,ff10b040</item>
+        <item>color_cyan,ffb0c050</item>
+        <item>color_yellow,ff10c0e0</item>
+        <item>color_white,ffc0c0c0</item>
+        <item>color_black_l,ff000000</item>
+        <item>color_blue_l,ffff4030</item>
+        <item>color_red_l,ff3040ff</item>
+        <item>color_magenta_l,fff070ff</item>
+        <item>color_green_l,ff10e050</item>
+        <item>color_cyan_l,ffffe050</item>
+        <item>color_yellow_l,ff50e8ff</item>
+        <item>color_white_l,ffffffff</item>
+
+        <item>unusedInt,0</item>
+        <item>unusedInt,0</item>
+        <item>unusedInt,0</item>
+        <item>unusedInt,0</item>
+        <item>unusedInt,0</item>
+        <item>unusedInt1,1</item>
+
+        <item>#mru1,Empty</item>
+        <item>#mru2,Empty</item>
+        <item>#mru3,Empty</item>
+        <item>#mru4,Empty</item>
+        <item>#mru5,Empty</item>
+        <item>#mru6,Empty</item>
+        <item>#mru7,Empty</item>
+        <item>#mru8,Empty</item>
+        <item>#mru9,Empty</item>
+        <item>#mru10,Empty</item>
+
+        <item>filter,true</item>
+    </string-array>
+
+    <array name="forms">
+        <item>@string/clazz_main</item>
+        <item>@id/main</item>
+        <item>@string/tag_main</item>
+        <item>0</item>
+
+        <item>@string/clazz_settings</item>
+        <item>0</item>
+        <item>@string/tag_settings</item>
+        <item>1</item>
+
+        <item>@string/clazz_io</item>
+        <item>0</item>
+        <item>@string/tag_io</item>
+        <item>0</item>
+
+        <item>@string/clazz_pokes</item>
+        <item>0</item>
+        <item>@string/tag_pokes</item>
+        <item>0</item>
+
+        <item>@string/clazz_cloud</item>
+        <item>0</item>
+        <item>@string/tag_cloud</item>
+        <item>0</item>
+    </array>
+</resources>

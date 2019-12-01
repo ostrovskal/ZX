@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="zxView" type="id" />
+    <item name="joyCross" type="id" />
+    <item name="joyAction" type="id" />
+    <item name="editName" type="id" />
+    <item name="pageCommon" type="id" />
+    <item name="pageSound" type="id" />
+    <item name="pageJoy" type="id" />
+    <item name="pageScreen" type="id" />
+    <item name="pageTape" type="id" />
+    <item name="settingsJoyPreset" type="id" />
+    <item name="settingsJoyType" type="id" />
+    <item name="settingsFreq" type="id" />
+    <item name="settingsTypeAY" type="id" />
+</resources>
