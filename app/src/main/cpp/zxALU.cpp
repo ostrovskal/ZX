@@ -519,6 +519,7 @@ bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
         ssh_memzero(PAGE_ROM, sizeof(PAGE_ROM));
         for (int i = 0; i < pagesROM; i++) PAGE_ROM[i] = (rom + i * 16384);
     }
+/*
     auto dst = PAGE_ROM[*_ROM];
     uint8_t src[] = {
             LD_C_N, 20,
@@ -542,6 +543,7 @@ bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
             JP_NN, 6, 0
                      };
     memcpy(dst, src, sizeof(src));
+*/
     signalRESET(resetTape);
     return result;
 }

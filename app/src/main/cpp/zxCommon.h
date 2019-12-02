@@ -161,12 +161,28 @@ uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_
 
 uint8_t* realPtr(uint16_t address);
 
+static uint8_t tblOV[] = {0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0};
+
+inline uint8_t calcFV8(uint8_t p1, uint8_t p2, uint8_t res, uint8_t fc, uint8_t op) {
+    auto rr = res >> 7;
+    auto pp2 = (p2 >> 6) & 2;
+    auto pp1 = ((p1 + fc) >> 5) & 4;
+    return tblOV[(pp1 | pp2 | rr) + (op << 3)];
+}
+
+inline uint8_t calcFV16(uint16_t p1, uint16_t p2, uint16_t res, uint8_t fc, uint8_t op) {
+    auto rr = res >> 15;
+    auto pp2 = (p2 >> 14) & 2;
+    auto pp1 = ((p1 + fc) >> 13) & 4;
+    return tblOV[(pp1 | pp2 | rr) + (op << 3)];
+}
+
 // вычисление полупереноса
 inline uint8_t calcFH(uint8_t op1, uint8_t op2, uint8_t fc, uint8_t fn) {
     auto v = (uint8_t)(op1 & 15);
     auto o = (uint16_t)(op2 & 15) + fc;
-    auto ret = (fn ? v - o : v + o);
-    return (uint8_t) (ret > 15) << 4;
+    auto ret = (uint8_t)(fn ? v - o : v + o);
+    return (uint8_t) (ret > 15);
 }
 
 // читаем 8 бит из памяти

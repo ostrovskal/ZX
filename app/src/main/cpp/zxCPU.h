@@ -12,21 +12,21 @@ extern "C" {
 };
 
 extern uint8_t flags_cond[8];
-extern uint8_t tbl_parity[256];
 
 #define DA(token)   codes[pos++] = token
-//#define DA2(token)  {codes[pos++] = token & 255; codes[pos++] = token >> 8; }
 
 enum MNEMONIC_REGS {
     _RC, _RB, _RE, _RD, _RL, _RH, _RR, _RA,
-    _RNONE, _RPHL,
+    _RN, _RPHL,
     _RI, _RBC, _RDE, _RHL, _RAF, _RSP,
 };
 
-enum MNEMONIC_FLAGS {
-    _NZ = 1, _Z, _NC, _C, _PO, _PE, _P, _M
+enum MNEMONIC_CONRROL {
+    CN = 32, CNN = 64
 };
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 enum MNEMONIC_NAMES {
     C_C, C_B, C_E, C_D, C_L, C_H, C_R, C_A,
     C_NULL, C_PHL,
@@ -52,8 +52,11 @@ enum MNEMONIC_NAMES {
     C_COMMA, C_0, C_PC, C_NN, C_PNN
 };
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+
+enum CPU_FLAGS {
+    FC = 1, FN = 2, FPV = 4, F3 = 8, FH = 16, F5 = 32, FZ = 64, FS = 128
+};
+
 enum CPU_REGS {
     RC, RB, RE, RD, RL, RH, RF, RA,
     RC_, RB_, RE_, RD_, RL_, RH_, RF_, RA_,
@@ -74,31 +77,36 @@ enum CPU_REGS {
 };
 #pragma clang diagnostic pop
 
+enum MNEMONIC_FLAGS {
+    _NZ = 1, _Z, _NC, _C, _PO, _PE, _P, _M
+};
+
 enum MNEMONIC_OPS {
-    O_ADD, O_ADC, O_SUB, O_SBC, O_DEC, O_OR, O_INC, O_XOR, O_AND, O_CP,
-    O_PUSH, O_POP, O_JR, O_CALL, O_RET, O_RST, O_RETN, O_RETI,
+    O_ADD, O_SUB, O_ADC, O_SBC, O_DEC, O_OR, O_INC, O_XOR, O_AND, O_CP,
+    O_PUSH, O_POP,
+    O_RST, O_RETN,
     O_ASSIGN, O_LOAD, O_SAVE,
-    O_SPEC, O_NONI, O_ROT, O_REP, O_PREFIX,
+    O_SPEC, O_ROT, O_REP, O_PREFIX,
     O_IN, O_OUT,
     O_IM, O_NEG, O_RLD, O_RRD,
-    // 32
-    O_ROT_CB, O_SET, O_RES, O_BIT,
-    O_JMP = 64// передача управления
+    // 26
+    O_SET, O_RES, O_BIT,
+    O_JMP, O_JR, O_CALL, O_RET
 };
 
-enum MNEMONIC_CONRROL {
-    C_8BIT = 32, C_16BIT = 64
-};
+#define _FS(val)                        fs  = ((uint8_t)(val) >> 7)
+#define _FZ(val)                        fz  = ((uint8_t)(val) == 0)
+#define _FV8(op1, op2, res, fc, op)     fpv = calcFV8(op1, op2, res, fc, op)
+#define _FV16(op1, op2, res, fc, op)    fpv = calcFV16(op1, op2, res, fc, op)
+#define _FV(val)                        fpv = (uint8_t)(val)
+#define _FP(val)				        fpv = tbl_parity[(uint8_t)(val)]
+#define _FH(op1, op2, fc, fn)	        fh  = calcFH((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(fc), (uint8_t)(fn))
+#define _FHV(val)                       fh  = (uint8_t)(val);
+#define _FN(val)                        fn  = (uint8_t)(val)
+#define _FC8(val)                       fc  = (uint8_t)((val) > 255)
+#define _FC16(val)                      fc  = (uint8_t)((val) > 65535)
+#define _FC(val)                        fc  = (uint8_t)(val)
 
-enum CPU_FLAGS {
-    FC = 1, FN = 2, FPV = 4, F3 = 8, FH = 16, F5 = 32, FZ = 64, FS = 128
-};
-
-#define _FS(val)				(uint8_t)(val & 128)
-#define _FZ(val)				(uint8_t)((val == 0) << 6)
-#define _FV1(op1, res)          (uint8_t)(res ? ((op1 ^ res) & 0x80) >> 5 : 0)
-#define _FH(op1, op2, fc, fn)	calcFH(op1, op2, fc, fn)
-#define _FP(val)				tbl_parity[val]
 
 class zxCPU {
 public:
@@ -108,7 +116,7 @@ public:
         uint8_t ops;
         uint8_t tiks;
         uint8_t name;
-        uint8_t flgs;
+        uint8_t flags;
     };
 
     zxCPU();
@@ -123,7 +131,7 @@ public:
     int signalNMI();
 
     // формирование дизассемблерной строки инструкции
-    std::string daMakeMnemonic(MNEMONIC* m, int prefix, int code, uint16_t pc, uint16_t vDst, uint16_t vSrc, uint8_t v8Dst, uint8_t v8Src);
+    std::string daMakeMnemonic(MNEMONIC* m, int prefix, int code, uint16_t pc, uint16_t vDst, uint16_t vSrc, uint8_t v8Src);
 
     // триггеры
     uint8_t* _IFF1, *_IFF2;
@@ -131,7 +139,6 @@ public:
     // регистры
     uint8_t *_A, *_B, *_C, *_F, *_I, *_R, *_IM;
     uint16_t* _BC, *_DE, *_HL, *_AF, *_SP, *_IX, *_IY, *_PC;
-
 protected:
 
     uint8_t*  rRON[24];
@@ -144,20 +151,8 @@ protected:
     // вызов подпрограммы
     int call(uint16_t address);
 
-    // недействительная операция
-    int noni();
-
     // инициализация операнда
     uint8_t * initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, uint8_t& v8, int* ticks);
-
-    // проверить на наличие флага
-    bool isFlag(uint8_t num) { return (((*_F) & flags_cond[num]) ? 1 : 0) == (num & 1); }
-
-    // получить значение флага
-    inline uint8_t getFlag(uint8_t fl) { return (uint8_t)((*_F) & fl); }
-
-    // установка флагов по маске
-    inline void uflags(int msk, uint8_t val) { *_F = (uint8_t)(((*_F) & ~msk) | val); }
 
     // читаем 16 бит из PC
     inline uint16_t rm16PC() { return (rm8PC() | rm8PC() << 8); }
@@ -174,15 +169,24 @@ protected:
     // пишем в память 8 бит
     void wm8(uint16_t address, uint8_t val) { ::wm8(realPtr(address), val); }
 
+    // проверить на наличие флага
+    bool isFlag(uint8_t num) { return ((*_F & flags_cond[num]) ? 1 : 0) == (num & 1); }
+
+    // получить значение флага
+    inline uint8_t getFlag(uint8_t fl) { return (uint8_t)(*_F & fl); }
+
     // код операции
     int codeOps, codeExOps;
 
     // специальная операция
-    uint8_t opsSpec(uint8_t v8Dst, uint8_t v8Src, uint16_t vDst, uint16_t vSrc, uint8_t* dst);
+    void opsSpec(uint8_t v8Dst, uint8_t v8Src, uint16_t vDst, uint16_t vSrc, uint8_t* dst);
 
     // выполенение сдвига
-    uint8_t rotate(uint8_t value, uint8_t* nfl);
+    uint8_t rotate(uint8_t value);
 
     // выполнение повторяющихся операций
-    uint8_t opsRep(uint8_t fl, int* ticks);
+    void opsRep(uint8_t flg, int* ticks);
+
+    // флаги
+    uint8_t fc, fn, fh, fpv, fz, fs;
 };
