@@ -96,8 +96,8 @@ enum MNEMONIC_OPS {
 
 #define _FS(val)                        fs  = ((uint8_t)(val) >> 7)
 #define _FZ(val)                        fz  = ((uint8_t)(val) == 0)
-#define _FV8(op1, op2, res, fc, op)     fpv = calcFV8(op1, op2, res, fc, op)
-#define _FV16(op1, op2, res, fc, op)    fpv = calcFV16(op1, op2, res, fc, op)
+#define _FV8(op1, op2, res, fc, op)     fpv = calcFV8((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(res), fc, op)
+#define _FV16(op1, op2, res, fc, op)    fpv = calcFV16((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(res), fc, op)
 #define _FV(val)                        fpv = (uint8_t)(val)
 #define _FP(val)				        fpv = tbl_parity[(uint8_t)(val)]
 #define _FH(op1, op2, fc, fn)	        fh  = calcFH((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(fc), (uint8_t)(fn))
@@ -129,6 +129,8 @@ public:
 
     // запрос на немаскируемое прерывание
     int signalNMI();
+
+    std::string daMake(uint16_t pc, int flags);
 
     // формирование дизассемблерной строки инструкции
     std::string daMakeMnemonic(MNEMONIC* m, int prefix, int code, uint16_t pc, uint16_t vDst, uint16_t vSrc, uint8_t v8Src);
@@ -189,4 +191,10 @@ protected:
 
     // флаги
     uint8_t fc, fn, fh, fpv, fz, fs;
+
+    // спец. флаги
+    uint8_t flags;
+
+    // результат операций
+    uint16_t res;
 };

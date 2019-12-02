@@ -6,9 +6,8 @@
 
 #define REGS(dst, src)  (dst | src << 4)
 
-#define F_ADSUB     FS | FZ | FH | FPV | FN | FC
-#define F_ADSUBC16  FS | FZ | FH | FPV | FN | FC
-#define F_ADSUB8    FS | FZ | FH | FPV | FN | FC
+#define F_ADSBC16   FS | FZ | FH | FPV | FN | FC
+#define F_ADSB8     FS | FZ | FH | FPV | FN | FC
 #define F_XOR       FS | FZ | FH | FPV | FN | FC
 #define F_OR        FS | FZ | FH | FPV | FN | FC
 #define F_AND       FS | FZ | FH | FPV | FN | FC
@@ -39,66 +38,66 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RBC, _RN), O_ASSIGN, 10 | CNN, C_LD },  // LD_BC_NN
         { REGS(_RBC, _RA), O_SAVE, 7, C_LD },           // LD_PBC_A
         { REGS(_RBC, _RN), O_INC, 6, C_INC },           // INC_BC
-        { REGS(_RB, _RN), O_INC, 4, C_INC },            // INC_B
-        { REGS(_RB, _RN), O_DEC, 4, C_DEC },            // DEC_B
+        { REGS(_RB, _RN), O_INC, 4, C_INC, F_ID },      // INC_B
+        { REGS(_RB, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_B
         { REGS(_RB, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_B_N
-        { REGS(_RA, _RN), O_ROT, 4, C_RLCA },           // RLCA
+        { REGS(_RA, _RN), O_ROT, 4, C_RLCA, F_ROT },    // RLCA
         { REGS(_RN, _RN), O_SPEC, 4, C_EX_AF },         // EX_AF_AF'
-        { REGS(_RHL, _RBC), O_ADD, 11, C_ADD },         // ADD_HL_BC
+        { REGS(_RHL, _RBC), O_ADD, 11, C_ADD, F_ADD16 },// ADD_HL_BC
         { REGS(_RA, _RBC), O_LOAD, 7, C_LD },           // LD_A_PBC
         { REGS(_RBC, _RN), O_DEC, 6, C_DEC },           // DEC_BC
-        { REGS(_RC, _RN), O_INC, 4, C_INC },            // INC_C
-        { REGS(_RC, _RN), O_DEC, 4, C_DEC },            // DEC_C
+        { REGS(_RC, _RN), O_INC, 4, C_INC, F_ID },      // INC_C
+        { REGS(_RC, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_C
         { REGS(_RC, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_C_N
-        { REGS(_RA, _RN), O_ROT, 4, C_RRCA },           // RRCA
+        { REGS(_RA, _RN), O_ROT, 4, C_RRCA, F_ROT },    // RRCA
         { REGS(_RN, _RN), O_SPEC, 13 | CN, C_DJNZ },    // DJNZ
         { REGS(_RDE, _RN), O_ASSIGN, 10 | CNN, C_LD },  // LD_DE_NN
         { REGS(_RDE, _RA), O_SAVE, 7, C_LD },           // LD_PDE_A
         { REGS(_RDE, _RN), O_INC, 6, C_INC },           // INC_DE
-        { REGS(_RD, _RN), O_INC, 4, C_INC },            // INC_D
-        { REGS(_RD, _RN), O_DEC, 4, C_DEC },            // DEC_D
+        { REGS(_RD, _RN), O_INC, 4, C_INC, F_ID },      // INC_D
+        { REGS(_RD, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_D
         { REGS(_RD, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_D_N
-        { REGS(_RA, _RN), O_ROT, 4, C_RLA },            // RLA
+        { REGS(_RA, _RN), O_ROT, 4, C_RLA, F_ROT },     // RLA
         { REGS(_RN, _RN), O_JR | 224, 7 | CN, C_JR },   // JR_N
-        { REGS(_RHL, _RDE), O_ADD, 11, C_ADD },         // ADD_HL_DE
+        { REGS(_RHL, _RDE), O_ADD, 11, C_ADD, F_ADD16 },// ADD_HL_DE
         { REGS(_RA, _RDE), O_LOAD, 7, C_LD },           // LD_A_PDE
         { REGS(_RDE, _RN), O_DEC, 6, C_DEC },           // DEC_DE
-        { REGS(_RE, _RN), O_INC, 4, C_INC },            // INC_E
-        { REGS(_RE, _RN), O_DEC, 4, C_DEC },            // DEC_E
+        { REGS(_RE, _RN), O_INC, 4, C_INC, F_ID },      // INC_E
+        { REGS(_RE, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_E
         { REGS(_RE, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_E_N
-        { REGS(_RA, _RN), O_ROT, 4, C_RRA },            // RRA
+        { REGS(_RA, _RN), O_ROT, 4, C_RRA, F_ROT },     // RRA
         { REGS(_RN, _RN), O_JR, 7 | CN, C_JR, _NZ },    // JR_NZ
         { REGS(_RHL, _RN), O_ASSIGN, 10 | CNN, C_LD },  // LD_HL_NN
         { REGS(_RN, _RHL), O_SAVE, 16 | CNN, C_LD },    // LD_PNN_HL
         { REGS(_RHL, _RN), O_INC, 6, C_INC },           // INC_HL
-        { REGS(_RH, _RN), O_INC, 4, C_INC },            // INC_H
-        { REGS(_RH, _RN), O_DEC, 4, C_DEC },            // DEC_H
+        { REGS(_RH, _RN), O_INC, 4, C_INC, F_ID },      // INC_H
+        { REGS(_RH, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_H
         { REGS(_RH, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_H_N
-        { REGS(_RN, _RN), O_SPEC, 4, C_DAA },           // DAA
+        { REGS(_RN, _RN), O_SPEC, 4, C_DAA, F_DAA },    // DAA
         { REGS(_RN, _RN), O_JR, 7 | CN, C_JR, _Z },     // JR_Z
-        { REGS(_RHL, _RHL), O_ADD, 11, C_ADD },         // ADD_HL_HL
+        { REGS(_RHL, _RHL), O_ADD, 11, C_ADD, F_ADD16 },// ADD_HL_HL
         { REGS(_RHL, _RN), O_LOAD, 16 | CNN, C_LD },    // LD_HL_PNN
         { REGS(_RHL, _RN), O_DEC, 6, C_DEC },           // DEC_HL
-        { REGS(_RL, _RN), O_INC, 4, C_INC },            // INC_L
-        { REGS(_RL, _RN), O_DEC, 4, C_DEC },            // DEC_L
+        { REGS(_RL, _RN), O_INC, 4, C_INC, F_ID },      // INC_L
+        { REGS(_RL, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_L
         { REGS(_RL, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_L_N
-        { REGS(_RN, _RN), O_SPEC, 4, C_CPL},            // CPL
+        { REGS(_RN, _RN), O_SPEC, 4, C_CPL, F_CPL},     // CPL
         { REGS(_RN, _RN), O_JR, 12 | CN, C_JR, _NC },   // JR_NC
         { REGS(_RSP, _RN), O_ASSIGN, 10 | CNN, C_LD },  // LD_SP_NN
         { REGS(_RN, _RA), O_SAVE, 13 | CNN, C_LD },     // LD_PNN_A
         { REGS(_RSP, _RN), O_INC, 6, C_INC },           // INC_SP
-        { REGS(_RPHL, _RN), O_INC, 11, C_INC },         // INC_PHL
-        { REGS(_RPHL, _RN), O_DEC, 11, C_DEC },         // DEC_PHL
+        { REGS(_RPHL, _RN), O_INC, 11, C_INC, F_ID },   // INC_PHL
+        { REGS(_RPHL, _RN), O_DEC, 11, C_DEC, F_ID },   // DEC_PHL
         { REGS(_RPHL, _RN), O_SAVE, 10 | CN, C_LD },    // LD_PHL_N
-        { REGS(_RN, _RN), O_SPEC, 4, C_SCF },           // SCF
+        { REGS(_RN, _RN), O_SPEC, 4, C_SCF, F_SCF },    // SCF
         { REGS(_RN, _RN), O_JR, 7 | CN, C_JR, _C },     // JR_C
-        { REGS(_RHL, _RSP), O_ADD, 11, C_ADD },         // ADD_HL_SP
+        { REGS(_RHL, _RSP), O_ADD, 11, C_ADD, F_ADD16 },// ADD_HL_SP
         { REGS(_RA, _RN), O_LOAD, 13 | CNN, C_LD },     // LD_A_PNN
         { REGS(_RSP, _RN), O_DEC, 6, C_DEC },           // DEC_SP
-        { REGS(_RA, _RN), O_INC, 4, C_INC },            // INC_A
-        { REGS(_RA, _RN), O_DEC, 4, C_DEC },            // DEC_A
+        { REGS(_RA, _RN), O_INC, 4, C_INC, F_ID },      // INC_A
+        { REGS(_RA, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_A
         { REGS(_RA, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_A_N
-        { REGS(_RN, _RN), O_SPEC, 4, C_CCF },           // CCF
+        { REGS(_RN, _RN), O_SPEC, 4, C_CCF, F_CCF },    // CCF
         { REGS(_RB, _RB), O_ASSIGN, 4, C_LD }, /* LD_B_B */ { REGS(_RB, _RC), O_ASSIGN, 4, C_LD }, /* LD_B_C */ { REGS(_RB, _RD), O_ASSIGN, 4, C_LD }, /* LD_B_D */
         { REGS(_RB, _RE), O_ASSIGN, 4, C_LD }, /* LD_B_E */ { REGS(_RB, _RH), O_ASSIGN, 4, C_LD }, /* LD_B_H */ { REGS(_RB, _RL), O_ASSIGN, 4, C_LD }, /* LD_B_L */
         { REGS(_RB, _RPHL), O_LOAD, 7, C_LD }, /* LD_B_PHL */ { REGS(_RB, _RA), O_ASSIGN, 4, C_LD }, /* LD_B_A */
@@ -124,45 +123,45 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RA, _RE), O_ASSIGN, 4, C_LD }, /* LD_A_E */ { REGS(_RA, _RH), O_ASSIGN, 4, C_LD }, /* LD_A_H */ { REGS(_RA, _RL), O_ASSIGN, 4, C_LD }, /* LD_A_L */
         { REGS(_RA, _RPHL), O_LOAD, 7, C_LD }, /* LD_A_PHL */ { REGS(_RA, _RA), O_ASSIGN, 4, C_LD }, /* LD_A_A */
 
-        { REGS(_RN, _RB), O_ADD, 4, C_ADD }, /* ADD_A_B */ { REGS(_RN, _RC), O_ADD, 4, C_ADD }, /* ADD_A_C */
-        { REGS(_RN, _RD), O_ADD, 4, C_ADD }, /* ADD_A_D */ { REGS(_RN, _RE), O_ADD, 4, C_ADD }, /* ADD_A_E */
-        { REGS(_RN, _RH), O_ADD, 4, C_ADD }, /* ADD_A_H */ { REGS(_RN, _RL), O_ADD, 4, C_ADD }, /* ADD_A_L */
-        { REGS(_RN, _RPHL), O_ADD, 7, C_ADD }, /* ADD_A_PHL */ { REGS(_RN, _RA), O_ADD, 4, C_ADD }, /* ADD_A_A */
+        { REGS(_RN, _RB), O_ADD, 4, C_ADD, F_ADSB8 }  , /* ADD_A_B */ { REGS(_RN, _RC), O_ADD, 4, C_ADD, F_ADSB8 }  , /* ADD_A_C */
+        { REGS(_RN, _RD), O_ADD, 4, C_ADD, F_ADSB8 }  , /* ADD_A_D */ { REGS(_RN, _RE), O_ADD, 4, C_ADD, F_ADSB8 }  , /* ADD_A_E */
+        { REGS(_RN, _RH), O_ADD, 4, C_ADD, F_ADSB8 }  , /* ADD_A_H */ { REGS(_RN, _RL), O_ADD, 4, C_ADD, F_ADSB8 }  , /* ADD_A_L */
+        { REGS(_RN, _RPHL), O_ADD, 7, C_ADD, F_ADSB8 }  , /* ADD_A_PHL */ { REGS(_RN, _RA), O_ADD, 4, C_ADD, F_ADSB8 }  , /* ADD_A_A */
 
-        { REGS(_RN, _RB), O_ADC, 4, C_ADC }, /* ADC_A_B */ { REGS(_RN, _RC), O_ADC, 4, C_ADC }, /* ADC_A_C */
-        { REGS(_RN, _RD), O_ADC, 4, C_ADC }, /* ADC_A_D */ { REGS(_RN, _RE), O_ADC, 4, C_ADC }, /* ADC_A_E */
-        { REGS(_RN, _RH), O_ADC, 4, C_ADC }, /* ADC_A_H */ { REGS(_RN, _RL), O_ADC, 4, C_ADC }, /* ADC_A_A */
-        { REGS(_RN, _RPHL), O_ADC, 7, C_ADC }, /* ADC_A_PHL */ { REGS(_RN, _RA), O_ADC, 4, C_ADC }, /* ADC_A_A */
+        { REGS(_RN, _RB), O_ADC, 4, C_ADC, F_ADSB8 }, /* ADC_A_B */ { REGS(_RN, _RC), O_ADC, 4, C_ADC, F_ADSB8 }, /* ADC_A_C */
+        { REGS(_RN, _RD), O_ADC, 4, C_ADC, F_ADSB8 }, /* ADC_A_D */ { REGS(_RN, _RE), O_ADC, 4, C_ADC, F_ADSB8 }, /* ADC_A_E */
+        { REGS(_RN, _RH), O_ADC, 4, C_ADC, F_ADSB8 }, /* ADC_A_H */ { REGS(_RN, _RL), O_ADC, 4, C_ADC, F_ADSB8 }, /* ADC_A_A */
+        { REGS(_RN, _RPHL), O_ADC, 7, C_ADC, F_ADSB8 }, /* ADC_A_PHL */ { REGS(_RN, _RA), O_ADC, 4, C_ADC, F_ADSB8 }, /* ADC_A_A */
 
-        { REGS(_RN, _RB), O_SUB, 4, C_SUB }, /* SUB_A_B */ { REGS(_RN, _RC), O_SUB, 4, C_SUB }, /* SUB_A_C */
-        { REGS(_RN, _RD), O_SUB, 4, C_SUB }, /* SUB_A_D */ { REGS(_RN, _RE), O_SUB, 4, C_SUB }, /* SUB_A_E */
-        { REGS(_RN, _RH), O_SUB, 4, C_SUB }, /* SUB_A_H */ { REGS(_RN, _RL), O_SUB, 4, C_SUB }, /* SUB_A_L */
-        { REGS(_RN, _RPHL), O_SUB, 7, C_SUB }, /* SUB_A_PHL */ { REGS(_RN, _RA), O_SUB, 4, C_SUB }, /* SUB_A_A */
+        { REGS(_RN, _RB), O_SUB, 4, C_SUB, F_ADSB8 }, /* SUB_A_B */ { REGS(_RN, _RC), O_SUB, 4, C_SUB, F_ADSB8 }, /* SUB_A_C */
+        { REGS(_RN, _RD), O_SUB, 4, C_SUB, F_ADSB8 }, /* SUB_A_D */ { REGS(_RN, _RE), O_SUB, 4, C_SUB, F_ADSB8 }, /* SUB_A_E */
+        { REGS(_RN, _RH), O_SUB, 4, C_SUB, F_ADSB8 }, /* SUB_A_H */ { REGS(_RN, _RL), O_SUB, 4, C_SUB, F_ADSB8 }, /* SUB_A_L */
+        { REGS(_RN, _RPHL), O_SUB, 7, C_SUB, F_ADSB8 }, /* SUB_A_PHL */ { REGS(_RN, _RA), O_SUB, 4, C_SUB, F_ADSB8 }, /* SUB_A_A */
 
-        { REGS(_RN, _RB), O_SBC, 4, C_SBC }, /* SBC_A_B */ { REGS(_RN, _RC), O_SBC, 4, C_SBC }, /* SBC_A_C */
-        { REGS(_RN, _RD), O_SBC, 4, C_SBC }, /* SBC_A_D */ { REGS(_RN, _RE), O_SBC, 4, C_SBC }, /* SBC_A_E */
-        { REGS(_RN, _RH), O_SBC, 4, C_SBC }, /* SBC_A_H */ { REGS(_RN, _RL), O_SBC, 4, C_SBC }, /* SBC_A_L */
-        { REGS(_RN, _RPHL), O_SBC, 7, C_SBC }, /* SBC_A_PHL */ { REGS(_RN, _RA), O_SBC, 4, C_SBC }, /* SBC_A_A */
+        { REGS(_RN, _RB), O_SBC, 4, C_SBC, F_ADSB8 }, /* SBC_A_B */ { REGS(_RN, _RC), O_SBC, 4, C_SBC, F_ADSB8 }, /* SBC_A_C */
+        { REGS(_RN, _RD), O_SBC, 4, C_SBC, F_ADSB8 }, /* SBC_A_D */ { REGS(_RN, _RE), O_SBC, 4, C_SBC, F_ADSB8 }, /* SBC_A_E */
+        { REGS(_RN, _RH), O_SBC, 4, C_SBC, F_ADSB8 }, /* SBC_A_H */ { REGS(_RN, _RL), O_SBC, 4, C_SBC, F_ADSB8 }, /* SBC_A_L */
+        { REGS(_RN, _RPHL), O_SBC, 7, C_SBC, F_ADSB8 }, /* SBC_A_PHL */ { REGS(_RN, _RA), O_SBC, 4, C_SBC, F_ADSB8 }, /* SBC_A_A */
 
-        { REGS(_RN, _RB), O_AND, 4, C_AND }, /* AND_A_B */ { REGS(_RN, _RC), O_AND, 4, C_AND }, /* AND_A_C */
-        { REGS(_RN, _RD), O_AND, 4, C_AND }, /* AND_A_D */ { REGS(_RN, _RE), O_AND, 4, C_AND }, /* AND_A_E */
-        { REGS(_RN, _RH), O_AND, 4, C_AND }, /* AND_A_H */ { REGS(_RN, _RL), O_AND, 4, C_AND }, /* AND_A_ */
-        { REGS(_RN, _RPHL), O_AND, 7, C_AND }, /* AND_A_PHL */ { REGS(_RN, _RA), O_AND, 4, C_AND }, /* AND_A_A */
+        { REGS(_RN, _RB), O_AND, 4, C_AND, F_AND }, /* AND_A_B */ { REGS(_RN, _RC), O_AND, 4, C_AND, F_AND }, /* AND_A_C */
+        { REGS(_RN, _RD), O_AND, 4, C_AND, F_AND }, /* AND_A_D */ { REGS(_RN, _RE), O_AND, 4, C_AND, F_AND }, /* AND_A_E */
+        { REGS(_RN, _RH), O_AND, 4, C_AND, F_AND }, /* AND_A_H */ { REGS(_RN, _RL), O_AND, 4, C_AND, F_AND }, /* AND_A_ */
+        { REGS(_RN, _RPHL), O_AND, 7, C_AND, F_AND }, /* AND_A_PHL */ { REGS(_RN, _RA), O_AND, 4, C_AND, F_AND }, /* AND_A_A */
 
-        { REGS(_RN, _RB), O_XOR, 4, C_XOR }, /* XOR_A_B */ { REGS(_RN, _RC), O_XOR, 4, C_XOR }, /* XOR_A_C */
-        { REGS(_RN, _RD), O_XOR, 4, C_XOR }, /* XOR_A_D */ { REGS(_RN, _RE), O_XOR, 4, C_XOR }, /* XOR_A_E */
-        { REGS(_RN, _RH), O_XOR, 4, C_XOR }, /* XOR_A_H */ { REGS(_RN, _RL), O_XOR, 4, C_XOR }, /* XOR_A_L */
-        { REGS(_RN, _RPHL), O_XOR, 7, C_XOR }, /* XOR_A_PHL */ { REGS(_RN, _RA), O_XOR, 4, C_XOR }, /* XOR_A_A */
+        { REGS(_RN, _RB), O_XOR, 4, C_XOR, F_XOR }, /* XOR_A_B */ { REGS(_RN, _RC), O_XOR, 4, C_XOR, F_XOR }, /* XOR_A_C */
+        { REGS(_RN, _RD), O_XOR, 4, C_XOR, F_XOR }, /* XOR_A_D */ { REGS(_RN, _RE), O_XOR, 4, C_XOR, F_XOR }, /* XOR_A_E */
+        { REGS(_RN, _RH), O_XOR, 4, C_XOR, F_XOR }, /* XOR_A_H */ { REGS(_RN, _RL), O_XOR, 4, C_XOR, F_XOR }, /* XOR_A_L */
+        { REGS(_RN, _RPHL), O_XOR, 7, C_XOR, F_XOR }, /* XOR_A_PHL */ { REGS(_RN, _RA), O_XOR, 4, C_XOR, F_XOR }, /* XOR_A_A */
 
-        { REGS(_RN, _RB), O_OR, 4, C_OR }, /* OR_A_B */ { REGS(_RN, _RC), O_OR, 4, C_OR }, /* OR_A_C */
-        { REGS(_RN, _RD), O_OR, 4, C_OR }, /* OR_A_D */ { REGS(_RN, _RE), O_OR, 4, C_OR }, /* OR_A_E */
-        { REGS(_RN, _RH), O_OR, 4, C_OR }, /* OR_A_H */ { REGS(_RN, _RL), O_OR, 4, C_OR }, /* OR_A_L */
-        { REGS(_RN, _RPHL), O_OR, 7, C_OR }, /* OR_A_PHL */ { REGS(_RN, _RA), O_OR, 4, C_OR }, /* OR_A_A */
+        { REGS(_RN, _RB), O_OR, 4, C_OR, F_OR }, /* OR_A_B */ { REGS(_RN, _RC), O_OR, 4, C_OR, F_OR }, /* OR_A_C */
+        { REGS(_RN, _RD), O_OR, 4, C_OR, F_OR }, /* OR_A_D */ { REGS(_RN, _RE), O_OR, 4, C_OR, F_OR }, /* OR_A_E */
+        { REGS(_RN, _RH), O_OR, 4, C_OR, F_OR }, /* OR_A_H */ { REGS(_RN, _RL), O_OR, 4, C_OR, F_OR }, /* OR_A_L */
+        { REGS(_RN, _RPHL), O_OR, 7, C_OR, F_OR }, /* OR_A_PHL */ { REGS(_RN, _RA), O_OR, 4, C_OR, F_OR }, /* OR_A_A */
 
-        { REGS(_RN, _RB), O_CP, 4, C_CP }, /* CP_A_B */ { REGS(_RN, _RC), O_CP, 4, C_CP }, /* CP_A_C */
-        { REGS(_RN, _RD), O_CP, 4, C_CP }, /* CP_A_D */ { REGS(_RN, _RE), O_CP, 4, C_CP }, /* CP_A_E */
-        { REGS(_RN, _RH), O_CP, 4, C_CP }, /* CP_A_H */ { REGS(_RN, _RL), O_CP, 4, C_CP }, /* CP_A_L */
-        { REGS(_RN, _RPHL), O_CP, 7, C_CP }, /* CP_A_PHL */ { REGS(_RN, _RA), O_CP, 4, C_CP }, /* CP_A_A */
+        { REGS(_RN, _RB), O_CP, 4, C_CP, F_CP }, /* CP_A_B */ { REGS(_RN, _RC), O_CP, 4, C_CP, F_CP }, /* CP_A_C */
+        { REGS(_RN, _RD), O_CP, 4, C_CP, F_CP }, /* CP_A_D */ { REGS(_RN, _RE), O_CP, 4, C_CP, F_CP }, /* CP_A_E */
+        { REGS(_RN, _RH), O_CP, 4, C_CP, F_CP }, /* CP_A_H */ { REGS(_RN, _RL), O_CP, 4, C_CP, F_CP }, /* CP_A_L */
+        { REGS(_RN, _RPHL), O_CP, 7, C_CP, F_CP }, /* CP_A_PHL */ { REGS(_RN, _RA), O_CP, 4, C_CP, F_CP }, /* CP_A_A */
 
         { REGS(_RN, _RN), O_RET, 5, C_RET, _NZ },           // RET_NZ
         { REGS(_RBC, _RN), O_POP, 10, C_POP },              // POP_BC
@@ -170,7 +169,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_JMP | 224, 10 | CNN, C_JP },    // JP_NN
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _NZ },  // CALL_NZ
         { REGS(_RBC, _RN), O_PUSH, 11, C_PUSH },            // PUSH_BC
-        { REGS(_RN, _RN), O_ADD, 7 | CN, C_ADD },           // ADD_A_N
+        { REGS(_RN, _RN), O_ADD, 7 | CN, C_ADD, F_ADSB8 },  // ADD_A_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST0
         { REGS(_RN, _RN), O_RET, 5, C_RET, _Z },            // RET_Z
         { REGS(_RN, _RN), O_RET | 224, 10, C_RET },         // RET
@@ -178,7 +177,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_PREFIX, 4, C_NULL },            // PREF_CB
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _Z },   // CALL_Z
         { REGS(_RN, _RN), O_CALL | 224, 17 | CNN, C_CALL }, // CALL_NN
-        { REGS(_RN, _RN), O_ADC, 7 | CN, C_ADC },           // ADC_A_N
+        { REGS(_RN, _RN), O_ADC, 7 | CN, C_ADC, F_ADSB8 },  // ADC_A_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST8
         { REGS(_RN, _RN), O_RET, C_RET, _NC },              // RET_NC
         { REGS(_RDE, _RN), O_POP, 10, C_POP },              // POP_DE
@@ -186,7 +185,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RA, _RN), O_OUT, 11 | CN, C_OUT },          // OUT_PN_A
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _NC },  // CALL_NC
         { REGS(_RDE, _RN), O_PUSH, 11, C_PUSH },            // PUSH_DE
-        { REGS(_RN, _RN), O_SUB, 7 | CN, C_SUB },           // SUB_N
+        { REGS(_RN, _RN), O_SUB, 7 | CN, C_SUB, F_ADSB8 },  // SUB_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST16
         { REGS(_RN, _RN), O_RET, 5, C_RET, _C },            // RET_C
         { REGS(_RN, _RN), O_SPEC, 4, C_EXX },               // EXX
@@ -194,7 +193,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RA, _RN), O_IN, 11 | CN, C_IN },            // IN_A_PN
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _C },   // CALL_C
         { REGS(_RN, _RN), O_PREFIX, 4, C_NULL },            // PREF_DD
-        { REGS(_RN, _RN), O_SBC, 7 | CN, C_SBC },           // SBC_A_N
+        { REGS(_RN, _RN), O_SBC, 7 | CN, C_SBC, F_ADSB8 },  // SBC_A_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST24
         { REGS(_RN, _RN), O_RET, 5, C_RET, _PO },           // RET_PO
         { REGS(_RHL, _RN), O_POP, 10, C_POP },              // POP_HL
@@ -202,7 +201,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RHL, _RSP), O_SPEC, 19, C_EX_SP },          // EX_PSP_HL
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _PO },  // CALL_PO
         { REGS(_RHL, _RN), O_PUSH, 11, C_PUSH },            // PUSH_HL
-        { REGS(_RN, _RN), O_AND, 7 | CN, C_AND },           // AND_N
+        { REGS(_RN, _RN), O_AND, 7 | CN, C_AND, F_AND },    // AND_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST32
         { REGS(_RN, _RN), O_RET, 5, C_RET, _PE },           // RET_PE
         { REGS(_RHL, _RN), O_SPEC, 4, C_JP },               // JP_HL
@@ -210,7 +209,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_SPEC, 4, C_EX_DE },             // EX_DE_HL
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _PE },  // CALL_PE
         { REGS(_RN, _RN), O_PREFIX, 4, C_NULL },            // PREF_ED
-        { REGS(_RN, _RN), O_XOR, 7 | CN, C_XOR },           // XOR_N
+        { REGS(_RN, _RN), O_XOR, 7 | CN, C_XOR, F_XOR },    // XOR_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST40
         { REGS(_RN, _RN), O_RET, 5, C_RET, _P },            // RET_P
         { REGS(_RAF, _RN), O_POP, 10, C_POP },              // POP_AF
@@ -218,7 +217,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_SPEC, 4, C_DI },                // DI
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _P },   // CALL_P
         { REGS(_RAF, _RN), O_PUSH, 11, C_PUSH },            // PUSH_AF
-        { REGS(_RN, _RN), O_OR, 7 | CN, C_OR },             // OR_N
+        { REGS(_RN, _RN), O_OR, 7 | CN, C_OR, F_OR },       // OR_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST48
         { REGS(_RN, _RN), O_RET, 5, C_RET, _M },            // RET_M
         { REGS(_RSP, _RHL), O_ASSIGN, 4, C_LD },            // LD_SP_HL
@@ -226,74 +225,74 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_SPEC, 4, C_EI },                // EI
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _M },   // CALL_M
         { REGS(_RN, _RN), O_PREFIX, 4, C_NULL },            // PREF_FD
-        { REGS(_RN, _RN), O_CP, 7 | CN, C_CP },             // CP_N
+        { REGS(_RN, _RN), O_CP, 7 | CN, C_CP, F_CP },       // CP_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST56
         // 203
-        { REGS(_RB, _RN), O_ROT, 8, C_RLC }, /* RLC_B */ { REGS(_RC, _RN), O_ROT, 8, C_RLC }, /* RLC_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_RLC }, /* RLC_D */ { REGS(_RE, _RN), O_ROT, 8, C_RLC }, /* RLC_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_RLC }, /* RLC_H */ { REGS(_RL, _RN), O_ROT, 8, C_RLC }, /* RLC_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_RLC }, /* RLC_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RLC }, /* RLC_A */
-        { REGS(_RB, _RN), O_ROT, 8, C_RRC }, /* RRC_B */ { REGS(_RC, _RN), O_ROT, 8, C_RRC }, /* RRC_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_RRC }, /* RRC_D */ { REGS(_RE, _RN), O_ROT, 8, C_RRC }, /* RRC_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_RRC }, /* RRC_H */ { REGS(_RL, _RN), O_ROT, 8, C_RRC }, /* RRC_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_RRC }, /* RRC_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RRC }, /* RRC_A */
-        { REGS(_RB, _RN), O_ROT, 8, C_RL }, /* RL_B */ { REGS(_RC, _RN), O_ROT, 8, C_RL }, /* RL_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_RL }, /* RL_D */ { REGS(_RE, _RN), O_ROT, 8, C_RL }, /* RL_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_RL }, /* RL_H */ { REGS(_RL, _RN), O_ROT, 8, C_RL }, /* RL_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_RL }, /* RL_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RL }, /* RL_A */
-        { REGS(_RB, _RN), O_ROT, 8, C_RR }, /* RR_B */ { REGS(_RC, _RN), O_ROT, 8, C_RR }, /* RR_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_RR }, /* RR_D */ { REGS(_RE, _RN), O_ROT, 8, C_RR }, /* RR_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_RR }, /* RR_H */ { REGS(_RL, _RN), O_ROT, 8, C_RR }, /* RR_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_RR }, /* RR_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RR }, /* RR_A */
-        { REGS(_RB, _RN), O_ROT, 8, C_SLA }, /* SLA_B */ { REGS(_RC, _RN), O_ROT, 8, C_SLA }, /* SLA_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_SLA }, /* SLA_D */ { REGS(_RE, _RN), O_ROT, 8, C_SLA }, /* SLA_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_SLA }, /* SLA_H */ { REGS(_RL, _RN), O_ROT, 8, C_SLA }, /* SLA_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_SLA }, /* SLA_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SLA }, /* SLA_A */
-        { REGS(_RB, _RN), O_ROT, 8, C_SRA }, /* SRA_B */ { REGS(_RC, _RN), O_ROT, 8, C_SRA }, /* SRA_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_SRA }, /* SRA_D */ { REGS(_RE, _RN), O_ROT, 8, C_SRA }, /* SRA_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_SRA }, /* SRA_H */ { REGS(_RL, _RN), O_ROT, 8, C_SRA }, /* SRA_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_SRA }, /* SRA_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SRA }, /* SRA_A */
-        { REGS(_RB, _RN), O_ROT, 8, C_SLI }, /* SLI_B */ { REGS(_RC, _RN), O_ROT, 8, C_SLI }, /* SLI_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_SLI }, /* SLI_D */ { REGS(_RE, _RN), O_ROT, 8, C_SLI }, /* SLI_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_SLI }, /* SLI_H */ { REGS(_RL, _RN), O_ROT, 8, C_SLI }, /* SLI_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_SLI }, /* SLI_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SLI }, /* SLI_A */
-        { REGS(_RB, _RN), O_ROT, 8, C_SRL }, /* SRL_B */ { REGS(_RC, _RN), O_ROT, 8, C_SRL }, /* SRL_C */
-        { REGS(_RD, _RN), O_ROT, 8, C_SRL }, /* SRL_D */ { REGS(_RE, _RN), O_ROT, 8, C_SRL }, /* SRL_E */
-        { REGS(_RH, _RN), O_ROT, 8, C_SRL }, /* SRL_H */ { REGS(_RL, _RN), O_ROT, 8, C_SRL }, /* SRL_L */
-        { REGS(_RPHL, _RN), O_ROT, 15, C_SRL }, /* SRL_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SRL }, /* SRL_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_RLC, F_ROTX }, /* RLC_B */ { REGS(_RC, _RN), O_ROT, 8, C_RLC, F_ROTX }, /* RLC_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_RLC, F_ROTX }, /* RLC_D */ { REGS(_RE, _RN), O_ROT, 8, C_RLC, F_ROTX }, /* RLC_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_RLC, F_ROTX }, /* RLC_H */ { REGS(_RL, _RN), O_ROT, 8, C_RLC, F_ROTX }, /* RLC_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_RLC, F_ROTX }, /* RLC_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RLC, F_ROTX }, /* RLC_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_RRC, F_ROTX }, /* RRC_B */ { REGS(_RC, _RN), O_ROT, 8, C_RRC, F_ROTX }, /* RRC_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_RRC, F_ROTX }, /* RRC_D */ { REGS(_RE, _RN), O_ROT, 8, C_RRC, F_ROTX }, /* RRC_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_RRC, F_ROTX }, /* RRC_H */ { REGS(_RL, _RN), O_ROT, 8, C_RRC, F_ROTX }, /* RRC_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_RRC, F_ROTX }, /* RRC_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RRC, F_ROTX }, /* RRC_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_RL, F_ROTX }, /* RL_B */ { REGS(_RC, _RN), O_ROT, 8, C_RL, F_ROTX }, /* RL_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_RL, F_ROTX }, /* RL_D */ { REGS(_RE, _RN), O_ROT, 8, C_RL, F_ROTX }, /* RL_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_RL, F_ROTX }, /* RL_H */ { REGS(_RL, _RN), O_ROT, 8, C_RL, F_ROTX }, /* RL_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_RL, F_ROTX }, /* RL_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RL, F_ROTX }, /* RL_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_RR, F_ROTX }, /* RR_B */ { REGS(_RC, _RN), O_ROT, 8, C_RR, F_ROTX }, /* RR_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_RR, F_ROTX }, /* RR_D */ { REGS(_RE, _RN), O_ROT, 8, C_RR, F_ROTX }, /* RR_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_RR, F_ROTX }, /* RR_H */ { REGS(_RL, _RN), O_ROT, 8, C_RR, F_ROTX }, /* RR_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_RR, F_ROTX }, /* RR_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_RR, F_ROTX }, /* RR_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_SLA, F_ROTX }, /* SLA_B */ { REGS(_RC, _RN), O_ROT, 8, C_SLA, F_ROTX }, /* SLA_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_SLA, F_ROTX }, /* SLA_D */ { REGS(_RE, _RN), O_ROT, 8, C_SLA, F_ROTX }, /* SLA_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_SLA, F_ROTX }, /* SLA_H */ { REGS(_RL, _RN), O_ROT, 8, C_SLA, F_ROTX }, /* SLA_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_SLA, F_ROTX }, /* SLA_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SLA, F_ROTX }, /* SLA_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_SRA, F_ROTX }, /* SRA_B */ { REGS(_RC, _RN), O_ROT, 8, C_SRA, F_ROTX }, /* SRA_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_SRA, F_ROTX }, /* SRA_D */ { REGS(_RE, _RN), O_ROT, 8, C_SRA, F_ROTX }, /* SRA_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_SRA, F_ROTX }, /* SRA_H */ { REGS(_RL, _RN), O_ROT, 8, C_SRA, F_ROTX }, /* SRA_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_SRA, F_ROTX }, /* SRA_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SRA, F_ROTX }, /* SRA_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_SLI, F_ROTX }, /* SLI_B */ { REGS(_RC, _RN), O_ROT, 8, C_SLI, F_ROTX }, /* SLI_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_SLI, F_ROTX }, /* SLI_D */ { REGS(_RE, _RN), O_ROT, 8, C_SLI, F_ROTX }, /* SLI_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_SLI, F_ROTX }, /* SLI_H */ { REGS(_RL, _RN), O_ROT, 8, C_SLI, F_ROTX }, /* SLI_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_SLI, F_ROTX }, /* SLI_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SLI, F_ROTX }, /* SLI_A */
+        { REGS(_RB, _RN), O_ROT, 8, C_SRL, F_ROTX }, /* SRL_B */ { REGS(_RC, _RN), O_ROT, 8, C_SRL, F_ROTX }, /* SRL_C */
+        { REGS(_RD, _RN), O_ROT, 8, C_SRL, F_ROTX }, /* SRL_D */ { REGS(_RE, _RN), O_ROT, 8, C_SRL, F_ROTX }, /* SRL_E */
+        { REGS(_RH, _RN), O_ROT, 8, C_SRL, F_ROTX }, /* SRL_H */ { REGS(_RL, _RN), O_ROT, 8, C_SRL, F_ROTX }, /* SRL_L */
+        { REGS(_RPHL, _RN), O_ROT, 15, C_SRL, F_ROTX }, /* SRL_PHL */ { REGS(_RA, _RN), O_ROT, 8, C_SRL, F_ROTX }, /* SRL_A */
 
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_0_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_0_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_0_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_0_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_0_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_0_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_0_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_0_A */
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_1_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_1_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_1_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_1_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_1_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_1_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_1_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_1_A */
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_2_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_2_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_2_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_2_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_2_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_2_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_2_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_2_A */
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_3_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_3_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_3_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_3_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_3_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_3_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_3_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_3_A */
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_4_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_4_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_4_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_4_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_4_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_4_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_4_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_4_A */
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_5_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_5_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_5_D*/ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_5_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_5_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_5_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_5_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_5_A */
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_6_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_6_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_6_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_6_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_6_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_6_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_6_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_6_A */
-        { REGS(_RB, _RN), O_BIT, 8, C_BIT }, /* BIT_7_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT }, /* BIT_7_C */
-        { REGS(_RD, _RN), O_BIT, 8, C_BIT }, /* BIT_7_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT }, /* BIT_7_E */
-        { REGS(_RH, _RN), O_BIT, 8, C_BIT }, /* BIT_7_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT }, /* BIT_7_L */
-        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT }, /* BIT_7_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT }, /* BIT_7_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_0_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_0_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_0_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_0_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_0_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_0_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_0_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_0_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_1_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_1_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_1_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_1_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_1_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_1_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_1_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_1_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_2_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_2_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_2_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_2_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_2_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_2_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_2_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_2_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_3_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_3_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_3_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_3_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_3_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_3_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_3_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_3_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_4_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_4_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_4_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_4_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_4_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_4_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_4_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_4_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_5_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_5_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_5_D*/ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_5_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_5_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_5_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_5_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_5_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_6_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_6_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_6_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_6_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_6_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_6_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_6_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_6_A */
+        { REGS(_RB, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_7_B */ { REGS(_RC, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_7_C */
+        { REGS(_RD, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_7_D */ { REGS(_RE, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_7_E */
+        { REGS(_RH, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_7_H */ { REGS(_RL, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_7_L */
+        { REGS(_RPHL, _RN), O_BIT, 12, C_BIT, F_BIT }, /* BIT_7_PHL */ { REGS(_RA, _RN), O_BIT, 8, C_BIT, F_BIT }, /* BIT_7_A */
 
         { REGS(_RB, _RN), O_RES, 8, C_RES }, /* RES_0_B */ { REGS(_RC, _RN), O_RES, 8, C_RES }, /* RES_0_C */ { REGS(_RD, _RN), O_RES, 8, C_RES }, /* RES_0_D */
         { REGS(_RE, _RN), O_RES, 8, C_RES }, /* RES_0_E */ { REGS(_RH, _RN), O_RES, 8, C_RES }, /* RES_0_H */ { REGS(_RL, _RN), O_RES, 8, C_RES }, /* RES_0_L */
@@ -351,92 +350,92 @@ static zxCPU::MNEMONIC mnemonics[] = {
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { REGS(_RB, _RC), O_IN, 12, C_IN },         // IN_B_BC = 64
-        { REGS(_RB, _RC), O_OUT, 12, C_OUT },       // OUT_PC_B
-        { REGS(_RHL, _RBC), O_SBC, 15, C_SBC },     // SBC_HL_BC
-        { REGS(_RN, _RBC), O_SAVE, 20 | CNN, C_LD },// LD_PNN_BC
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG
-        { REGS(_RN, _RN), O_RETN, C_RETN, 14 },     // RETN
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM0
-        { REGS(_RI, _RA), O_ASSIGN, 9, C_LD },      // LD_I_A
-        { REGS(_RC, _RC), O_IN, 12, C_IN },         // IN_C_BC
-        { REGS(_RC, _RC), O_OUT, 12, C_OUT },       // OUT_PC_C
-        { REGS(_RHL, _RBC), O_ADC, 15, C_ADC },     // ADC_HL_BC
-        { REGS(_RBC, _RN), O_LOAD, 20 | CNN, C_LD },// LD_BC_PNN
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG_1
-        { REGS(_RN, _RN), O_RETN, 14, C_RETI },     // RETI
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM0_1
-        { REGS(_RR, _RA), O_ASSIGN, 9, C_LD },      // LD_R_A
-        { REGS(_RD, _RC), O_IN, 12, C_IN },         // IN_D_BC
-        { REGS(_RD, _RC), O_OUT, 12, C_OUT },       // OUT_PC_D
-        { REGS(_RHL, _RDE), O_SBC, 15, C_SBC },     // SBC_HL_DE
-        { REGS(_RN, _RDE), O_SAVE, 20 | CNN, C_LD },// LD_PNN_DE
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG_2
-        { REGS(_RN, _RN), O_RETN, 14, C_RETN },     // RETN_1
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM1
-        { REGS(_RA, _RI), O_ASSIGN, 9, C_LD },      // LD_A_I
-        { REGS(_RE, _RC), O_IN, 12, C_IN },         // IN_E_BC
-        { REGS(_RE, _RC), O_OUT, 12, C_OUT },       // OUT_PC_E
-        { REGS(_RHL, _RDE), O_ADC, 15, C_ADC },     // ADC_HL_DE
-        { REGS(_RDE, _RN), O_LOAD, 20 | CNN, C_LD },// LD_DE_PNN
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG_3
-        { REGS(_RN, _RN), O_RETN, 14, C_RETI },     // RETI_1
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM2
-        { REGS(_RA, _RR), O_ASSIGN, 9, C_LD, },     // LD_A_R
-        { REGS(_RH, _RC), O_IN, 12, C_IN },         // IN_H_BC
-        { REGS(_RH, _RC), O_OUT, 12, C_OUT },       // OUT_PC_H
-        { REGS(_RHL, _RHL), O_SBC, 15, C_SBC },     // SBC_HL_HL
-        { REGS(_RN, _RHL), O_SAVE, 20 | CNN, C_LD },// LD_PNN_HL1
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG_4
-        { REGS(_RN, _RN), O_RETN, 14, C_RETN },     // RETN_2
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM0_2
-        { REGS(_RHL, _RA), O_RRD, 18, C_RRD },      // RRD
-        { REGS(_RL, _RC), O_IN, 12, C_IN },         // IN_L_BC
-        { REGS(_RL, _RC), O_OUT, 12, C_OUT },       // OUT_PC_L
-        { REGS(_RHL, _RHL), O_ADC, 15, C_ADC },     // ADC_HL_HL
-        { REGS(_RHL, _RN), O_LOAD, 20 | CNN, C_LD },// LD_HL1_PNN
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG_5
-        { REGS(_RN, _RN), O_RETN, 14, C_RETI },     // RETI_2
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM0_3
-        { REGS(_RHL, _RA), O_RLD, 18, C_RLD },      // RLD
-        { REGS(_RN, _RC), O_SPEC, 12, C_IN },       // IN_F_PC
-        { REGS(_RN, _RC), O_SPEC, 12, C_OUT },      // OUT_PC_0
-        { REGS(_RHL, _RSP), O_SBC, 15, C_SBC },     // SBC_HL_SP
-        { REGS(_RN, _RSP), O_SAVE, 20 | CNN, C_LD },// LD_PNN_SP
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG_6
-        { REGS(_RN, _RN), O_RETN, 14, C_RETN },     // RETN_3
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM1_1
-        { REGS(_RHL, _RA), O_RRD, 18, C_RRD },      // RRD_1
-        { REGS(_RA, _RC), O_IN, 12, C_IN },         // IN_A_BC
-        { REGS(_RA, _RC), O_OUT, 12, C_OUT },       // OUT_PC_A
-        { REGS(_RHL, _RSP), O_ADC, 15, C_ADC },     // ADC_HL_SP
-        { REGS(_RSP, _RN), O_LOAD, 20 | CNN, C_LD },// LD_SP_PNN
-        { REGS(_RN, _RN), O_NEG, 4, C_NEG },        // NEG_7
-        { REGS(_RN, _RN), O_RETN, 14, C_RETI },     // RETI_3
-        { REGS(_RN, _RN), O_IM, 8, C_IM },        // IM2_1
-        { REGS(_RHL, _RA), O_RLD, 18, C_RLD },      // RLD_1 = 127
+        { REGS(_RB, _RC), O_IN, 12, C_IN, F_IN },           // IN_B_BC = 64
+        { REGS(_RB, _RC), O_OUT, 12, C_OUT },               // OUT_PC_B
+        { REGS(_RHL, _RBC), O_SBC, 15, C_SBC, F_ADSBC16 },  // SBC_HL_BC
+        { REGS(_RN, _RBC), O_SAVE, 20 | CNN, C_LD },        // LD_PNN_BC
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG
+        { REGS(_RN, _RN), O_RETN, C_RETN, 14 },             // RETN
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM0
+        { REGS(_RI, _RA), O_ASSIGN, 9, C_LD },              // LD_I_A
+        { REGS(_RC, _RC), O_IN, 12, C_IN, F_IN },           // IN_C_BC
+        { REGS(_RC, _RC), O_OUT, 12, C_OUT },               // OUT_PC_C
+        { REGS(_RHL, _RBC), O_ADC, 15, C_ADC, F_ADSBC16 },  // ADC_HL_BC
+        { REGS(_RBC, _RN), O_LOAD, 20 | CNN, C_LD },        // LD_BC_PNN
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG_1
+        { REGS(_RN, _RN), O_RETN, 14, C_RETI },             // RETI
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM0_1
+        { REGS(_RR, _RA), O_ASSIGN, 9, C_LD },              // LD_R_A
+        { REGS(_RD, _RC), O_IN, 12, C_IN, F_IN },           // IN_D_BC
+        { REGS(_RD, _RC), O_OUT, 12, C_OUT },               // OUT_PC_D
+        { REGS(_RHL, _RDE), O_SBC, 15, C_SBC, F_ADSBC16 },  // SBC_HL_DE
+        { REGS(_RN, _RDE), O_SAVE, 20 | CNN, C_LD },        // LD_PNN_DE
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG_2
+        { REGS(_RN, _RN), O_RETN, 14, C_RETN },             // RETN_1
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM1
+        { REGS(_RA, _RI), O_ASSIGN, 9, C_LD, F_IR },        // LD_A_I
+        { REGS(_RE, _RC), O_IN, 12, C_IN, F_IN },           // IN_E_BC
+        { REGS(_RE, _RC), O_OUT, 12, C_OUT },               // OUT_PC_E
+        { REGS(_RHL, _RDE), O_ADC, 15, C_ADC, F_ADSBC16 },  // ADC_HL_DE
+        { REGS(_RDE, _RN), O_LOAD, 20 | CNN, C_LD },        // LD_DE_PNN
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG_3
+        { REGS(_RN, _RN), O_RETN, 14, C_RETI },             // RETI_1
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM2
+        { REGS(_RA, _RR), O_ASSIGN, 9, C_LD, F_IR},         // LD_A_R
+        { REGS(_RH, _RC), O_IN, 12, C_IN, F_IN },           // IN_H_BC
+        { REGS(_RH, _RC), O_OUT, 12, C_OUT },               // OUT_PC_H
+        { REGS(_RHL, _RHL), O_SBC, 15, C_SBC, F_ADSBC16 },  // SBC_HL_HL
+        { REGS(_RN, _RHL), O_SAVE, 20 | CNN, C_LD },        // LD_PNN_HL1
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG_4
+        { REGS(_RN, _RN), O_RETN, 14, C_RETN },             // RETN_2
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM0_2
+        { REGS(_RHL, _RA), O_RRD, 18, C_RRD, F_RLRD },      // RRD
+        { REGS(_RL, _RC), O_IN, 12, C_IN, F_IN },           // IN_L_BC
+        { REGS(_RL, _RC), O_OUT, 12, C_OUT },               // OUT_PC_L
+        { REGS(_RHL, _RHL), O_ADC, 15, C_ADC, F_ADSBC16 },  // ADC_HL_HL
+        { REGS(_RHL, _RN), O_LOAD, 20 | CNN, C_LD },        // LD_HL1_PNN
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG_5
+        { REGS(_RN, _RN), O_RETN, 14, C_RETI },             // RETI_2
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM0_3
+        { REGS(_RHL, _RA), O_RLD, 18, C_RLD, F_RLRD },      // RLD
+        { REGS(_RN, _RC), O_SPEC, 12, C_IN, F_F_PC },       // IN_F_PC
+        { REGS(_RN, _RC), O_SPEC, 12, C_OUT },              // OUT_PC_0
+        { REGS(_RHL, _RSP), O_SBC, 15, C_SBC, F_ADSBC16 },  // SBC_HL_SP
+        { REGS(_RN, _RSP), O_SAVE, 20 | CNN, C_LD },        // LD_PNN_SP
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG_6
+        { REGS(_RN, _RN), O_RETN, 14, C_RETN },             // RETN_3
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM1_1
+        { REGS(_RHL, _RA), O_RRD, 18, C_RRD, F_RLRD },      // RRD_1
+        { REGS(_RA, _RC), O_IN, 12, C_IN, F_IN },           // IN_A_BC
+        { REGS(_RA, _RC), O_OUT, 12, C_OUT },               // OUT_PC_A
+        { REGS(_RHL, _RSP), O_ADC, 15, C_ADC, F_ADSBC16 },  // ADC_HL_SP
+        { REGS(_RSP, _RN), O_LOAD, 20 | CNN, C_LD },        // LD_SP_PNN
+        { REGS(_RN, _RN), O_NEG, 4, C_NEG, F_NEG },         // NEG_7
+        { REGS(_RN, _RN), O_RETN, 14, C_RETI },             // RETI_3
+        { REGS(_RN, _RN), O_IM, 8, C_IM },                  // IM2_1
+        { REGS(_RHL, _RA), O_RLD, 18, C_RLD, F_RLRD },      // RLD_1 = 127
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { REGS(_RN, _RN), O_REP, 16, C_LDI },        // LDI
-        { REGS(_RN, _RN), O_REP, 16, C_CPI },        // CPI
-        { REGS(_RN, _RN), O_REP, 16, C_INI },        // INI
-        { REGS(_RN, _RN), O_REP, 16, C_OTI },        // OTI
+        { REGS(_RN, _RN), O_REP, 16, C_LDI, F_LDI },            // LDI
+        { REGS(_RN, _RN), O_REP, 16, C_CPI, F_CPI },            // CPI
+        { REGS(_RN, _RN), O_REP, 16, C_INI, F_INI },            // INI
+        { REGS(_RN, _RN), O_REP, 16, C_OTI, F_OTI },            // OTI
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { REGS(_RN, _RN), O_REP, 16, C_LDD, F3 },  // LDD
-        { REGS(_RN, _RN), O_REP, 16, C_CPD, F3 },  // CPD
-        { REGS(_RN, _RN), O_REP, 16, C_IND, F3 },  // IND
-        { REGS(_RN, _RN), O_REP, 16, C_OTD, F3 },  // OTD
+        { REGS(_RN, _RN), O_REP, 16, C_LDD, F3 | F_LDI },       // LDD
+        { REGS(_RN, _RN), O_REP, 16, C_CPD, F3 | F_CPI },       // CPD
+        { REGS(_RN, _RN), O_REP, 16, C_IND, F3 | F_INI },       // IND
+        { REGS(_RN, _RN), O_REP, 16, C_OTD, F3 | F_OTI },       // OTD
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { REGS(_RN, _RN), O_REP, 16, C_LDIR, F5 }, // LDIR
-        { REGS(_RN, _RN), O_REP, 16, C_CPIR, F5 }, // CPIR
-        { REGS(_RN, _RN), O_REP, 16, C_INIR, F5 }, // INIR
-        { REGS(_RN, _RN), O_REP, 16, C_OTIR, F5 }, // OTIR
+        { REGS(_RN, _RN), O_REP, 16, C_LDIR, F5 | F_LDI},       // LDIR
+        { REGS(_RN, _RN), O_REP, 16, C_CPIR, F5 | F_CPI },      // CPIR
+        { REGS(_RN, _RN), O_REP, 16, C_INIR, F5 | F_INI },      // INIR
+        { REGS(_RN, _RN), O_REP, 16, C_OTIR, F5 | F_OTI },      // OTIR
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { REGS(_RN, _RN), O_REP, 16, C_LDDR, F3 | F5 },      // LDDR
-        { REGS(_RN, _RN), O_REP, 16, C_CPDR, F3 | F5 },      // CPDR
-        { REGS(_RN, _RN), O_REP, 16, C_INDR, F3 | F5 },      // INDR
-        { REGS(_RN, _RN), O_REP, 16, C_OTDR, F3 | F5 },      // OTDR
+        { REGS(_RN, _RN), O_REP, 16, C_LDDR, F3 | F5 | F_LDI }, // LDDR
+        { REGS(_RN, _RN), O_REP, 16, C_CPDR, F3 | F5 | F_CPI }, // CPDR
+        { REGS(_RN, _RN), O_REP, 16, C_INDR, F3 | F5 | F_INI }, // INDR
+        { REGS(_RN, _RN), O_REP, 16, C_OTDR, F3 | F5 | F_OTI }, // OTDR
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
