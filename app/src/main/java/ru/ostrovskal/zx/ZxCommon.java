@@ -37,6 +37,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
     public static final int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображений
     public static final int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
+    public static final int ZX_PROP_SHOW_HEX        = 141; // Признак 16-тиричного вывода
 
     // 2. Байтовые значения
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -73,6 +74,20 @@ public final class ZxCommon {
     public static final int MODEL_128K              = 2; // Синклер 128К
     public static final int MODEL_PENTAGON          = 3; // Пентагон 128К
     public static final int MODEL_SCORPION          = 4; // Скорпион 256К
+
+    // Варианты форматирования чисел
+    public static final int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
+    public static final int ZX_FV_CODE				= 2; // "3X ", "2X "
+    public static final int ZX_FV_PADDR16			= 4; // "5(X)", "4(#X)"
+    public static final int ZX_FV_PADDR8			= 6; // "3(X)", "2(#X)"
+    public static final int ZX_FV_P_OFFS			= 8; // "3+X)", "2+#X)"
+    public static final int ZX_FV_M_OFFS			= 10;// "3-X)", "2-#X)"
+    public static final int ZX_FV_NUM16				= 12;// "5X", "4X"
+    public static final int ZX_FV_OPS16				= 14;// "5X", "4#X"
+    public static final int ZX_FV_OPS8				= 16;// "3X", "2#X"
+    public static final int ZX_FV_CVAL				= 18;// "5[X]", "4[#X]"
+    public static final int ZX_FV_PVAL				= 20;// "3{X}", "2{#X}"
+    public static final int ZX_FV_NUMBER			= 22;// "0X", "0X"
 
     // Режимы курсора
     public static final byte MODE_K                 = 0;

@@ -59,6 +59,7 @@ constexpr int ZX_PROP_SND_8BIT        = 137; // Признак 8 битного 
 constexpr int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
 constexpr int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображений
 constexpr int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
+constexpr int ZX_PROP_SHOW_HEX        = 141; // Признак 16-тиричного вывода
 
 // 2. Байтовые значения
 constexpr int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -107,6 +108,19 @@ constexpr uint8_t MODE_CK             = 7;
 constexpr uint8_t MODE_G              = 8;
 constexpr uint8_t MODE_G1             = 9;
 
+// Варианты форматирования чисел
+constexpr int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
+constexpr int ZX_FV_CODE				= 2; // "3X ", "2X "
+constexpr int ZX_FV_PADDR16				= 4; // "5(X)", "4(#X)"
+constexpr int ZX_FV_PADDR8				= 6; // "3(X)", "2(#X)"
+constexpr int ZX_FV_OFFS				= 8; // "3+-X)", "2+-#X)"
+constexpr int ZX_FV_NUM16				= 10;// "5X", "4X"
+constexpr int ZX_FV_OPS16				= 12;// "5X", "4#X"
+constexpr int ZX_FV_OPS8				= 14;// "3X", "2#X"
+constexpr int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
+constexpr int ZX_FV_PVAL				= 18;// "3{X}", "2{#X}"
+constexpr int ZX_FV_NUMBER				= 20;// "0X", "0#X"
+
 // Команды
 constexpr int ZX_CMD_MODEL              = 0; // Установка модели памяти
 constexpr int ZX_CMD_PROPS              = 1; // Установка свойств
@@ -146,14 +160,20 @@ constexpr int RADIX_BOL 				= 6;
 #define modifySTATE(a, r)               { (*zxALU::_STATE) &= ~r; (*zxALU::_STATE) |= a; }
 #define SWAP_REG(r1, r2)                { auto a = *(r1); auto b = *(r2); *(r1) = b; *(r2) = a; }
 
-//
+// вывод отладочной информации
 void info(const char* msg, ...);
 
-const char** ssh_split(const char* str, const char* delim, int* count = nullptr);
+// разбить строку на подстроки
+char** ssh_split(const char* str, const char* delim, int* count = nullptr);
 
+// число в строку
 char* ssh_ntos(void* v, int r, char** end = nullptr);
 
+// строку в число
 void* ssh_ston(const char* s, int r, const char** end = nullptr);
+
+// число в строку с формированием
+char* ssh_fmtValue(int value, int type, bool hex);
 
 bool unpackBlock(uint8_t* ptr, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool packed, bool sign);
 
@@ -161,21 +181,22 @@ uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_
 
 uint8_t* realPtr(uint16_t address);
 
-static uint8_t tblOV[] = {0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0};
-
 inline uint8_t calcFV8(uint8_t p1, uint8_t p2, uint8_t res, uint8_t fc, uint8_t op) {
+    static uint8_t tblOV[] = {0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0};
     auto rr = res >> 7;
     auto pp2 = (p2 >> 6) & 2;
     auto pp1 = ((p1 + fc) >> 5) & 4;
     return tblOV[(pp1 | pp2 | rr) + (op << 3)];
 }
 
+/*
 inline uint8_t calcFV16(uint16_t p1, uint16_t p2, uint16_t res, uint8_t fc, uint8_t op) {
     auto rr = res >> 15;
     auto pp2 = (p2 >> 14) & 2;
     auto pp1 = ((p1 + fc) >> 13) & 4;
     return tblOV[(pp1 | pp2 | rr) + (op << 3)];
 }
+*/
 
 // вычисление полупереноса
 inline uint8_t calcFH(uint8_t op1, uint8_t op2, uint8_t fc, uint8_t fn) {
@@ -214,8 +235,10 @@ inline uint8_t* ssh_memcpy(void* dst, const void* src, size_t count) {
     return (uint8_t*) dst;
 }
 
-inline char* ssh_strcpy(char* dst, const char* src) {
-    auto l = strlen(src);
-    if (dst && src) dst = (strcpy(dst, src) + l);
-    return dst;
+inline char* ssh_strcpy(char** dst, const char* src) {
+    if (dst && src) {
+        auto l = strlen(src);
+        *dst = (strcpy(*dst, src) + l);
+    }
+    return *dst;
 }

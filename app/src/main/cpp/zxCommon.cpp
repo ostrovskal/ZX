@@ -206,16 +206,48 @@ void* ssh_ston(const char* s, int r, const char** end) {
     return &res;
 }
 
-const char** ssh_split(const char* str, const char* delim, int* count) {
-    static const char* tmp[32];
+char** ssh_split(const char* str, const char* delim, int* count) {
+    static char* tmp[32];
     int c = 0;
     auto ld = strlen(delim);
     while(*str) {
         auto nstr = strstr((char*)str, delim);
-        tmp[c++] = str;
+        tmp[c++] = (char*)str;
         if(nstr) *nstr = 0; else break;
         str = nstr + ld;
     }
     if(count) *count = c;
     return tmp;
+}
+
+static const char* fmtTypes[]	= { "3X", "2X", "3X ", "2X ",
+                                     "5(X)", "4(#X)", "3(X)", "2(#X)",
+                                     "3X)", "2#X)",
+                                     "5X", "4X",
+                                     "5X", "4#X", "3X", "2#X",
+                                     "5[X]", "4[#X]", "3{X}", "2{#X}",
+                                     "0X", "0#X"};
+
+char* ssh_fmtValue(int value, int offs, bool hex) {
+    char ch;
+    char* end = nullptr;
+    auto buf = (char*)&TMP_BUF[1024], tmp = buf;
+    auto rdx = offs + (hex ? opts[ZX_PROP_SHOW_HEX] : 0);
+    auto res = ssh_ntos(&value, rdx & 1, &end);
+    auto spec = fmtTypes[rdx];
+     auto lnum = (spec[0] - '0') - (end - res);
+    if(*res == '-') {
+        *tmp++ = *res++; lnum++;
+    }
+    else if(rdx == ZX_FV_OFFS) {
+        *tmp++ = '+';
+    }
+    while((ch = *++spec)) {
+        if(ch == 'X') {
+            while(lnum-- > 0) *tmp++ = '0';
+            while(*res) *tmp++ = *res++;
+        } else *tmp++ = ch;
+    }
+    *tmp = 0;
+    return buf;
 }

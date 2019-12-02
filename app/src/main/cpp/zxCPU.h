@@ -13,8 +13,6 @@ extern "C" {
 
 extern uint8_t flags_cond[8];
 
-#define DA(token)   codes[pos++] = token
-
 enum MNEMONIC_REGS {
     _RC, _RB, _RE, _RD, _RL, _RH, _RR, _RA,
     _RN, _RPHL,
@@ -27,31 +25,6 @@ enum MNEMONIC_CONRROL {
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-enum MNEMONIC_NAMES {
-    C_C, C_B, C_E, C_D, C_L, C_H, C_R, C_A,
-    C_NULL, C_PHL,
-    C_I, C_BC, C_DE, C_HL, C_AF, C_SP,
-    C_FNZ, C_FZ, C_FNC, C_FC, C_FPO, C_FPE, C_FP, C_FM,
-    C_XH, C_XL, C_YH, C_YL, C_PIX, C_PIY, C_F, C_IX, C_IY, C_IM,
-    C_PBC, C_PDE,
-    C_NOP, C_EX_AF, C_DJNZ, C_JR,
-    C_RLCA, C_RRCA, C_RLA, C_RRA, C_DAA, C_CPL, C_SCF, C_CCF,
-    C_DI, C_EI,
-    C_ADD, C_ADC, C_SUB, C_SBC, C_AND, C_XOR, C_OR, C_CP,
-    C_RLC, C_RRC, C_RL, C_RR, C_SLA, C_SRA, C_SLI, C_SRL,
-    C_BIT, C_RES, C_SET,
-    C_INC, C_DEC,
-    C_RRD, C_RLD,
-    C_LDI, C_CPI, C_INI, C_OTI,
-    C_LDD, C_CPD, C_IND, C_OTD,
-    C_LDIR, C_CPIR, C_INIR, C_OTIR,
-    C_LDDR, C_CPDR, C_INDR, C_OTDR,
-    C_EXX, C_EX_DE, C_EX_SP, C_LD, C_JP, C_CALL,
-    C_RET, C_RETI, C_RETN, C_RST, C_PUSH, C_POP,
-    C_HALT, C_NEG, C_IN, C_OUT, C_IX_NONI, C_IY_NONI, C_ED_NONI,
-    C_COMMA, C_0, C_PC, C_NN, C_PNN
-};
-
 
 enum CPU_FLAGS {
     FC = 1, FN = 2, FPV = 4, F3 = 8, FH = 16, F5 = 32, FZ = 64, FS = 128
@@ -75,6 +48,33 @@ enum CPU_REGS {
     MODEL,
     COUNT_REGS
 };
+
+enum DA_MNEMONIC_NAMES {
+    C_C, C_B, C_E, C_D, C_L, C_H, C_R, C_A,
+    C_NULL, C_PHL,
+    C_I, C_BC, C_DE, C_HL, C_AF, C_SP,
+    C_FNZ, C_FZ, C_FNC, C_FC, C_FPO, C_FPE, C_FP, C_FM,
+    C_XL, C_XH, C_YL, C_YH, C_PIX, C_PIY, C_F, C_IX, C_IY, C_IM,
+    C_PBC, C_PDE,
+    C_NOP, C_EX_AF, C_DJNZ, C_JR,
+    C_RLCA, C_RRCA, C_RLA, C_RRA, C_DAA, C_CPL, C_SCF, C_CCF,
+    C_DI, C_EI,
+    C_ADD, C_ADC, C_SUB, C_SBC, C_AND, C_XOR, C_OR, C_CP,
+    C_RLC, C_RRC, C_RL, C_RR, C_SLA, C_SRA, C_SLI, C_SRL,
+    C_BIT, C_RES, C_SET,
+    C_INC, C_DEC,
+    C_RRD, C_RLD,
+    C_LDI, C_CPI, C_INI, C_OTI,
+    C_LDD, C_CPD, C_IND, C_OTD,
+    C_LDIR, C_CPIR, C_INIR, C_OTIR,
+    C_LDDR, C_CPDR, C_INDR, C_OTDR,
+    C_EXX, C_EX_DE, C_EX_SP, C_LD, C_JP, C_CALL,
+    C_RET, C_RETI, C_RETN, C_RST, C_PUSH, C_POP,
+    C_HALT, C_NEG, C_IN, C_OUT, C_IX_NONI, C_IY_NONI, C_ED_NONI,
+    C_COMMA, C_0, C_PC, C_SRC, C_DST,
+    C_N, C_NN, C_PNN, C_NUM
+};
+
 #pragma clang diagnostic pop
 
 enum MNEMONIC_FLAGS {
@@ -88,25 +88,19 @@ enum MNEMONIC_OPS {
     O_ASSIGN, O_LOAD, O_SAVE,
     O_SPEC, O_ROT, O_REP, O_PREFIX,
     O_IN, O_OUT,
-    O_IM, O_NEG, O_RLD, O_RRD,
-    // 26
+    O_IM, O_NEG,
+    // 25
     O_SET, O_RES, O_BIT,
     O_JMP, O_JR, O_CALL, O_RET
 };
 
-#define _FS(val)                        fs  = ((uint8_t)(val) >> 7)
-#define _FZ(val)                        fz  = ((uint8_t)(val) == 0)
-#define _FV8(op1, op2, res, fc, op)     fpv = calcFV8((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(res), fc, op)
-#define _FV16(op1, op2, res, fc, op)    fpv = calcFV16((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(res), fc, op)
-#define _FV(val)                        fpv = (uint8_t)(val)
+#define _FC16(val)                      fc  = (uint8_t)((val) > 65535)
 #define _FP(val)				        fpv = tbl_parity[(uint8_t)(val)]
 #define _FH(op1, op2, fc, fn)	        fh  = calcFH((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(fc), (uint8_t)(fn))
-#define _FHV(val)                       fh  = (uint8_t)(val);
-#define _FN(val)                        fn  = (uint8_t)(val)
-#define _FC8(val)                       fc  = (uint8_t)((val) > 255)
-#define _FC16(val)                      fc  = (uint8_t)((val) > 65535)
-#define _FC(val)                        fc  = (uint8_t)(val)
-
+#define _FZ(val)                        fz  = ((uint8_t)(val) == 0)
+#define _FS(val)                        fs  = ((uint8_t)(val) >> 7)
+#define _FV(op1, op2, res, fc, op)      fpv = calcFV8((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(res), fc, op)
+#define _FC(val)                        fc  = (uint8_t)((val) > 255)
 
 class zxCPU {
 public:
@@ -130,21 +124,17 @@ public:
     // запрос на немаскируемое прерывание
     int signalNMI();
 
-    std::string daMake(uint16_t pc, int flags);
-
-    // формирование дизассемблерной строки инструкции
-    std::string daMakeMnemonic(MNEMONIC* m, int prefix, int code, uint16_t pc, uint16_t vDst, uint16_t vSrc, uint8_t v8Src);
-
     // триггеры
     uint8_t* _IFF1, *_IFF2;
 
     // регистры
     uint8_t *_A, *_B, *_C, *_F, *_I, *_R, *_IM;
     uint16_t* _BC, *_DE, *_HL, *_AF, *_SP, *_IX, *_IY, *_PC;
-protected:
 
-    uint8_t*  rRON[24];
-    uint16_t* rRP[24];
+    // адреса регистров
+    static uint8_t*  regs[48];
+
+protected:
 
     inline void incrementR() {
         auto r = *_R; *_R = (uint8_t)((r & 128) | (((r + 1) & 127)));
@@ -187,14 +177,14 @@ protected:
     uint8_t rotate(uint8_t value);
 
     // выполнение повторяющихся операций
-    void opsRep(uint8_t flg, int* ticks);
+    void opsRep(int* ticks);
 
     // флаги
-    uint8_t fc, fn, fh, fpv, fz, fs;
+    uint8_t fc, fn, fpv, f3, fh, f5, fz, fs;
 
     // спец. флаги
     uint8_t flags;
 
     // результат операций
-    uint16_t res;
+    uint8_t res;
 };
