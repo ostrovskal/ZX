@@ -45,6 +45,7 @@ enum CPU_REGS {
     AY_AFINE, AY_ACOARSE, AY_BFINE, AY_BCOARSE, AY_CFINE, AY_CCOARSE, AY_NOISEPER, AY_ENABLE, AY_AVOL,
     AY_BVOL, AY_CVOL, AY_EFINE, AY_ECOARSE, AY_ESHAPE, AY_PORTA, AY_BEEPER,
     TRDOS_CMD, TRDOS_TRK, TRDOS_SEC, TRDOS_DAT, TRDOS_SYS,
+    RTMP,
     MODEL,
     COUNT_REGS
 };
@@ -94,13 +95,13 @@ enum MNEMONIC_OPS {
     O_JMP, O_JR, O_CALL, O_RET
 };
 
-#define _FC16(val)                      fc  = (uint8_t)((val) > 65535)
-#define _FP(val)				        fpv = tbl_parity[(uint8_t)(val)]
-#define _FH(op1, op2, fc, fn)	        fh  = calcFH((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(fc), (uint8_t)(fn))
-#define _FZ(val)                        fz  = ((uint8_t)(val) == 0)
-#define _FS(val)                        fs  = ((uint8_t)(val) >> 7)
-#define _FV(op1, op2, res, fc, op)      fpv = calcFV8((uint8_t)(op1), (uint8_t)(op2), (uint8_t)(res), fc, op)
-#define _FC(val)                        fc  = (uint8_t)((val) > 255)
+#define _FC16(val)              fc  = (uint8_t)((val) > 65535)
+#define _FP(val)				fpv = tbl_parity[(uint8_t)(val)]
+#define _FH(x, y, z, c, n)	    fh  = hcarry(x, y, z, c, n)
+#define _FZ(val)                fz  = ((uint8_t)(val) == 0)
+#define _FS(val)                fs  = ((uint8_t)(val) >> 7)
+#define _FC(val)                fc  = (uint8_t)((val) > 255)
+#define _FV(x, y, z, c, n)      fpv = overflow(x, y, z, c, n)
 
 class zxCPU {
 public:
@@ -177,7 +178,7 @@ protected:
     uint8_t rotate(uint8_t value);
 
     // выполнение повторяющихся операций
-    void opsRep(int* ticks);
+    void opsRep(int* ticks, uint8_t& v8Dst, uint8_t& v8Src);
 
     // флаги
     uint8_t fc, fn, fpv, f3, fh, f5, fz, fs;

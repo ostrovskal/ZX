@@ -12,21 +12,9 @@
 #pragma ide diagnostic ignored "missing_default_case"
 
 static uint8_t tbl_parity[256];
-static uint8_t tbl_ini[256];
-static uint8_t tblINI[16] = { 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0 };
-static uint8_t tblIND[16] = { 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1 };
 
 uint8_t*  zxCPU::regs[48];
 uint8_t flags_cond[8] = {FZ, FZ, FC, FC, FPV, FPV, FS, FS};
-
-static void makeTblINI() {
-    for( int b = 0; b < 256; b++ ) {
-        uint8_t t;
-        if( b & 0xf ) t = (uint8_t)(tbl_parity[b] ^ ((b & 1) | (((b & 4) >> 2) & (!((b & 2) >> 1)))));
-        else t = ( uint8_t )( tbl_parity[ b ] ^ (((b & 16) >> 4) | (((b & 64) >> 6) & (!((b & 32) >> 5)))));
-        tbl_ini[b] = (uint8_t)!t;
-    }
-}
 
 static void makeTblParity() {
     for(int a = 0; a < 256; a++) {
@@ -40,7 +28,6 @@ static void makeTblParity() {
 
 zxCPU::zxCPU() {
     makeTblParity();
-    makeTblINI();
 
     static uint8_t regsTbl[] = { RC, RB, RE, RD, RL, RH, RR, RA, 255, 255, RI, RC, RE, RL, RF, RSPL} ;
 
@@ -138,7 +125,7 @@ int zxCPU::step(int prefix, int offset) {
         prefix = 0;
     }
 
-    if(*_PC == 662) {
+    if(*_PC == 4726) {
         // 5671
         debug = true;
     }
@@ -185,7 +172,7 @@ int zxCPU::step(int prefix, int offset) {
             break;
         case O_LOAD:
             // LD DST, [NN]/[SRC16]/[HL/IX/IY + D]
-            if(nDst < _RBC) *dst = rm8(vSrc);
+            if(nDst < _RBC) { *dst = rm8(vSrc); if(nSrc == _RPHL && prefix) opts[RTMP] = (uint8_t)(vSrc >> 8); }
             else *(uint16_t*)dst = rm16(vSrc);
             break;
         case O_SAVE:
@@ -198,6 +185,7 @@ int zxCPU::step(int prefix, int offset) {
         case O_ADD: case O_SUB: // --***-0C
             fn = (uint8_t) ((ops - O_ADD) & 1);
             if (nDst >= _RBC) {
+                if(ops == O_ADD) opts[RTMP] = (uint8_t)(vDst >> 8);
                 _fc = (uint16_t)(n32 = fn ? vDst - (vSrc + fch) : vDst + (vSrc + fch));
                 *(uint16_t*)dst = _fc;
                 v8Dst = (uint8_t)vDst >> 8; v8Src = (uint8_t)vSrc >> 8; res = (uint8_t)(_fc >> 8);
@@ -209,14 +197,14 @@ int zxCPU::step(int prefix, int offset) {
             }
             break;
         case O_INC: case O_DEC:
-            v8Src = (uint8_t)((ops - O_INC) + 1);
-            if(nDst >= _RBC) *(uint16_t*)dst = (vDst + (int8_t)v8Src);
+            nSrc = (uint8_t)((ops - O_INC) + 1); v8Src = 1;
+            if(nDst >= _RBC) *(uint16_t*)dst = (vDst + (int8_t)nSrc);
             else {
                 // SZ5H3V0- / SZ5H3V1-
-                res = (v8Dst + (int8_t)v8Src);
+                res = (v8Dst + (int8_t)nSrc);
                 if (nDst < _RPHL) *dst = res;
                 else wm8(vDst, res);
-                fn = (uint8_t)(v8Src == 255);
+                fn = (uint8_t)(nSrc == 255);
             }
             break;
         case O_XOR:
@@ -267,6 +255,7 @@ int zxCPU::step(int prefix, int offset) {
             break;
         case O_JR:
             *_PC += (int8_t)v8Src;
+            opts[RTMP] = (uint8_t)(*_PC >> 8);
             ticks = 12;
             break;
         case O_CALL:
@@ -308,16 +297,28 @@ int zxCPU::step(int prefix, int offset) {
             Z=1 если проверяемый бит = 0;
             S=1 если bit=7 и проверяемый бит = 1;
             F5=1 если bit=5 и проверяемый бит = 1;
-            F3=1 если bit=4? и проверяемый бит = 1;
+            F3=1 если bit=3 и проверяемый бит = 1;
             PV = Z
          */
         case O_BIT:
             // *Z513*0-
             if(ticks > 15) v8Dst = v8Src;
-            _FZ(v8Dst & bit); fs = (uint8_t)(bit == 128 && !fz);
-            f3 = (uint8_t)((bit == 8 && !fz) << 3);
-            f5 = (uint8_t)((bit == 32 && !fz) << 5);
-            fn = 0; fh = 1; fpv = fz; flags = FS | FZ | FH | FPV | F3 | F5;
+            _FZ(v8Dst & bit); fpv = fz; fn = 0; fh = 1;
+            flags = FS | FZ | FH | FPV | F3 | F5;
+            fs = (uint8_t)(bit == 128 && !fz);
+            if(ticks > 15) {
+                // из старшего байта IX/IY + D
+                vDst >>= 8; f3 = (uint8_t)(vDst & 8); f5 = (uint8_t)(vDst & 32);
+            } else if(nDst == _RHL) {
+                // из внутреннего регистра, после операций:
+                // 1. ADD HL, XX - из H перед операцией
+                // 2. LD R, [IX/IY+D] старший байт адреса
+                // 3. JR D  старший байт адреса
+                f3 = (uint8_t)(opts[RTMP] & 8); f5 = (uint8_t)(opts[RTMP] & 32);
+            } else {
+                f3 = (uint8_t) ((bit == 8 && !fz) << 3);
+                f5 = (uint8_t) ((bit == 32 && !fz) << 5);
+            }
             break;
         case O_RST:
             call((uint16_t)(codeOps & 56));
@@ -359,7 +360,7 @@ int zxCPU::step(int prefix, int offset) {
                     break;
             }
         case O_REP:
-            opsRep(&ticks);
+            opsRep(&ticks, v8Dst, v8Src);
             break;
         default:
             info("noni PC: %i (pref: %i op: %i)", pc, codeExOps, codeOps);
@@ -369,11 +370,11 @@ int zxCPU::step(int prefix, int offset) {
         if(flg & flags & FS) _FS(res);
         if(flg & flags & FZ) _FZ(res);
         if(flg & flags & FC) _FC(_fc);
-        if(flg & flags & FH) _FH(v8Dst, v8Src, fch, fn);
+        if(flg & flags & FH) _FH(v8Dst, v8Src, res, fch, fn);
         if(flg & flags & FPV) _FV(v8Dst, v8Src, res, fch, fn);
         if(flg & flags & F3) f3 = (uint8_t)(res & 8);
         if(flg & flags & F5) f5 = (uint8_t)(res & 32);
-        uint8_t f = fc | (fn << 1) | (fpv << 2) | f3 | (fh << 4) | f5 | (fz << 6) | (fs << 7);
+        uint8_t f = fc | (fn << 1) | (fpv << 2) | /*f3 | */(fh << 4) | /*f5 | */(fz << 6) | (fs << 7);
         *_F &= ~flg;
         *_F |= (f & flg);
     }
@@ -488,7 +489,7 @@ uint8_t zxCPU::rotate(uint8_t value) {
         case 32: case 56: value = 0; break;
         // SRA 7 -> 7 ------------> 0 -> c
         case 40: value &= 128; break;
-        // SLI c <- 7 <----------0 <- 1
+        // SLL c <- 7 <----------0 <- 1
         case 48: value = 1; break;
     }
     res = value | nvalue;
@@ -498,8 +499,8 @@ uint8_t zxCPU::rotate(uint8_t value) {
     return res;
 }
 
-void zxCPU::opsRep(int* ticks) {
-    uint8_t n1, a = *_A;
+void zxCPU::opsRep(int* ticks, uint8_t& v8Dst, uint8_t& v8Src) {
+    v8Dst = *_A;
     int dx = codeOps & 8 ? -1 : 1;
     auto rep = (codeOps >> 4) & 1;
     switch(codeOps) {
@@ -510,13 +511,12 @@ void zxCPU::opsRep(int* ticks) {
             F5=бит 1 операции переданный байт + A
          */
         case LDDR: case LDIR: case LDD: case LDI:
-            n1 = rm8(*_HL);
-            wm8(*_DE, n1);
+            v8Src = rm8(*_HL); wm8(*_DE, v8Src);
             *_DE += dx; *_HL += dx; *_BC -= 1;
             flags = F3 | F5 | FH | FPV;
             fh = fn = 0; fpv = (uint8_t)(*_BC != 0);
-            f3 = (uint8_t)((n1 + a) & 8);
-            f5 = (uint8_t)((n1 + a) & 2);
+            f3 = (uint8_t)((v8Src + v8Dst) & 8);
+            f5 = (uint8_t)((v8Src + v8Dst) & 2);
             if(rep && fpv) { *_PC -= 2; *ticks = 21; }
             break;
         // SZ*H**1-
@@ -527,46 +527,40 @@ void zxCPU::opsRep(int* ticks) {
             F5=бит 1 операции A-[HL]-HC
         */
         case CPDR: case CPIR: case CPD: case CPI:
-            n1 = rm8(*_HL);
-            res = a - n1;
-            *_HL += dx; *_BC -= 1;
-            flags = FPV | FH | F3 | F5;
-            fn = 1; fpv = (uint8_t)(*_BC != 0); _FH(a, n1, 0, fn);
+            v8Src = rm8(*_HL); res = v8Dst - v8Src;
+            *_HL += dx; *_BC -= 1; fh = getFlag(FH);
             f3 = (uint8_t)((res - fh) & 8);
             f5 = (uint8_t)((res - fh) & 2);
+            flags = FPV | F3 | F5; fn = 1; fpv = (uint8_t)(*_BC != 0);
             if(fpv && rep) { *_PC -= 2; *ticks = 21; }
             break;
         // SZ5*3***
         /*
-            S, Z, F5, F3 из декремента B (официально — S неизвестен; информация по Z совпадает);
-            N — копия 7-го бита значения, полученного/переданного в порт (по официальным данным равен 1);
-            Далее для получения CY (официально — не меняется) и HC (официально — неизвестен):
-                1. Прибавить к значению регистра C единицу, если инструкция увеличивала HL, иначе отнять единицу;
-                2. Добавить к этому значению байт, полученный или переданный в порт;
-                3. Скопировать признак переноса этой операции во флаги CY и HY (то есть они будут одинаковые).
+            S, Z, F5, F3 из декремента B
+            fn — копия 7-го бита значения, полученного из порта;
+            fh, fc = ((HL) + ((C + dx) & 255) > 255)
+            fpv = _FP(((HL) + ((C + dx) & 255)) & 7) xor B)
          */
         case INDR: case INIR: case IND: case INI:
-            a = (uint8_t)(res & 3) | (uint8_t)((*_C & 3) << 2);
-            a = dx == 1 ? tblINI[a] : tblIND[a];
-            n1 = ALU->readPort(*_C, *_B); wm8(*_HL, n1);
-            *_HL += dx; *_B -= 1;
-            fn = n1 >> 7; fh = fc = (uint8_t)(((*_C + dx) + n1) > 255);
-            flags = FH | FPV | FC;
-            res = *_B;
-            fpv = (uint8_t)(a ^ tbl_ini[*_B] ^ ((*_C & 4) >> 2) ^ ((n1 & 4) >> 2));
+            v8Src = ALU->readPort(*_C, *_B); wm8(*_HL, v8Src); *_HL += dx; *_B -= 1;
+            fh = fc = (uint8_t)(v8Src + ((*_C + dx) & 255) > 255); fn = v8Src >> 7;
+            fpv = _FP(((v8Src + ((*_C + dx) & 255)) & 7) ^ *_B);
+            res = *_B; flags = FH | FC | FPV;
             if(fpv && rep) { *_PC -= 2; *ticks = 21; }
             break;
         // SZ5*3***
+        /*
+            S, Z, F5, F3 из декремента B
+            fn — копия 7-го бита значения, переданного в порт;
+            fh, fc = ((HL) + L) > 255)
+            fpv = _FP(((HL) + L) & 7) xor B)
+         */
         case OTDR: case OTIR: case OUTD: case OUTI:
-            a = (uint8_t)(res & 3) | (uint8_t)((*_C & 3) << 2);
-            a = dx == 1 ? tblINI[a] : tblIND[a];
-            n1 = rm8(*_HL); ALU->writePort(*_C, *_B, n1);
-            *_HL += dx; *_B -= 1;
-            fn = n1 >> 7; fh = fc = (uint8_t)(((*_C + dx) + n1) > 255);
-            flags = FH | FPV | FC;
-            res = *_B;
-            fpv = (uint8_t)(a ^ tbl_ini[*_B] ^ ((*_C & 4) >> 2) ^ ((n1 & 4) >> 2));
-            if(rep && fpv) { *_PC -= 2; *ticks = 21; }
+            v8Src = rm8(*_HL); ALU->writePort(*_C, *_B, v8Src); *_HL += dx; *_B -= 1;
+            fh = fc = (uint8_t)((v8Src + opts[RL]) > 255); fn = v8Src >> 7;
+            fpv = _FP(((v8Src + opts[RL]) & 7) ^ *_B);
+            res = *_B; flags = FH | FC | FPV;
+            if(fpv && rep) { *_PC -= 2; *ticks = 21; }
             break;
     }
 }

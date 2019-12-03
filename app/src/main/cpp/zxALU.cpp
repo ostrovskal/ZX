@@ -531,6 +531,7 @@ void zxALU::signalRESET(bool resetTape) {
     // очищаем ОЗУ
     ssh_memzero(RAMs, 262144);
     // очищаем регистры/порты
+    // IFF1 = IFF2 = IM = 0, все регистры в FFFF
     ssh_memzero(opts, MODEL);
     // сбрасываем клавиатуру
     ssh_memset(&opts[ZX_PROP_VALUES_SEMI_ROW], 255, 8);

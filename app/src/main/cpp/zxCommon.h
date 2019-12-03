@@ -181,29 +181,28 @@ uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_
 
 uint8_t* realPtr(uint16_t address);
 
-inline uint8_t calcFV8(uint8_t p1, uint8_t p2, uint8_t res, uint8_t fc, uint8_t op) {
-    static uint8_t tblOV[] = {0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0};
-    auto rr = res >> 7;
-    auto pp2 = (p2 >> 6) & 2;
-    auto pp1 = ((p1 + fc) >> 5) & 4;
-    return tblOV[(pp1 | pp2 | rr) + (op << 3)];
-}
-
 /*
-inline uint8_t calcFV16(uint16_t p1, uint16_t p2, uint16_t res, uint8_t fc, uint8_t op) {
-    auto rr = res >> 15;
-    auto pp2 = (p2 >> 14) & 2;
-    auto pp1 = ((p1 + fc) >> 13) & 4;
-    return tblOV[(pp1 | pp2 | rr) + (op << 3)];
+Целочисленное переполнение со знаком выражения x + y + c (где c равно 0 или 1) происходит тогда и только тогда,
+когда x и y имеют одинаковый знак, а результат имеет знак, противоположный знаку операндов (это ваше уравнение), и
+Целочисленное переполнение со знаком выражения x - y - c (где c снова равно 0 или 1) происходит тогда и только тогда,
+когда x и y имеют противоположные знаки, а знак результата противоположен знаку x (или, что эквивалентно, такой же как у у )
+
+inline uint8_t overflowStd(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
+    static byte tbl[] = { 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0 };
+    return tbl[(((x >> 5) & 4) | (((y + c) >> 6) & 2) | (z >> 7) | (n << 3)];
 }
 */
 
+inline uint8_t overflow(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
+    static uint8_t tbl[16] = { 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0 };
+    return tbl[((x ^ (y + c)) >> 7) | ((x ^ z) >> 6) | (n << 3)];
+    //fpv = (n ? (uint8_t)(xy & xz) : (uint8_t)(xy ^ xz)) >> 7; }
+}
+
 // вычисление полупереноса
-inline uint8_t calcFH(uint8_t op1, uint8_t op2, uint8_t fc, uint8_t fn) {
-    auto v = (uint8_t)(op1 & 15);
-    auto o = (uint16_t)(op2 & 15) + fc;
-    auto ret = (uint8_t)(fn ? v - o : v + o);
-    return (uint8_t) (ret > 15);
+inline uint8_t hcarry(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
+    static uint8_t tbl[16] = { 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1 };
+    return tbl[((x & 0x8) >> 1) | (((y + c) & 0x8) >> 2) | ((z & 0x8) >> 3) | (n << 3)];
 }
 
 // читаем 8 бит из памяти
@@ -240,5 +239,5 @@ inline char* ssh_strcpy(char** dst, const char* src) {
         auto l = strlen(src);
         *dst = (strcpy(*dst, src) + l);
     }
-    return *dst;
+    return dst ? *dst : nullptr;
 }
