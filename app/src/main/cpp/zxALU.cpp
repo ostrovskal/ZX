@@ -519,34 +519,6 @@ bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
         ssh_memzero(PAGE_ROM, sizeof(PAGE_ROM));
         for (int i = 0; i < pagesROM; i++) PAGE_ROM[i] = (rom + i * 16384);
     }
-/*
-    auto dst = PAGE_ROM[*_ROM];
-    uint8_t src[] = {
-            LD_C_N, 20,
-            PREF_DD, LD_HL_NN, 30, 40,
-            PREF_FD, LD_HL_NN, 30, 40,
-            LD_B_N, 30,
-            PREF_DD, LD_PHL_N, 255, 10,
-            PREF_FD, LD_PHL_N, 2, 250,
-            PREF_DD, LD_C_L,
-            PREF_DD, LD_B_PHL, 3,
-            PREF_DD, LD_L_H,
-            LD_HL_NN, 0, 64,
-            LD_BC_NN, 0, 27,
-            PUSH_HL,
-            PUSH_BC,
-            INC_PHL,
-            INC_HL,
-            DEC_BC,
-            LD_A_C,
-            OR_B,
-            JR_NZ, 249,
-            POP_BC,
-            POP_HL,
-            JP_NN, 6, 0
-                     };
-    memcpy(dst, src, sizeof(src));
-*/
     signalRESET(resetTape);
     return result;
 }

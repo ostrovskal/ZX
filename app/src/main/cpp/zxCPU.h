@@ -84,7 +84,7 @@ enum MNEMONIC_FLAGS {
 enum MNEMONIC_OPS {
     O_ADD, O_SUB, O_ADC, O_SBC, O_DEC, O_OR, O_INC, O_XOR, O_AND, O_CP,
     O_PUSH, O_POP,
-    O_RST, O_RETN,
+    O_RST, O_RETN, O_EX,
     O_ASSIGN, O_LOAD, O_SAVE,
     O_SPEC, O_ROT, O_REP, O_PREFIX,
     O_IN, O_OUT,
@@ -171,7 +171,7 @@ protected:
     int codeOps, codeExOps;
 
     // специальная операция
-    void opsSpec(uint8_t v8Dst, uint8_t v8Src, uint16_t vDst, uint16_t vSrc, uint8_t* dst);
+    void opsSpec(uint8_t v8Dst, uint8_t v8Src, uint16_t vDst);
 
     // выполенение сдвига
     uint8_t rotate(uint8_t value);
@@ -187,4 +187,6 @@ protected:
 
     // результат операций
     uint8_t res;
+
+    uint16_t _fc;
 };

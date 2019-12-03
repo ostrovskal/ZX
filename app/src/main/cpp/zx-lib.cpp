@@ -38,7 +38,7 @@ extern "C" {
 
     int zxExecute(JNIEnv*, jclass) {
         ALU->execute();
-        return 0;//ALU->updateKeys(0, 0);
+        return ALU->updateKeys(0, 0);
     }
 
     void zxSurface(JNIEnv *env, jclass, jobject bmp) {

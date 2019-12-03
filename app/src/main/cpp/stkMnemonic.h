@@ -42,7 +42,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RB, _RN), O_DEC, 4, C_DEC, F_ID },      // DEC_B
         { REGS(_RB, _RN), O_ASSIGN, 7 | CN, C_LD },     // LD_B_N
         { REGS(_RA, _RN), O_ROT, 4, C_RLCA, F_ROT },    // RLCA
-        { REGS(_RN, _RN), O_SPEC, 4, C_EX_AF },         // EX_AF_AF'
+        { REGS(_RN, _RN), O_EX, 4, C_EX_AF },           // EX_AF_AF'
         { REGS(_RHL, _RBC), O_ADD, 11, C_ADD, F_ADD16 },// ADD_HL_BC
         { REGS(_RA, _RBC), O_LOAD, 7, C_LD },           // LD_A_PBC
         { REGS(_RBC, _RN), O_DEC, 6, C_DEC },           // DEC_BC
@@ -179,7 +179,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_CALL, 17 | CNN, C_CALL },       // CALL_NN
         { REGS(_RN, _RN), O_ADC, 7 | CN, C_ADC, F_ADSB8 },  // ADC_A_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST8
-        { REGS(_RN, _RN), O_RET, C_RET, _NC },              // RET_NC
+        { REGS(_RN, _RN), O_RET, C_RET, 5, _NC },           // RET_NC
         { REGS(_RDE, _RN), O_POP, 10, C_POP },              // POP_DE
         { REGS(_RN, _RN), O_JMP, 10 | CNN, C_JP, _NC },     // JP_NC
         { REGS(_RA, _RN), O_OUT, 11 | CN, C_OUT },          // OUT_PN_A
@@ -188,7 +188,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_SUB, 7 | CN, C_SUB, F_ADSB8 },  // SUB_N
         { REGS(_RN, _RN), O_RST, 11, C_RST },               // RST16
         { REGS(_RN, _RN), O_RET, 5, C_RET, _C },            // RET_C
-        { REGS(_RN, _RN), O_SPEC, 4, C_EXX },               // EXX
+        { REGS(_RN, _RN), O_EX, 4, C_EXX },                 // EXX
         { REGS(_RN, _RN), O_JMP, 10 | CNN, C_JP, _C },      // JP_C
         { REGS(_RA, _RN), O_IN, 11 | CN, C_IN },            // IN_A_PN
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _C },   // CALL_C
@@ -198,7 +198,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_RET, 5, C_RET, _PO },           // RET_PO
         { REGS(_RHL, _RN), O_POP, 10, C_POP },              // POP_HL
         { REGS(_RN, _RN), O_JMP, 10 | CNN, C_JP, _PO },     // JP_PO
-        { REGS(_RHL, _RSP), O_SPEC, 19, C_EX_SP },          // EX_PSP_HL
+        { REGS(_RHL, _RSP), O_EX, 19, C_EX_SP },            // EX_PSP_HL
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _PO },  // CALL_PO
         { REGS(_RHL, _RN), O_PUSH, 11, C_PUSH },            // PUSH_HL
         { REGS(_RN, _RN), O_AND, 7 | CN, C_AND, F_AND },    // AND_N
@@ -206,7 +206,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { REGS(_RN, _RN), O_RET, 5, C_RET, _PE },           // RET_PE
         { REGS(_RHL, _RN), O_SPEC, 4, C_JP },               // JP_HL
         { REGS(_RN, _RN), O_JMP, 10 | CNN, C_JP, _PE },     // JP_PE
-        { REGS(_RN, _RN), O_SPEC, 4, C_EX_DE },             // EX_DE_HL
+        { REGS(_RN, _RN), O_EX, 4, C_EX_DE },               // EX_DE_HL
         { REGS(_RN, _RN), O_CALL, 10 | CNN, C_CALL, _PE },  // CALL_PE
         { REGS(_RN, _RN), O_PREFIX, 4, C_NULL },            // PREF_ED
         { REGS(_RN, _RN), O_XOR, 7 | CN, C_XOR, F_XOR },    // XOR_N
