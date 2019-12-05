@@ -72,8 +72,9 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surfa
     widthScreen = heightScreen = sizeBorder = 0;
     pageTRDOS = &ROMS[ZX_ROM_TRDOS];
 
-    RAMs = new uint8_t[262144];
-    ROMS = new uint8_t[180224];
+    RAMs = new uint8_t[ZX_TOTAL_RAM];
+    ROMS = new uint8_t[ZX_TOTAL_ROM];
+
     for (int i = 0; i < 16; i++) PAGE_RAM[i] = (RAMs + i * 16384);
 
     // инициализация системы
@@ -132,13 +133,16 @@ bool zxALU::openState(const char *name) {
     // меняем модель
     changeModel(ptr[MODEL], *_MODEL, true);
     // грузим регистры
-    ssh_memcpy(opts, ptr, COUNT_REGS); ptr += COUNT_REGS;
+    memcpy(opts, ptr, COUNT_REGS); ptr += COUNT_REGS;
     // грузим банки ОЗУ
     auto pages = banks[*_MODEL * 2];
     for (int i = 0; i < pages; i++) {
-        auto size = *(uint32_t*) ptr;
-        ptr += sizeof(uint32_t);
-        if (!unpackBlock(ptr, PAGE_RAM[i], PAGE_RAM[i] + 16384, size, true, false)) return false;
+        size_t size = *(uint16_t*)ptr; ptr += sizeof(uint16_t);
+        if (!unpackBlock(ptr, PAGE_RAM[i], PAGE_RAM[i] + 16384, size, true, false)) {
+            info("Ошибка при распаковке страницы %i состояния эмулятора!!!", i);
+            signalRESET(true);
+            return false;
+        }
         ptr += size;
     }
     // восстанавливаем состояние ленты
@@ -148,6 +152,24 @@ bool zxALU::openState(const char *name) {
     // грузим параметры джойстика
     presets((const char*)ptr, ZX_CMD_PRESETS_SET);
     return true;
+}
+
+bool zxALU::saveState(const char* name) {
+    uint32_t size;
+    auto buf = TMP_BUF;
+    // сохраняем регистры
+    ssh_memcpy(&buf, opts, COUNT_REGS);
+    // количество банков и их содержимое
+    auto pages =  banks[*_MODEL * 2];
+    for(int i = 0; i < pages; i++) {
+        packBlock(PAGE_RAM[i], PAGE_RAM[i] + 16384, &buf[2], false, size);
+        *(uint16_t*)buf = (uint16_t)size; buf += size + sizeof(uint16_t);
+    }
+    // сохраняем состояние ленты
+    // buf = tape->saveState(buf);
+    // сохраняем имя программы
+    ssh_memcpy(&buf, progName, sizeof(progName));
+    return zxFile::writeFile(name, TMP_BUF, buf - TMP_BUF, false);
 }
 
 bool zxALU::openZ80(const char *name) {
@@ -231,9 +253,9 @@ bool zxALU::openZ80(const char *name) {
             return false;
         }
         // перераспределяем буфер 0->5, 1->2, 2->0
-        ssh_memcpy(&TMP_BUF[5 * 16384], &TMP_BUF[0 * 16384], 16384);
-        ssh_memcpy(&TMP_BUF[0 * 16384], &TMP_BUF[2 * 16384], 16384);
-        ssh_memcpy(&TMP_BUF[2 * 16384], &TMP_BUF[1 * 16384], 16384);
+        memcpy(&TMP_BUF[5 * 16384], &TMP_BUF[0 * 16384], 16384);
+        memcpy(&TMP_BUF[0 * 16384], &TMP_BUF[2 * 16384], 16384);
+        memcpy(&TMP_BUF[2 * 16384], &TMP_BUF[1 * 16384], 16384);
     }
     // меняем модель памяти и иинициализируем регистры
     auto isZ80 = strcasecmp(name + strlen(name) - 4, ".z80") == 0;
@@ -244,9 +266,9 @@ bool zxALU::openZ80(const char *name) {
     *cpu->_IFF1 = head1->IFF1; *cpu->_IFF2 = head1->IFF2;
     *cpu->_R |= (head1->STATE1 & 1) << 7;
     *_FE = (uint8_t)(224 | ((head1->STATE1 & 14) >> 1));
-    ssh_memcpy(&opts[RC_], &head1->BC_, 8);
+    memcpy(&opts[RC_], &head1->BC_, 8);
     // копируем буфер
-    ssh_memcpy(PAGE_RAM[0], TMP_BUF, 262144);
+    memcpy(RAMs, TMP_BUF, 262144);
     // загружаем параметры джойстика
     if(isZ80) presets(name, ZX_CMD_PRESETS_SET);
     return true;
@@ -274,24 +296,6 @@ bool zxALU::save(const char *name, int type) {
     return ret;
 }
 
-bool zxALU::saveState(const char* name) {
-    uint32_t size;
-    auto buf = TMP_BUF;
-    // сохраняем регистры
-    buf = ssh_memcpy(buf, opts, COUNT_REGS);
-    // количество банков и их содержимое
-    auto pages =  banks[*_MODEL * 2];
-    for(int i = 0; i < pages; i++) {
-        packBlock(PAGE_RAM[i], PAGE_RAM[i] + 16384, &buf[4], false, size);
-        *(uint32_t*)buf = size; buf += size + sizeof(uint32_t);
-    }
-    // сохраняем состояние ленты
-    // buf = tape->saveState(buf);
-    // сохраняем имя программы
-    buf = ssh_memcpy(buf, progName, sizeof(progName));
-    return zxFile::writeFile(name, TMP_BUF, buf - TMP_BUF, false);
-}
-
 bool zxALU::saveZ80(const char *name) {
     static uint8_t models[] = { 0, 0, 3, 9, 10 };
     static HEAD3_Z80 head;
@@ -307,7 +311,7 @@ bool zxALU::saveZ80(const char *name) {
     head1->STATE2 = *cpu->_IM; head1->IFF1 = *cpu->_IFF1; head1->IFF2 = *cpu->_IFF2;
     head1->I = *cpu->_I; head1->R = (uint8_t)(*cpu->_R & 127);
     head1->STATE1 = (uint8_t)((*cpu->_R & 128) >> 7) | (uint8_t)((*_FE & 7) << 1);
-    ssh_memcpy(&head1->BC_, &opts[RC_], 8);
+    memcpy(&head1->BC_, &opts[RC_], 8);
     // для режима 128К
     head2->PC = *cpu->_PC;
     head2->hardMode = models[*_MODEL];
@@ -315,10 +319,10 @@ bool zxALU::saveZ80(const char *name) {
     head.port1FFD = *_1FFD;
     head2->hardState = *_7FFD;
     head2->sndChipRegNumber = 0;//*snd->_AY_REG;
-//    ssh_memcpy(head2->sndRegs, zxSND::_AY, 16);
+//    memcpy(head2->sndRegs, zxSND::_AY, 16);
     ssh_memzero(head2->sndRegs, 16);
     // формируем буфер из содержимого страниц
-    buf = ssh_memcpy(buf, &head, sizeof(HEAD3_Z80));
+    ssh_memcpy(&buf, &head, sizeof(HEAD3_Z80));
     // страницы, в зависимости от режима
     if(*_MODEL < MODEL_128K) {
         packPage(&buf, PAGE_RAM[5], 8);
@@ -347,7 +351,7 @@ static bool presetsOps(PRESET* ptr, int ops, const char* name, char** l) {
         case ZX_CMD_PRESETS_SET:
             if(isFind) {
                 opts[ZX_PROP_JOY_TYPE] = ptr->joyType;
-                ssh_memcpy(&opts[ZX_PROP_JOY_KEYS], &ptr->joyL, 8);
+                memcpy(&opts[ZX_PROP_JOY_KEYS], &ptr->joyL, 8);
                 return true;
             }
             break;
@@ -370,12 +374,12 @@ const char* zxALU::presets(const char *name, int ops) {
         if(name) {
             auto n = strstr(name, ".");
             if(n) {
-                ssh_memcpy(&TMP_BUF[122000], name, n - name);
+                memcpy(&TMP_BUF[122000], name, n - name);
                 name = (char*)&TMP_BUF[122000];
             }
             auto lenName = strlen(name);
             ssh_memzero(&progName, sizeof(progName));
-            ssh_memcpy(&progName, name, lenName > 30 ? 30 : lenName);
+            memcpy(&progName, name, lenName > 30 ? 30 : lenName);
         }
     }
     // ищем имя в БД
@@ -386,9 +390,9 @@ const char* zxALU::presets(const char *name, int ops) {
     // Сохранить/Добавить параметры джойстика
     if(ops == ZX_CMD_PRESETS_SAVE) {
         ssh_memzero(&ptr->name, 31);
-        ssh_memcpy(&ptr->name, progName, sizeof(progName));
+        memcpy(&ptr->name, progName, sizeof(progName));
         ptr->joyType = opts[ZX_PROP_JOY_TYPE];
-        ssh_memcpy(&ptr->joyL, &opts[ZX_PROP_JOY_KEYS], 8);
+        memcpy(&ptr->joyL, &opts[ZX_PROP_JOY_KEYS], 8);
         zxFile::writeFile("joy_presets", TMP_BUF, 40000, false);
     }
     return buf;
@@ -460,9 +464,8 @@ int zxALU::updateKeys(int key, int action) {
             // проверить режим клавиатуры
             uint8_t nmode = MODE_K;
             auto kmode = opts[ZX_PROP_KEY_MODE];
-            auto val0 = rm8(23617);
-            auto val1 = rm8(23658);
-            auto val2 = rm8(23611);
+            auto val0 = rm8(23617), val1 = rm8(23658), val2 = rm8(23611);
+//            info("%i %i %i", val0, val1, val2);
             switch (val0) {
                 case 0:
                     if (val2 & 8) { nmode = (val1 & 8) ? MODE_C : MODE_L; }
@@ -529,10 +532,12 @@ void zxALU::signalRESET(bool resetTape) {
 //    snd->reset();
 //    disk->reset();
     // очищаем ОЗУ
-    ssh_memzero(RAMs, 262144);
+    ssh_memzero(RAMs, ZX_TOTAL_RAM);
     // очищаем регистры/порты
-    // IFF1 = IFF2 = IM = 0, все регистры в FFFF
     ssh_memzero(opts, MODEL);
+    // все регистры в FFFF, кроме альтернативных
+//    ssh_memset(opts, 255, IFF1);
+//    ssh_memset(&opts[RC_], 0, RXL);
     // сбрасываем клавиатуру
     ssh_memset(&opts[ZX_PROP_VALUES_SEMI_ROW], 255, 8);
     opts[ZX_PROP_KEY_MODE] = 0; opts[ZX_PROP_KEY_CURSOR_MODE] = MODE_K;

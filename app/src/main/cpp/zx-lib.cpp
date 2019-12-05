@@ -99,14 +99,13 @@ extern "C" {
             }
             AAssetDir_close(dir);
             opts[ZX_PROP_FIRST_LAUNCH] = 0;
-            copyAFile(amgr, "zx.rom", nullptr, ALU->ROMS);
             copyAFile(amgr, "tapLoader.zx", "tapLoader.zx");
             copyAFile(amgr, "trdLoader.zx", "trdLoader.zx");
         }
-
+        copyAFile(amgr, "zx.rom", nullptr, ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
         ALU->load(ZX_AUTO_SAVE, ZX_CMD_IO_STATE);
-        info("zxInit2");
+        info("zxInit1");
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props) {

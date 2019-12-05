@@ -16,6 +16,11 @@ enum DA_INSTRUCTION_FLAGS {
 
 class zxDA {
 public:
+    struct DA_LABEL {
+        int address;
+        const char* label;
+    };
+
     zxDA() {}
 
     // формирование дизассемблерной строки инструкции
@@ -23,9 +28,10 @@ public:
 
 protected:
     // получение информации об операндах инструкции
-    static int getDaOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16 = nullptr,
+    static int getDaOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16 = nullptr, uint8_t* v8 = nullptr,
                      uint16_t *pc = nullptr, int* ticks = nullptr, uint8_t* offset = nullptr);
 
+    static const char* searchLabel(int address);
 };
 
 #pragma clang diagnostic pop

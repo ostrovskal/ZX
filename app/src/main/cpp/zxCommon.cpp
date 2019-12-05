@@ -51,7 +51,7 @@ bool unpackBlock(uint8_t* src, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool pa
         }
         return (sz == 0);
     }
-    ssh_memcpy(dst, src, sz);
+    memcpy(dst, src, sz);
     return true;
 }
 
@@ -110,19 +110,23 @@ char* ssh_ntos(void* v, int r, char** end) {
     auto buf = &TMP_BUF[256]; *buf = 0;
     if(end) *end = (char*)buf;
     uint8_t* st; uint8_t c(tbl[r * 2 + 0]), s(tbl[r * 2 + 1]);
-    uint32_t n; double d(0);
+    int n; double d(0);
+    uint8_t sgn = 0;
     switch(r) {
         case RADIX_DEC:
             itos(*(int*)v, &buf);
             break;
-        case RADIX_HEX: case RADIX_BIN: case RADIX_OCT:
-            n = *(uint32_t*)v;
+        case RADIX_HEX: case RADIX_OCT:
+        case RADIX_BIN:
+            n = *(int*)v;
+            if(n < 0) { sgn = '-'; n = -n; }
             do { *--buf = sym[(uint8_t) (n & c)]; n >>= s; } while(n);
+            if(sgn) *--buf = sgn;
             break;
         case RADIX_FLT: d = (double)(*(float*)v);
         case RADIX_DBL: if(r == RADIX_DBL) d = *(double*)v;
             // отбросим дробную часть
-            n = (uint32_t)d;
+            n = (int)d;
             itos(n, &buf);
             st = buf; buf = &TMP_BUF[256]; *buf++ = '.';
             for(int i = 0 ; i < c; i++) {
@@ -225,7 +229,9 @@ static const char* fmtTypes[]	= { "3X", "2X", "3X ", "2X ",
                                      "3X)", "2#X)",
                                      "5X", "4X",
                                      "5X", "4#X", "3X", "2#X",
-                                     "5[X]", "4[#X]", "3{X}", "2{#X}",
+                                     "5[X]", "4[#X]",
+                                     "3{X}", "2{#X}",
+                                     "5{X}", "4{#X}",
                                      "0X", "0#X"};
 
 char* ssh_fmtValue(int value, int offs, bool hex) {
@@ -239,7 +245,7 @@ char* ssh_fmtValue(int value, int offs, bool hex) {
     if(*res == '-') {
         *tmp++ = *res++; lnum++;
     }
-    else if(rdx == ZX_FV_OFFS) {
+    else if(offs == ZX_FV_OFFS) {
         *tmp++ = '+';
     }
     while((ch = *++spec)) {

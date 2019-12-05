@@ -79,7 +79,9 @@ class ZxView(context: Context) : Surface(context) {
     override fun updateState() {
         if(wnd.zxInitialize) {
             val result = ZxWnd.zxExecute()
-            if(result != 0) wnd.hand?.send(RECEPIENT_FORM, result)
+            if(result != 0) {
+                wnd.hand?.send(RECEPIENT_FORM, result)
+            }
         }
     }
 

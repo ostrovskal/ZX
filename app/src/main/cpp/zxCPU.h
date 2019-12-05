@@ -14,13 +14,13 @@ extern "C" {
 extern uint8_t flags_cond[8];
 
 enum MNEMONIC_REGS {
-    _RC, _RB, _RE, _RD, _RL, _RH, _RR, _RA,
-    _RN, _RPHL,
-    _RI, _RBC, _RDE, _RHL, _RAF, _RSP,
-};
-
-enum MNEMONIC_CONRROL {
-    CN = 32, CNN = 64
+    _RC, _RE, _RL, _RF, _RS, _RB, _RD, _RH, _RA, _RI, _RR, _RPHL,
+    // 12
+    _N_, _BT,
+    // 14
+    _C8, _C16,
+    // 16
+    _R16 = 16
 };
 
 #pragma clang diagnostic push
@@ -72,7 +72,7 @@ enum DA_MNEMONIC_NAMES {
     C_EXX, C_EX_DE, C_EX_SP, C_LD, C_JP, C_CALL,
     C_RET, C_RETI, C_RETN, C_RST, C_PUSH, C_POP,
     C_HALT, C_NEG, C_IN, C_OUT, C_IX_NONI, C_IY_NONI, C_ED_NONI,
-    C_COMMA, C_0, C_PC, C_SRC, C_DST,
+    C_COMMA, C_0, C_PC, C_SRC, C_DST, C_CB_PHL,
     C_N, C_NN, C_PNN, C_NUM
 };
 
@@ -87,12 +87,13 @@ enum MNEMONIC_OPS {
     O_PUSH, O_POP,
     O_RST, O_RETN, O_EX,
     O_ASSIGN, O_LOAD, O_SAVE,
-    O_SPEC, O_ROT, O_REP, O_PREFIX,
+    O_SPEC, O_ROT,  O_PREF,
     O_IN, O_OUT,
     O_IM, O_NEG,
     // 25
     O_SET, O_RES, O_BIT,
-    O_JMP, O_JR, O_CALL, O_RET
+    O_JMP, O_JR, O_CALL, O_RET,
+    O_LDI, O_CPI, O_INI, O_OTI
 };
 
 #define _FC16(val)              fc  = (uint8_t)((val) > 65535)
@@ -107,7 +108,8 @@ class zxCPU {
 public:
 
     struct MNEMONIC {
-        uint8_t regs;
+        uint8_t regDst;
+        uint8_t regSrc;
         uint8_t ops;
         uint8_t tiks;
         uint8_t name;
@@ -133,7 +135,7 @@ public:
     uint16_t* _BC, *_DE, *_HL, *_AF, *_SP, *_IX, *_IY, *_PC;
 
     // адреса регистров
-    static uint8_t*  regs[48];
+    static uint8_t*  regs[36];
 
 protected:
 
@@ -169,16 +171,13 @@ protected:
     inline uint8_t getFlag(uint8_t fl) { return (uint8_t)(*_F & fl); }
 
     // код операции
-    int codeOps, codeExOps;
+    int codeOps;
 
     // специальная операция
-    void opsSpec(uint8_t v8Dst, uint8_t v8Src, uint16_t vDst);
+    void special(uint16_t vSrc, uint8_t v8Dst, uint8_t v8Src);
 
     // выполенение сдвига
-    uint8_t rotate(uint8_t value);
-
-    // выполнение повторяющихся операций
-    void opsRep(int* ticks, uint8_t& v8Dst, uint8_t& v8Src);
+    uint8_t rotate(uint8_t value, bool isCB);
 
     // флаги
     uint8_t fc, fn, fpv, f3, fh, f5, fz, fs;
@@ -189,5 +188,11 @@ protected:
     // результат операций
     uint8_t res;
 
-    uint16_t _fc;
+    // значение флага FPV
+    bool resetPV;
+
+    // значение FC для установки
+    uint16_t  _fc;
+
+    zxFile f;
 };

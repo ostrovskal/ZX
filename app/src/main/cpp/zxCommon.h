@@ -28,6 +28,9 @@ extern std::string 			            FOLDER_CACHE;
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
 constexpr const char* ZX_AUTO_SAVE      = "auto_save.zx";
 
+#define ZX_TOTAL_RAM                    262144
+#define ZX_TOTAL_ROM                    180224
+
 // Биты состояний
 enum ZX_STATE {
     ZX_INT 	= 0x01,// прерывание
@@ -118,8 +121,9 @@ constexpr int ZX_FV_NUM16				= 10;// "5X", "4X"
 constexpr int ZX_FV_OPS16				= 12;// "5X", "4#X"
 constexpr int ZX_FV_OPS8				= 14;// "3X", "2#X"
 constexpr int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
-constexpr int ZX_FV_PVAL				= 18;// "3{X}", "2{#X}"
-constexpr int ZX_FV_NUMBER				= 20;// "0X", "0#X"
+constexpr int ZX_FV_PVAL8				= 18;// "3{X}", "2{#X}"
+constexpr int ZX_FV_PVAL16				= 20;// "5{X}", "4{#X}"
+constexpr int ZX_FV_NUMBER				= 22;// "0X", "0#X"
 
 // Команды
 constexpr int ZX_CMD_MODEL              = 0; // Установка модели памяти
@@ -187,16 +191,17 @@ uint8_t* realPtr(uint16_t address);
 Целочисленное переполнение со знаком выражения x - y - c (где c снова равно 0 или 1) происходит тогда и только тогда,
 когда x и y имеют противоположные знаки, а знак результата противоположен знаку x (или, что эквивалентно, такой же как у у )
 
-inline uint8_t overflowStd(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
-    static byte tbl[] = { 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0 };
-    return tbl[(((x >> 5) & 4) | (((y + c) >> 6) & 2) | (z >> 7) | (n << 3)];
-}
-*/
-
 inline uint8_t overflow(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
     static uint8_t tbl[16] = { 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0 };
     return tbl[((x ^ (y + c)) >> 7) | ((x ^ z) >> 6) | (n << 3)];
     //fpv = (n ? (uint8_t)(xy & xz) : (uint8_t)(xy ^ xz)) >> 7; }
+}
+
+*/
+
+inline uint8_t overflow(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
+    static uint8_t tbl[] = { 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0 };
+    return tbl[((x >> 5) & 4) | (((y + c) >> 6) & 2) | (z >> 7) | (n << 3)];
 }
 
 // вычисление полупереноса
@@ -229,9 +234,11 @@ inline uint8_t* ssh_memzero(void* ptr, size_t count) {
     return ssh_memset(ptr, 0, count);
 }
 
-inline uint8_t* ssh_memcpy(void* dst, const void* src, size_t count) {
-    if (dst && src) dst = (uint8_t*) (memcpy(dst, src, count)) + count;
-    return (uint8_t*) dst;
+inline uint8_t* ssh_memcpy(uint8_t ** dst, const void* src, size_t count) {
+    if (dst && src) {
+        *dst = (uint8_t*)(memcpy(*dst, src, count)) + count;
+    }
+    return dst ? *dst : nullptr;
 }
 
 inline char* ssh_strcpy(char** dst, const char* src) {
