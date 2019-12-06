@@ -87,12 +87,13 @@ enum MNEMONIC_OPS {
     O_PUSH, O_POP,
     O_RST, O_RETN, O_EX,
     O_ASSIGN, O_LOAD, O_SAVE,
-    O_SPEC, O_ROT,  O_PREF,
+    O_SPEC, O_ROT, O_PREF,
     O_IN, O_OUT,
     O_IM, O_NEG,
     // 25
     O_SET, O_RES, O_BIT,
     O_JMP, O_JR, O_CALL, O_RET,
+    // 32
     O_LDI, O_CPI, O_INI, O_OTI
 };
 

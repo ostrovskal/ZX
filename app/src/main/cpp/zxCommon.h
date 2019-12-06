@@ -21,6 +21,7 @@
 // Глобальные
 extern zxALU* 				            ALU;
 extern uint8_t* 			            opts;
+extern uint8_t* 			            labels;
 extern uint8_t* 			            TMP_BUF;
 extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
@@ -29,7 +30,6 @@ constexpr int ZX_SIZE_TMP_BUF           = 524288;
 constexpr const char* ZX_AUTO_SAVE      = "auto_save.zx";
 
 #define ZX_TOTAL_RAM                    262144
-#define ZX_TOTAL_ROM                    180224
 
 // Биты состояний
 enum ZX_STATE {
@@ -48,6 +48,16 @@ constexpr int ZX_ROM_SCORPION			= 98304;
 constexpr int ZX_ROM_TRDOS              = 163840;
 
 // Разделяемые свойства
+// 0. Байтовые значения, вычисляемые во время работы программы
+constexpr int ZX_PROP_JOY_TYPE        = 80; // Текущий тип джойстика
+constexpr int ZX_PROP_JOY_KEYS        = 81; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
+constexpr int ZX_PROP_JOY_CROSS_VALUE = 89; // Нажатые кнопки джойстика-крестовины
+constexpr int ZX_PROP_JOY_ACTION_VALUE= 90; // Нажатые кнопки джойстика-управления
+constexpr int ZX_PROP_KEY_CURSOR_MODE = 91; // Режим курсора (E, G, L, K т.п.)
+constexpr int ZX_PROP_KEY_MODE        = 92; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
+constexpr int ZX_PROP_VALUES_SEMI_ROW = 93; // Значения в полурядах клавиатуры (8) 93 - 100
+constexpr int ZX_PROP_VALUES_KEMPSTON = 101; // Значение для кемпстон-джойстика
+
 // 1. Булевы значения
 constexpr int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
 constexpr int ZX_PROP_TRAP_TAPE       = 129; // Признак перехвата загрузки/записи с ленты
@@ -80,17 +90,7 @@ constexpr int ZX_PROP_JOY_SIZE        = 160; // Размер экранного 
 // 3. Целые значения
 constexpr int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
 
-// 4. Байтовые значения, вычисляемые во время работы программы
-constexpr int ZX_PROP_JOY_TYPE        = 256; // Текущий тип джойстика
-constexpr int ZX_PROP_JOY_KEYS        = 257; // Привазанные к джойстику коды кнопок клавиатуры (8) 257 - 264
-constexpr int ZX_PROP_JOY_CROSS_VALUE = 265; // Нажатые кнопки джойстика-крестовины
-constexpr int ZX_PROP_JOY_ACTION_VALUE= 266; // Нажатые кнопки джойстика-управления
-constexpr int ZX_PROP_KEY_CURSOR_MODE = 267; // Режим курсора (E, G, L, K т.п.)
-constexpr int ZX_PROP_KEY_MODE        = 268; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
-constexpr int ZX_PROP_VALUES_SEMI_ROW = 269; // Значения в полурядах клавиатуры (8) 269 - 276
-constexpr int ZX_PROP_VALUES_KEMPSTON = 277; // Значение для кемпстон-джойстика
-
-constexpr int ZX_PROPS_COUNT          = 300; // Размер буфера
+constexpr int ZX_PROPS_COUNT          = 267; // Размер буфера
 
 // Модели памяти
 constexpr int MODEL_48KK              = 0; // Компаньон 2.02 48К

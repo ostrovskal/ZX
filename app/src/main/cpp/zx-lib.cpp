@@ -18,12 +18,13 @@ static int parseExtension(const char* name) {
     return ret;
 }
 
-static void copyAFile(AAssetManager* aMgr, const char* aPath, const char* path, uint8_t* buffer = nullptr) {
+static void copyAFile(AAssetManager* aMgr, const char* aPath, const char* path, uint8_t** buffer = nullptr) {
     auto aFile = AAssetManager_open(aMgr, aPath, AASSET_MODE_UNKNOWN);
     bool result = false;
     if(aFile) {
         auto aLen = (size_t) AAsset_getLength(aFile);
-        auto aBuf = buffer != nullptr ? buffer : TMP_BUF;
+        if(buffer) *buffer = new uint8_t[aLen];
+        auto aBuf = buffer != nullptr ? *buffer : TMP_BUF;
         if(aLen < ZX_SIZE_TMP_BUF) {
             AAsset_read(aFile, aBuf, aLen);
             AAsset_close(aFile);
@@ -102,7 +103,8 @@ extern "C" {
             copyAFile(amgr, "tapLoader.zx", "tapLoader.zx");
             copyAFile(amgr, "trdLoader.zx", "trdLoader.zx");
         }
-        copyAFile(amgr, "zx.rom", nullptr, ALU->ROMS);
+        copyAFile(amgr, "labels.bin", nullptr, &labels);
+        copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
         ALU->load(ZX_AUTO_SAVE, ZX_CMD_IO_STATE);
         info("zxInit1");
@@ -156,9 +158,13 @@ extern "C" {
     }
 
     long zxInt(JNIEnv*, jclass, jint idx, jboolean read, jint value) {
-        info("zxInt read: %i idx: %i value: %i", read, idx, value);
-        if(!read) *(uint32_t*)(opts + idx) = (uint32_t)value;
-        return (long)(*(uint32_t*)(opts + idx));
+        if(!read) {
+            info("zxIntSave idx: %i value: %i", idx, value);
+            *(uint32_t*)(opts + idx) = (uint32_t)value;
+        }
+        auto ret = (long)(*(uint32_t*)(opts + idx));
+        info("zxIntRead idx: %i value: %i", idx, ret);
+        return ret;
     }
 
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {

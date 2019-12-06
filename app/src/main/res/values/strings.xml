@@ -18,6 +18,7 @@
     <string name="menuTurbo">Turbo mode</string>
     <string name="menuFilter">Filtered</string>
     <string name="menuTape">Trap tape</string>
+    <string name="menuDebugger">Debugger</string>
     <string name="menuDisk1" translatable="false">A:</string>
     <string name="menuDisk2" translatable="false">B:</string>
     <string name="menuDisk3" translatable="false">C:</string>

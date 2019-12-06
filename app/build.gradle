@@ -22,8 +22,8 @@ android {
         resValue "string", "dropbox_token", properties.getProperty("dropbox.token", "")
         minSdkVersion 19
         targetSdkVersion 29
-        versionCode 1
-        versionName "1.0.3"
+        versionCode 15
+        versionName "1.0.5"
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++11"
@@ -55,6 +55,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.2.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.2.1'
-    implementation 'com.github.ostrovskal:sshstd:1.0.4'
+    implementation 'com.github.ostrovskal:sshstd:1.0.5'
     implementation 'com.dropbox.core:dropbox-core-sdk:3.1.1'
 }

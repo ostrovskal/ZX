@@ -73,7 +73,6 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surfa
     pageTRDOS = &ROMS[ZX_ROM_TRDOS];
 
     RAMs = new uint8_t[ZX_TOTAL_RAM];
-    ROMS = new uint8_t[ZX_TOTAL_ROM];
 
     for (int i = 0; i < 16; i++) PAGE_RAM[i] = (RAMs + i * 16384);
 
@@ -636,6 +635,7 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
                 if(A8A15 & (1 << i)) continue;
                 ret &= opts[i + ZX_PROP_VALUES_SEMI_ROW];
             }
+  //          if(A0A7 == 254 && A8A15 == 247) ret = 253;
             return ret/* | (tape->_FE8 << 3) */;
         }
     }

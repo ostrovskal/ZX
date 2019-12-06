@@ -18,6 +18,7 @@
     <string name="menuTurbo">Турбо режим</string>
     <string name="menuFilter">Фильтрация</string>
     <string name="menuTape">Захват ленты</string>
+    <string name="menuDebugger">Отладчик</string>
     <string name="menu48kk">Компаньон 48K</string>
     <string name="menu48k">Синклер 48K</string>
     <string name="menu128k">Синклер 128K</string>

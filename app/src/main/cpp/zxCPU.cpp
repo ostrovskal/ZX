@@ -31,8 +31,6 @@ zxCPU::zxCPU() {
 
     f.open(zxFile::makePath("log.txt", false).c_str(), zxFile::create_write);
 
-    static uint8_t regsTbl[] = { RC, RE, RL, RF, RSPL, RB, RD, RH, RA, RI, RR };
-
     _I = &opts[RI]; _R = &opts[RR]; _IM = &opts[IM];
 
     _IFF1 = &opts[IFF1]; _IFF2 = &opts[IFF2];
@@ -43,6 +41,8 @@ zxCPU::zxCPU() {
     _AF = (uint16_t*)&opts[RF]; _SP = (uint16_t*)&opts[RSPL]; _PC = (uint16_t*)&opts[RPCL];
 
     _IX = (uint16_t*)&opts[RXL]; _IY = (uint16_t*)&opts[RYL];
+
+    static uint8_t regsTbl[] = { RC, RE, RL, RF, RSPL, RB, RD, RH, RA, RI, RR, _RPHL };
 
     for(int i = 0 ; i < 11; i++) {
         auto reg = &opts[regsTbl[i]];
@@ -147,37 +147,23 @@ int zxCPU::step(int prefix, int offset) {
 
     ticks += m->tiks;
 
-    initOperand(regSrc, regDst, prefix, vSrc, v8Src, &ticks);
     auto dst = initOperand(regDst, regSrc, prefix, vDst, v8Dst, &ticks);
+    initOperand(regSrc, regDst, prefix, vSrc, v8Src, &ticks);
 
+/*
     static bool debug = false;
-    static int ldir = 0;
-    if(pc == 4593) debug = true;
+    static int num = 1;
+    if(pc == 735) debug = true;
     if(debug) {
-        if(!prefix && !offset) {
-            uint8_t vpc = rm8(*_PC);
-            if(codeOps == PREF_ED && (vpc == LDDR || vpc == LDIR)) ldir++;
-            else {
-                if(ldir != 0) {
-                    f.write((void*)"LDIR ", 5);
-                    auto buf = ssh_fmtValue(ldir, ZX_FV_NUM16, true);
-                    auto size = strlen(buf);
-                    buf[size] = '\r'; buf[size + 1] = '\n';
-                    f.write(buf, size + 2);
-                    ldir = 0;
-                }
-                auto buf = zxDA::daMake(&pc, DA_PC | DA_TICKS | DA_CODE | DA_PN | DA_PNN, 0);
-                auto size = strlen(buf);
-                buf[size] = '\r';
-                buf[size + 1] = '\n';
-                f.write(buf, size + 2);
-//                info(buf);
-            }
+        if (!prefix && !offset) {
+            auto buf = zxDA::daMake(&pc, DA_PC | DA_TICKS | DA_CODE | DA_PN | DA_PNN, 0);
+            info(buf);
         }
     }
+*/
     if(ops >= O_LDI) {
         dir = codeOps & 8 ? -1 : 1;
-        rep = (codeOps >> 4) & 1;
+        rep = codeOps & 16;
         v8Dst = *_A; v8Src = rm8(*_HL);
     } else if(ops >= O_JMP) {
         if(flg && !isFlag((uint8_t)(flg - 1))) return ticks;
@@ -227,7 +213,7 @@ int zxCPU::step(int prefix, int offset) {
                 if(ops == O_ADD) opts[RTMP] = (uint8_t)(vDst >> 8);
                 *(uint16_t*)dst = _fc = (uint16_t)(n32 = fn ? vDst - (vSrc + fch) : vDst + (vSrc + fch));
                 flags = FC | FZ; _FC16(n32); _FZ(_fc);
-                v8Dst = (uint8_t) vDst >> 8; v8Src = (uint8_t) vSrc >> 8; res = (uint8_t) (_fc >> 8);
+                v8Dst = (uint8_t) (vDst >> 8); v8Src = (uint8_t) (vSrc >> 8); res = (uint8_t) (_fc >> 8);
             } else {
                 // SZ5H3V0C / SZ5H3V1C
                 v8Dst = *_A;
@@ -235,13 +221,14 @@ int zxCPU::step(int prefix, int offset) {
             }
             break;
         case O_INC: case O_DEC:
-            v8Src = (uint8_t)((ops - O_INC) + 1);
-            if(regDst & _R16) *(uint16_t*)dst = (vDst + (int8_t)v8Src);
+            v8Src = 1;
+            cb8 = (uint8_t)((ops - O_INC) + 1);
+            if(regDst & _R16) *(uint16_t*)dst = (vDst + (int8_t)cb8);
             else {
                 // SZ5H3V0- / SZ5H3V1-
-                res = (v8Dst + (int8_t)v8Src);
+                res = (v8Dst + (int8_t)cb8);
                 if (regDst == _RPHL) wm8(vDst, res); else *dst = res;
-                fn = (uint8_t)(v8Src == 255);
+                fn = (uint8_t)(cb8 == 255);
             }
             break;
         case O_XOR:
@@ -312,6 +299,7 @@ int zxCPU::step(int prefix, int offset) {
             if(ticks > 15) { cb8 |= v8Src; wm8(vSrc, cb8); if(regDst == _RPHL) break;}
             else cb8 = v8Dst | v8Src;
             if(regDst == _RPHL) wm8(vDst, cb8); else *dst = cb8;
+            break;
         case O_RES:
             // под префиксом?
             if(ticks > 15) { cb8 &= ~v8Src; wm8(vSrc, cb8); if(regDst == _RPHL) break; }
@@ -385,6 +373,8 @@ int zxCPU::step(int prefix, int offset) {
             F5=бит 1 операции переданный байт + A
          */
         case O_LDI:
+//ldi:
+            v8Src = rm8(*_HL);
             wm8(*_DE, v8Src);
             *_DE += dir; *_HL += dir; *_BC -= 1;
             flags = F3 | F5 | FH | FPV;
@@ -392,6 +382,7 @@ int zxCPU::step(int prefix, int offset) {
             f3 = (uint8_t)((v8Src + v8Dst) & 8);
             f5 = (uint8_t)((v8Src + v8Dst) & 2);
             if(rep && fpv) { *_PC -= 2; ticks = 21; }
+//            if(rep && fpv) { ticks += 5; goto ldi; }
             break;
         /*
             SZ*H**1-
@@ -429,7 +420,7 @@ int zxCPU::step(int prefix, int offset) {
          */
         case O_OTI:
             ALU->writePort(*_C, *_B, v8Src); *_HL += dir; *_B -= 1;
-            fh = fc = (uint8_t)((v8Src + opts[RL]) > 255); fn = v8Src >> 7;
+            fh = fc = (uint8_t)((v8Src + opts[RL]) > 255); fn = (v8Src >> 7);
             fpv = _FP(((v8Src + opts[RL]) & 7) ^ *_B);
             res = *_B; flags = FH | FC | FPV;
             if(fpv && rep) { *_PC -= 2; ticks = 21; }
@@ -440,15 +431,41 @@ int zxCPU::step(int prefix, int offset) {
         flags = ~flags;
         if(flg & flags & FS) _FS(res);
         if(flg & flags & FZ) _FZ(res);
-        if(flg & flags & FC) _FC(_fc);
-        if(flg & flags & FH) _FH(v8Dst, v8Src, res, fch, fn);
-        if(flg & flags & FPV) _FV(v8Dst, v8Src, res, fch, fn);
-        if(flg & flags & F3) f3 = (uint8_t)(res & 8);
         if(flg & flags & F5) f5 = (uint8_t)(res & 32);
-        uint8_t f = fc | (fn << 1) | (fpv << 2) | /*f3 | */(fh << 4) | /*f5 | */(fz << 6) | (fs << 7);
+        if(flg & flags & FH) _FH(v8Dst, v8Src, res, fch, fn);
+        if(flg & flags & F3) f3 = (uint8_t)(res & 8);
+        if(flg & flags & FPV) _FV(v8Dst, v8Src, res, fch, fn);
+        if(flg & flags & FC) _FC(_fc);
+        uint8_t f = fc | (fn << 1) | (fpv << 2) | f3 | (fh << 4) | f5 | (fz << 6) | (fs << 7);
         *_F &= ~flg;
         *_F |= (f & flg);
     }
+/*
+    if(debug) {
+        if(!prefix && !offset) {
+            int nn;
+            auto buf = ssh_fmtValue(num, ZX_FV_NUM16, true);
+            auto size = strlen(buf);
+            buf[size] = ' ';
+            num++;
+            f.write(buf, size + 1);
+            buf = zxDA::daMake(&pc, DA_PC | DA_TICKS | DA_CODE | DA_PN | DA_PNN, 0);
+            size = strlen(buf);
+            auto end = buf + size;
+            ssh_strcpy(&end, " AF = "); nn = *_AF;
+            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
+            ssh_strcpy(&end, " HL = "); nn = *_HL;
+            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
+            ssh_strcpy(&end, " DE = "); nn = *_DE;
+            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
+            ssh_strcpy(&end, " BC = "); nn = *_BC;
+            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
+            *end++ = '\r';
+            *end++ = '\n';
+            f.write(buf, end - buf);
+        }
+    }
+*/
     return ticks;
 }
 

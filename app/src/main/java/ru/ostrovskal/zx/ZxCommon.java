@@ -23,6 +23,17 @@ public final class ZxCommon {
     public final static int FORM_LOADING            = 4;
 
     // Разделяемые свойства
+
+    // 0. Байтовые значения, вычисляемые во время работы программы
+    public static final int ZX_PROP_JOY_TYPE        = 80; // Текущий тип джойстика
+    public static final int ZX_PROP_JOY_KEYS        = 81; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
+    public static final int ZX_PROP_JOY_CROSS_VALUE = 89; // Нажатые кнопки джойстика-крестовины
+    public static final int ZX_PROP_JOY_ACTION_VALUE= 90; // Нажатые кнопки джойстика-управления
+    public static final int ZX_PROP_KEY_CURSOR_MODE = 91; // Режим курсора (E, G, L, K т.п.)
+    public static final int ZX_PROP_KEY_MODE        = 92; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
+    public static final int ZX_PROP_VALUES_SEMI_ROW = 93; // Значения в полурядах клавиатуры (8) 93 - 100
+    public static final int ZX_PROP_VALUES_KEMPSTON = 101; // Значение для кемпстон-джойстика
+
     // 1. Булевы значения
     public static final int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
     public static final int ZX_PROP_TRAP_TAPE       = 129; // Признак перехвата загрузки/записи с ленты
@@ -55,18 +66,8 @@ public final class ZxCommon {
     // 3. Целые значения
     public static final int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
 
-    // 4. Байтовые значения, вычисляемые во время работы программы
-    public static final int ZX_PROP_JOY_TYPE        = 256; // Текущий тип джойстика
-    public static final int ZX_PROP_JOY_KEYS        = 257; // Привазанные к джойстику коды кнопок клавиатуры (8) 257 - 264
-    public static final int ZX_PROP_JOY_CROSS_VALUE = 265; // Нажатые кнопки джойстика-крестовины
-    public static final int ZX_PROP_JOY_ACTION_VALUE= 266; // Нажатые кнопки джойстика-управления
-    public static final int ZX_PROP_KEY_CURSOR_MODE = 267; // Режим курсора (E, G, L, K т.п.)
-    public static final int ZX_PROP_KEY_MODE        = 268; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
-    public static final int ZX_PROP_VALUES_SEMI_ROW = 269; // Значения в полурядах клавиатуры (8) 269 - 276
-    public static final int ZX_PROP_VALUES_KEMPSTON = 277; // Значение для кемпстон-джойстика
-
-    public static final int ZX_PROPS_COUNT          = 300; // Размер буфера свойств
-    public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_COLORS - ZX_PROP_FIRST_LAUNCH) + 22; // Количество свойств
+    public static final int ZX_PROPS_COUNT          = 267; // Размер буфера свойств
+    public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_COLORS - ZX_PROP_FIRST_LAUNCH) +  22; // Количество свойств
 
     // Модели памяти
     public static final int MODEL_48KK              = 0; // Компаньон 2.02 48К
@@ -284,13 +285,13 @@ public final class ZxCommon {
             ATTR_SHADOW_TEXT, R.string.shadow_text,
             ATTR_GRAVITY, Gravity.CENTER_VERTICAL,
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_NORMAL | THEME,
-            ATTR_SIZE, 12,
+            ATTR_SIZE, 8,
             ATTR_FONT, R.string.font_normal
     };
 
     public static final int[] style_color_text_settings = {
             ATTR_SHADOW_TEXT, R.string.shadow_text,
-            ATTR_SIZE, 12,
+            ATTR_SIZE, 8,
             ATTR_FONT, R.string.font_small,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_COLOR_DEFAULT, 0xffffff | COLOR
@@ -302,7 +303,7 @@ public final class ZxCommon {
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_PADDING_HORZ, R.dimen.paddingHorzSelectItem,
             ATTR_GRAVITY, Gravity.CENTER,
-            ATTR_SIZE, 22,
+            ATTR_SIZE, 14,
             ATTR_FONT, R.string.font_small,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_SPINNER | THEME,
             ATTR_SSH_VERT, 3,
@@ -314,7 +315,7 @@ public final class ZxCommon {
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.CENTER,
-            ATTR_SIZE, 20,
+            ATTR_SIZE, 14,
             ATTR_FONT, R.string.font_small,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_SPINNER | THEME,
             ATTR_MIN_HEIGHT, R.dimen.heightSelectItem,

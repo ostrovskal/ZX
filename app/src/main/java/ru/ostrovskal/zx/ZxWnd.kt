@@ -149,7 +149,7 @@ class ZxWnd : Wnd() {
 
     private fun exit() {
         // Сохраняем состояние
-        zxIO(ZX_AUTO_SAVE, false)
+        //zxIO(ZX_AUTO_SAVE, false)
         // Сохраняем установки
         loadResource("settings", "array_str", arrayOf("")).forEachIndexed { i, key ->
             if (i < ZX_PROPS_INIT_COUNT) key.substringBeforeLast(',').s = zxSetProp(i)
@@ -172,22 +172,15 @@ class ZxWnd : Wnd() {
                 R.id.menu_disk  -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
                 R.id.menu_props -> {
                     getItem(0).isChecked = props[ZX_PROP_SND_LAUNCH].toBoolean
-                    getItem(1).isChecked = props[ZX_PROP_SHOW_KEY].toBoolean
-                    getItem(2).isChecked = props[ZX_PROP_SHOW_JOY].toBoolean
-                    getItem(3).isChecked = props[ZX_PROP_TRAP_TAPE].toBoolean
-                    getItem(4).isChecked = "filter".b
-                    getItem(5).isChecked = props[ZX_PROP_TURBO_MODE].toBoolean
+                    getItem(1).isChecked = props[ZX_PROP_TRAP_TAPE].toBoolean
+                    getItem(2).isChecked = "filter".b
+                    getItem(3).isChecked = props[ZX_PROP_TURBO_MODE].toBoolean
+                    getItem(4).isChecked = props[ZX_PROP_EXECUTE].toBoolean
                 }
                 R.id.menu_mru   -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
             }
         }
         return super.onMenuItemSelected(featureId, item)
-    }
-
-    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-    override fun onMenuOpened(featureId: Int, menu: Menu?): Boolean {
-        menu?.findItem(R.id.menu_execute)?.isChecked = props[ZX_PROP_EXECUTE].toBoolean
-        return super.onMenuOpened(featureId, menu)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -199,6 +192,11 @@ class ZxWnd : Wnd() {
                         R.id.menu_sound to ZX_PROP_SND_LAUNCH, R.id.menu_tape to ZX_PROP_TRAP_TAPE, R.id.menu_turbo to ZX_PROP_TURBO_MODE,
                         R.id.menu_keyboard to ZX_PROP_SHOW_KEY, R.id.menu_joystick to ZX_PROP_SHOW_JOY, R.id.menu_execute to ZX_PROP_EXECUTE
         )
+        menu.findItem(R.id.menu_keyboard).apply {
+            val isKey = props[ZX_PROP_SHOW_KEY].toBoolean
+            this.title = if(isKey) "key" else "joy"
+            setIcon(if(isKey) R.drawable.zx_menu_key else R.drawable.zx_menu_joy)
+        }
         return true
     }
 
@@ -210,8 +208,18 @@ class ZxWnd : Wnd() {
             R.id.menu_settings                  -> instanceForm(FORM_OPTIONS)
             R.id.menu_restore                   -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
             R.id.menu_reset                     -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_RESET.ordinal)
+            R.id.menu_debugger                  -> { }
             R.id.menu_exit                      -> finish()
-            R.id.menu_keyboard, R.id.menu_joystick,
+            R.id.menu_keyboard,
+            R.id.menu_joystick                  -> {
+                val isKey = item.actionView.run {
+                    val t = title
+                    title = if(t == "key") "joy" else "key"
+                    t == "key"
+                }
+                item.setIcon(if(isKey) R.drawable.zx_menu_joy else R.drawable.zx_menu_key)
+                updatePropsMenuItem(if(isKey) R.id.menu_joystick else R.id.menu_keyboard)
+            }
             R.id.menu_sound, R.id.menu_turbo,
             R.id.menu_tape, R.id.menu_execute   -> updatePropsMenuItem(id)
             R.id.menu_disk1, R.id.menu_disk2,
@@ -436,11 +444,30 @@ class ZxWnd : Wnd() {
 1. панель навигации после восстановления
 2. режим отладчика в вертикальной ориентации
 3. в дизасм добавить метки с описанием ПЗУ
-    и при прямом чтении/записи в операнд
-4. клавиатура
+    и при прямом чтении/записи в операнд            +
+4. клавиатура                                       +
 5. мелькание курсора
 6. DAA
 7. в тулбар - клава/джойстик
 8. ошибка в сохранении\загрузке состояния           +
+9. список всех инструций - проверить                +
 
+5 декабря 2019 - 16:00
+осталось:
+1. в тулбар - клава/джойстик
+2. сравнить работу двух дешифраторов
+3. вставить вычисление флагов в виндовс эмулятор            +
+4. переделать сохранение/загрузку - опять какая-то хрень    +
+5. форма установок                                          +
+
+6 декабря 2019 - 0:10
+осталось:
+1. в тулбар - клава/джойстик
+2. сравнить работу двух дешифраторов                        +
+3. панель навигации после восстановления
+4. режим отладчика в вертикальной ориентации
+5.
+
+сейчас - 4:30
+1. в тулбар - клава/джойстик                                +
  */

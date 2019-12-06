@@ -18,10 +18,6 @@ static uint8_t cnvRegs[] = {
         C_C, C_E, C_YL, C_F, C_SP, C_B, C_D, C_YH, C_A, C_I, C_R, C_PIY, C_A, 0, 0, 0, C_BC, C_DE, C_IY, C_AF, C_SP, 0, 0, 0
 };
 
-static zxDA::DA_LABEL labels[] = {
-        {0, "START"}
-};
-
 static const char* namesCode[] = { "C", "B", "E", "D", "L", "H", "R", "A",
                                    "", "(HL)", "I", "BC", "DE", "HL", "AF", "SP",
                                    "NZ", "Z", "NC", "C", "PO", "PE", "P", "M",
@@ -96,8 +92,8 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
     auto regDst = m->regDst;
     auto regSrc = m->regSrc;
 
-    getDaOperand(regSrc, regDst, prefix, &vSrc, &v8Src, pc, &ticks, &offsSrc);
     getDaOperand(regDst, regSrc, prefix, &vDst, &v8Dst, pc, &ticks, &offsDst);
+    getDaOperand(regSrc, regDst, prefix, &vSrc, &v8Src, pc, &ticks, &offsSrc);
     ticks += m->tiks;
 
     if(m->ops == O_PREF) {
@@ -210,10 +206,14 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
         char* daCode = (char*)&TMP_BUF[65536 + 256]; auto cod = daCode;
         int length = *pc - _pc;
         for(int i = 0; i < length; i++) ssh_strcpy(&daCode, ssh_fmtValue(rm8((uint16_t)(_pc + i)), (i != (length - 1)) * 2, true));
-        length = strlen(cod) / 4;
-        n = hex ? 4 : 5; n -= length;
-        while(n-- > 0 ) *daCode++ = '\t';
+        auto l = strlen(cod);
         ssh_strcpy(&daResult, cod);
+        ssh_strcpy(&daResult, l >= 8 ? "\t" : "\t\t");
+/*
+        length = strlen(cod) / 4;
+        n = hex ? 3 : 4; n -= length;
+        while(n-- > 0 ) *daCode++ = '\t';
+*/
     }
     auto posMnemonic = daResult;
     // сама инструкция
@@ -277,8 +277,10 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
     // эпилог (TICKS)
     if(flags & DA_TICKS) {
         auto length = strlen(posMnemonic) / 4;
+/*
         n = hex ? 5 : 6; n -= length;
         while(n-- > 0) *daResult++ = '\t';
+*/
         ssh_strcpy(&daResult, "; ");
         ssh_strcpy(&daResult, ssh_fmtValue(ticks, ZX_FV_NUMBER, false));
     }
@@ -286,8 +288,13 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
 }
 
 const char* zxDA::searchLabel(int address) {
-    for(auto& l : labels) {
-        if(address == l.address) return l.label;
+    auto ptr = labels;
+    return nullptr;
+    int count = *(uint16_t*)ptr; ptr += sizeof(uint16_t);
+    for(int i = 0 ; i < count; i++) {
+        int len = *ptr++;
+        if(*(uint16_t*)ptr == address) return (const char*)(ptr + 2);
+        ptr += len;
     }
     return nullptr;
 }

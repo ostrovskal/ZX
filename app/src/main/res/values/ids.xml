@@ -13,4 +13,5 @@
     <item name="settingsJoyType" type="id" />
     <item name="settingsFreq" type="id" />
     <item name="settingsTypeAY" type="id" />
+    <item name="menu_joystick" type="id" />
 </resources>

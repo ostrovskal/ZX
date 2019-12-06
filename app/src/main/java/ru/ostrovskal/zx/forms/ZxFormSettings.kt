@@ -302,7 +302,7 @@ class ZxFormSettings : Form() {
         repeat(16) { idx ->
             if(reset) {
                 val o = (idx + ZX_PROP_COLORS) - ZX_PROP_FIRST_LAUNCH
-                ZxWnd.zxGetProp(settings[o], o)
+                ZxWnd.zxGetProp(settings[o].substringAfterLast(','), o)
             }
             content.byIdx<Text>(idx).apply {
                 (background as? TileDrawable)?.apply {
@@ -333,7 +333,7 @@ class ZxFormSettings : Form() {
             if(opt > 0) {
                 if(reset) {
                     val o = opt - ZX_PROP_FIRST_LAUNCH
-                    ZxWnd.zxGetProp(settings[o], o)
+                    ZxWnd.zxGetProp(settings[o].substringAfterLast(','), o)
                 }
                 val v = ZxWnd.props[opt].toInt()
                 when (idx) {
@@ -350,7 +350,7 @@ class ZxFormSettings : Form() {
             val opt = settingsCommon[it]
             if(reset) {
                 val o = opt - ZX_PROP_FIRST_LAUNCH
-                ZxWnd.zxGetProp(settings[o], o)
+                ZxWnd.zxGetProp(settings[o].substringAfterLast(','), o)
             }
             if(it < 5) {
                 content.byIdx<Seek>(it * 2 + 1).progress = ZxWnd.props[opt].toInt()

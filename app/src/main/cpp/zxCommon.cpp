@@ -7,6 +7,7 @@
 uint8_t*    TMP_BUF     = nullptr;
 zxALU*      ALU         = nullptr;
 uint8_t*    opts        = nullptr;
+uint8_t*    labels      = nullptr;
 
 std::string FOLDER_FILES= "data/data/ru.ostrovskal.zx/files/";
 std::string FOLDER_CACHE= "data/data/ru.ostrovskal.zx/cache/";
@@ -137,7 +138,6 @@ char* ssh_ntos(void* v, int r, char** end) {
             *buf = 0; buf = st;
             break;
         case RADIX_BOL:
-            buf -= 6;
             memcpy(buf , (*(bool*)v) ? "true\0\0" : "false\0", 6);
             break;
         default: info("Неизвестная система счисления! %i", r); break;
@@ -174,7 +174,8 @@ void* ssh_ston(const char* s, int r, const char** end) {
     int n(0); double d(0.0);
     switch(r) {
         case RADIX_DEC: case RADIX_HEX: case RADIX_BIN: case RADIX_OCT:
-            *(int*)&res = stoi(&s, rdx[r * 2 + 0], msk) * sign;
+            n = stoi(&s, rdx[r * 2 + 0], msk) * sign;
+            *(int*)&res = n;
             break;
         case RADIX_DBL: case RADIX_FLT:
             n = stoi(&s, 10, 8);
