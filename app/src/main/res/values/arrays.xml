@@ -62,8 +62,8 @@
         <item>skip_frames,true</item>
         <item>execute,true</item>
         <item>hex,false</item>
+        <item>debugger,false</item>
 
-        <item>unusedBool,false</item>
         <item>unusedBool,false</item>
         <item>unusedBool,false</item>
         <item>unusedBool,false</item>

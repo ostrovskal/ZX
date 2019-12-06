@@ -62,6 +62,8 @@ class ZxWnd : Wnd() {
     // признак запуска эмулятора
     var zxInitialize            = false
 
+    private var isInit          = false
+
     private var idsMap          = mapOf<Int, Int>()
 
     private fun menuId(id: Int) = idsMap[id] ?: error("ID not found!")
@@ -108,6 +110,12 @@ class ZxWnd : Wnd() {
         @JvmStatic
         external fun zxPresets(cmd: Int): String
 
+        @JvmStatic
+        external fun zxSaveState(): ByteArray
+
+        @JvmStatic
+        external fun zxLoadState(mem: ByteArray)
+
 /*
         @JvmStatic
         external fun zxStringToNumber(value: String, radix: Int): Int
@@ -134,22 +142,26 @@ class ZxWnd : Wnd() {
             Settings.initialize(getSharedPreferences(logTag, Context.MODE_PRIVATE), loadResource("settings", "array_str", arrayOf("")))
             // Применяем тему
             applyTheme()
-            // Инициализация эмулятора
-            runBlocking {
-                withContext(Dispatchers.IO) {
-                    zxProps(props)
-                    loadResource("settings", "array_str", arrayOf("")).forEachIndexed { i, key ->
-                        if(i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i)
+            if(!isInit) {
+                // Инициализация эмулятора
+                runBlocking {
+                    withContext(Dispatchers.IO) {
+                        zxProps(props)
+                        loadResource("settings", "array_str", arrayOf("")).forEachIndexed { i, key ->
+                            if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i)
+                        }
+                        zxInit(assets)
                     }
-                    zxInit(assets)
                 }
+                isInit = true
             }
+            zxInitialize = isInit
         }
     }
 
     private fun exit() {
         // Сохраняем состояние
-        //zxIO(ZX_AUTO_SAVE, false)
+        zxIO(ZX_AUTO_SAVE, false)
         // Сохраняем установки
         loadResource("settings", "array_str", arrayOf("")).forEachIndexed { i, key ->
             if (i < ZX_PROPS_INIT_COUNT) key.substringBeforeLast(',').s = zxSetProp(i)
@@ -157,12 +169,23 @@ class ZxWnd : Wnd() {
         zxShutdown()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("init", isInit)
+        outState.putByteArray("props", props)
+        outState.putByteArray("memory", zxSaveState())
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         startLog(this, "ZX", true, BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME, BuildConfig.DEBUG, enumNames(ZxMessages.values()))
         super.onCreate(savedInstanceState)
         Main().setContent(this, SSH_APP_MODE_GAME or SSH_APP_MODE_TITLE or SSH_APP_MODE_FULLSCREEN)
         // загружаем фрагмент
-        if (savedInstanceState == null) instanceForm(FORM_MAIN)
+        savedInstanceState?.apply {
+            getByteArray("props")?.copyInto(props)
+            isInit = getBoolean("init")
+            getByteArray("memory")?.apply { zxLoadState(this) }
+        } ?: instanceForm(FORM_MAIN)
     }
 
     override fun onMenuItemSelected(featureId: Int, item: MenuItem): Boolean {
@@ -176,6 +199,7 @@ class ZxWnd : Wnd() {
                     getItem(2).isChecked = "filter".b
                     getItem(3).isChecked = props[ZX_PROP_TURBO_MODE].toBoolean
                     getItem(4).isChecked = props[ZX_PROP_EXECUTE].toBoolean
+                    getItem(5).isChecked = props[ZX_PROP_SHOW_DEBUGGER].toBoolean
                 }
                 R.id.menu_mru   -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
             }
@@ -190,7 +214,8 @@ class ZxWnd : Wnd() {
                         R.id.menu_mru1 to 0, R.id.menu_mru2 to 1, R.id.menu_mru3 to 2, R.id.menu_mru4 to 3, R.id.menu_mru5 to 4,
                         R.id.menu_mru6 to 5, R.id.menu_mru7 to 6, R.id.menu_mru8 to 7, R.id.menu_mru9 to 8, R.id.menu_mru10 to 9,
                         R.id.menu_sound to ZX_PROP_SND_LAUNCH, R.id.menu_tape to ZX_PROP_TRAP_TAPE, R.id.menu_turbo to ZX_PROP_TURBO_MODE,
-                        R.id.menu_keyboard to ZX_PROP_SHOW_KEY, R.id.menu_joystick to ZX_PROP_SHOW_JOY, R.id.menu_execute to ZX_PROP_EXECUTE
+                        R.id.menu_keyboard to ZX_PROP_SHOW_KEY, R.id.menu_joystick to ZX_PROP_SHOW_JOY, R.id.menu_execute to ZX_PROP_EXECUTE,
+                        R.id.menu_debugger to ZX_PROP_SHOW_DEBUGGER
         )
         menu.findItem(R.id.menu_keyboard).apply {
             val isKey = props[ZX_PROP_SHOW_KEY].toBoolean
@@ -208,11 +233,14 @@ class ZxWnd : Wnd() {
             R.id.menu_settings                  -> instanceForm(FORM_OPTIONS)
             R.id.menu_restore                   -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
             R.id.menu_reset                     -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_RESET.ordinal)
-            R.id.menu_debugger                  -> { }
+            R.id.menu_debugger                  -> {
+                hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal, 200)
+                updatePropsMenuItem(id)
+            }
             R.id.menu_exit                      -> finish()
             R.id.menu_keyboard,
             R.id.menu_joystick                  -> {
-                val isKey = item.actionView.run {
+                val isKey = item.run {
                     val t = title
                     title = if(t == "key") "joy" else "key"
                     t == "key"
@@ -221,7 +249,7 @@ class ZxWnd : Wnd() {
                 updatePropsMenuItem(if(isKey) R.id.menu_joystick else R.id.menu_keyboard)
             }
             R.id.menu_sound, R.id.menu_turbo,
-            R.id.menu_tape, R.id.menu_execute   -> updatePropsMenuItem(id)
+            R.id.menu_tape, R.id.menu_execute    -> updatePropsMenuItem(id)
             R.id.menu_disk1, R.id.menu_disk2,
             R.id.menu_disk3, R.id.menu_disk4    -> {
                 props[ZX_PROP_ACTIVE_DISK] = menuId(id).toByte()
@@ -254,7 +282,7 @@ class ZxWnd : Wnd() {
         if(id == R.id.menu_keyboard || id == R.id.menu_joystick) {
             props[ZX_PROP_SHOW_KEY] = 0.toByte()
             props[ZX_PROP_SHOW_JOY] = 0.toByte()
-            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal, 200)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal, 100)
             hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_JOY.ordinal, 200)
         }
         props[prop] = isChecked.toByte
@@ -470,4 +498,36 @@ class ZxWnd : Wnd() {
 
 сейчас - 4:30
 1. в тулбар - клава/джойстик                                +
+
+6:00
+2. управляющие кнопки клавы
+2. изменение ориентации                                     +
+3. разметка для отладчика
+4. опять настройки слитают
+5. опрос порта FC у компаньона
+6. openZ80
+7. габариты форм для разных ориентаций                      +
+8. ид элементов, чтобы не падала при смене ориентации       +
+9. сделать одну главную форму - остальные от нее            +
+10. DAA
+
+8:00
+осталось:
+1. управляющие кнопки клавы                                 +
+2. openZ80                                                  +
+3. DAA
+4. опрос порта FC у компаньона
+5. проброс сообщений в основную форму                       +
+6. поворот экрана без ИД                                    +
+7. при сбросе программы(PC = 0) - активировать сброс        +
+
+ 6 декабря 2019 - 17:00
+ осталось:
+ 1. проверить Z80
+ 2. DAA
+ 3. еше сравнить два дешифратора
+ 4. восстановление onResume
+ 5. смена ориентации - состояние эмулятора
+ 6.
+
  */

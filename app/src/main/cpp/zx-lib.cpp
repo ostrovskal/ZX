@@ -107,7 +107,22 @@ extern "C" {
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
         ALU->load(ZX_AUTO_SAVE, ZX_CMD_IO_STATE);
-        info("zxInit1");
+        info("zxInit2");
+    }
+
+    jbyteArray zxSaveState(JNIEnv* env, jclass) {
+        auto jmemory = env->NewByteArray(262144);
+        auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
+        memcpy(mem, ALU->RAMs, 262144);
+        env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
+        return jmemory;
+    }
+
+    void zxLoadState(JNIEnv* env, jclass, jbyteArray jmemory) {
+        auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
+        memcpy(ALU->RAMs, mem, 262144);
+        env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
+        ALU->updateProps();
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props) {
@@ -203,6 +218,8 @@ extern "C" {
             { "zxIO", "(Ljava/lang/String;Z)Z", (void*)&zxIO },
             { "zxPresets", "(I)Ljava/lang/String;", (void*)&zxPresets },
             { "zxInt", "(IZI)J", (void*)&zxInt },
+            { "zxSaveState", "()[B", (void*)&zxSaveState },
+            { "zxLoadState", "([B)V", (void*)&zxLoadState },
             { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },
             { "zxNumberToString", "(II)Ljava/lang/String;", (void*)&zxNumberToString }
     };

@@ -74,6 +74,9 @@ public:
     // страницы ПЗУ
     uint8_t* PAGE_ROM[4];
 
+    // буфер ОЗУ
+    uint8_t* RAMs;
+
 protected:
 
     // загрузка состояния
@@ -112,17 +115,11 @@ protected:
     // старое значение кнопок джойстика
     uint8_t joyOldButtons;
 
-    // буфер ОЗУ
-    uint8_t* RAMs;
-
     // параметры мерцания
     uint32_t blink, blinkMsk, blinkShift;
 
     // цвет и размер границы
     uint32_t sizeBorder, colorBorder;
-
-    // габариты экрана
-    uint32_t widthScreen, heightScreen;
 
     // процессор
     zxCPU* cpu;

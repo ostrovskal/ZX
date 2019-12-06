@@ -1,9 +1,11 @@
 package ru.ostrovskal.zx.forms
 
+import android.os.Message
 import android.view.LayoutInflater
 import ru.ostrovskal.sshstd.Common.BTN_OK
 import ru.ostrovskal.sshstd.Common.style_form
 import ru.ostrovskal.sshstd.forms.Form
+import ru.ostrovskal.sshstd.objects.Theme
 import ru.ostrovskal.sshstd.ui.*
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Edit
@@ -27,15 +29,16 @@ class ZxFormPokes : Form() {
                 root = cellLayout(12, 6, 1.dp) {
                     formHeader(R.string.pokeHead)
                     backgroundSet(style_form)
-                    edit(0, R.string.hintAddress, style_edit_zx) {
+                    edit(R.id.editName, R.string.hintAddress, style_edit_zx) {
                         maxLength = 5
                         changeTextLintener = { enabledSet() }
                     }.lps(0, 0, 7, 2)
-                    edit(0, R.string.hintValue, style_edit_zx) {
+                    edit(R.id.editValue, R.string.hintValue, style_edit_zx) {
                         changeTextLintener = { enabledSet() }
                         maxLength = 3
                     }.lps(7, 0, 5, 2)
                     button {
+                        id = R.id.buttonNull1
                         iconResource = R.integer.I_SET
                         isEnabled = false
                         setOnClickListener {
@@ -45,13 +48,19 @@ class ZxFormPokes : Form() {
                         }
                     }.lps(0, 2, 6, 2)
                     button {
+                        id = R.id.buttonNull2
                         iconResource = R.integer.I_CLOSE
                         setOnClickListener {
                             footer(BTN_OK, 0)
                         }
                     }.lps(6, 2, 6, 2)
-                }.lps(270.dp, 150.dp)
+                }.lps(Theme.dimen(ctx, R.dimen.pokeWidth), Theme.dimen(ctx, R.dimen.pokeHeight))
             }
         }
+    }
+
+    override fun handleMessage(msg: Message): Boolean {
+        wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
+        return super.handleMessage(msg)
     }
 }

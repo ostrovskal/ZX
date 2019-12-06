@@ -33,8 +33,8 @@
     <string name="hintAddress">адрес</string>
     <string name="hintValue">значение</string>
     <string name="settingsHead">Установки</string>
-    <string name="settingsFrames">Пропуск кадров</string>
-    <string name="settingsJoyType">Раскладка</string>
+    <string name="settingsFrames">Без кадров</string>
+    <string name="settingsJoyType">Тип</string>
     <string name="settingsJoyPreset">Образцы</string>
     <string name="settingsColorBlack">ЧЁРНЫЙ</string>
     <string name="settingsColorBlue">СИНИЙ</string>
@@ -59,7 +59,7 @@
     <string name="settingsSound8Bit">8 Бит</string>
     <string name="settingsSoundBeeper">Бипер</string>
     <string name="settingsSoundAY">AY</string>
-    <string name="settingsSoundSave">Прямая запись</string>
+    <string name="settingsSoundSave">Запись</string>
     <string name="settingsSndVolAY">Громкость AY</string>
     <string name="settingsSndVolBP">Громкость бипера</string>
     <string name="settingsSndFreq">Частота</string>

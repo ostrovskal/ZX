@@ -289,7 +289,6 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
 
 const char* zxDA::searchLabel(int address) {
     auto ptr = labels;
-    return nullptr;
     int count = *(uint16_t*)ptr; ptr += sizeof(uint16_t);
     for(int i = 0 ; i < count; i++) {
         int len = *ptr++;

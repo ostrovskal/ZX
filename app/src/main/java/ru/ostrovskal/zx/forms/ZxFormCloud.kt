@@ -17,6 +17,7 @@ import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
 import ru.ostrovskal.sshstd.forms.Form
 import ru.ostrovskal.sshstd.forms.FormMessage
 import ru.ostrovskal.sshstd.forms.FormProgress
+import ru.ostrovskal.sshstd.objects.Theme
 import ru.ostrovskal.sshstd.ui.*
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Check
@@ -61,6 +62,7 @@ class ZxFormCloud : Form() {
             }
         } else if(msg.action == ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal)
             footer(BTN_OK, 0)
+        else wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
         return super.handleMessage(msg)
     }
 
@@ -103,19 +105,21 @@ class ZxFormCloud : Form() {
                     formHeader(R.string.headerCloud)
                     backgroundSet(style_form)
                     button {
+                        id = R.id.buttonNull1
                         isEnabled = false
                         iconResource = R.integer.I_OPEN
                         setOnClickListener { downloadCheckedFiles() }
                     }.lps(10, 4, 5, 3)
                     button {
+                        id = R.id.buttonNull2
                         iconResource = R.integer.I_CLOSE
                         setOnClickListener { thread?.interrupt(); footer(BTN_OK, 0) }
                     }.lps(10, 7, 5, 3)
-                    ribbon(0) {
+                    ribbon(R.id.ribbonMain) {
                         padding = 7.dp
                         backgroundSet(style_backgrnd_io)
                     }.lps(0, 0, 10, 13)
-                }.lps(400.dp, 250.dp)
+                }.lps(Theme.dimen(ctx, R.dimen.cloudWidth), Theme.dimen(ctx, R.dimen.cloudHeight))
             }
         }
     }
@@ -123,20 +127,14 @@ class ZxFormCloud : Form() {
     private inner class LoadingAdapter(context: Context, mObjects: List<DropBox.FileInfo>):
         ArrayListAdapter<DropBox.FileInfo>(context, ItemCloud(), ItemCloud(), mObjects) {
 
-        private var isInner = false
-
         override fun createView(position: Int, convertView: View?, resource: UiComponent, parent: ViewGroup, color: Boolean): View? {
             return ((convertView ?: resource.createView(UiCtx(context))) as? Check)?.apply {
-//                isInner = true
                 text = getItem(position)?.name
                 isChecked = checked[position]
-//                isInner = false
                 setOnClickListener {
-                    if(!isInner) {
-                        if (isChecked) checkedCount++ else checkedCount--
-                        checked[position] = isChecked
-                        root.byIdx<Tile>(1).isEnabled = checkedCount != 0
-                    }
+                    if (isChecked) checkedCount++ else checkedCount--
+                    checked[position] = isChecked
+                    root.byIdx<Tile>(1).isEnabled = checkedCount != 0
                 }
             }
         }

@@ -1,2 +1,16 @@
 <resources>
+    <style name="ActionButtonStyle" parent="@android:style/Widget.Holo.Light.ActionButton">
+        <item name="android:minWidth">0dip</item>
+        <item name="android:paddingLeft">-2dp</item>
+        <item name="android:paddingRight">-2dp</item>
+<!--
+        <item name="paddingStart">12dip</item>
+        <item name="paddingEnd">12dip</item>
+        <item name="scaleType">center</item>
+        <item name="maxLines">2</item>
+-->
+    </style>
+    <style name="ZxStyle" parent="StdTheme">
+        //<item name="android:actionButtonStyle">@style/ActionButtonStyle</item>
+    </style>
 </resources>

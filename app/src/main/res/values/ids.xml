@@ -14,4 +14,29 @@
     <item name="settingsFreq" type="id" />
     <item name="settingsTypeAY" type="id" />
     <item name="menu_joystick" type="id" />
+    <item name="ribbonMain" type="id" />
+    <item name="buttonNull2" type="id" />
+    <item name="buttonNull1" type="id" />
+    <item name="buttonNull3" type="id" />
+    <item name="buttonNull4" type="id" />
+    <item name="editValue" type="id" />
+    <item name="buttonNull5" type="id" />
+    <item name="buttonNull6" type="id" />
+    <item name="buttonNull8" type="id" />
+    <item name="buttonNull7" type="id" />
+    <item name="spinnerKey1" type="id" />
+    <item name="spinnerKey7" type="id" />
+    <item name="spinnerKey2" type="id" />
+    <item name="spinnerKey8" type="id" />
+    <item name="spinnerKey3" type="id" />
+    <item name="spinnerKey4" type="id" />
+    <item name="spinnerKey5" type="id" />
+    <item name="spinnerKey6" type="id" />
+    <item name="seekCommon1" type="id" />
+    <item name="seekSnd1" type="id" />
+    <item name="seekSnd2" type="id" />
+    <item name="seekCommon2" type="id" />
+    <item name="seekCommon3" type="id" />
+    <item name="seekCommon4" type="id" />
+    <item name="seekCommon5" type="id" />
 </resources>

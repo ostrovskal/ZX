@@ -23,7 +23,7 @@
     <item
         android:id="@+id/menu_props"
         android:title="@string/menuProperties"
-        android:icon="@android:drawable/ic_menu_edit"
+        android:icon="@drawable/zx_menu_model"
         android:showAsAction="always" >
         <menu>
             <group android:checkableBehavior="all">
@@ -89,8 +89,7 @@
     <item
         android:id="@+id/menu_model"
         android:title="@string/menuModel"
-        android:icon="@drawable/zx_menu_model"
-        android:showAsAction="ifRoom">
+        android:showAsAction="never">
         <menu>
             <group android:checkableBehavior="single">
                 <item

@@ -49,6 +49,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображений
     public static final int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
     public static final int ZX_PROP_SHOW_HEX        = 141; // Признак 16-тиричного вывода
+    public static final int ZX_PROP_SHOW_DEBUGGER   = 142; // Признак режима отладчика
 
     // 2. Байтовые значения
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -285,13 +286,11 @@ public final class ZxCommon {
             ATTR_SHADOW_TEXT, R.string.shadow_text,
             ATTR_GRAVITY, Gravity.CENTER_VERTICAL,
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_NORMAL | THEME,
-            ATTR_SIZE, 8,
             ATTR_FONT, R.string.font_normal
     };
 
     public static final int[] style_color_text_settings = {
             ATTR_SHADOW_TEXT, R.string.shadow_text,
-            ATTR_SIZE, 8,
             ATTR_FONT, R.string.font_small,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_COLOR_DEFAULT, 0xffffff | COLOR
@@ -303,7 +302,6 @@ public final class ZxCommon {
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_PADDING_HORZ, R.dimen.paddingHorzSelectItem,
             ATTR_GRAVITY, Gravity.CENTER,
-            ATTR_SIZE, 14,
             ATTR_FONT, R.string.font_small,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_SPINNER | THEME,
             ATTR_SSH_VERT, 3,
@@ -315,7 +313,6 @@ public final class ZxCommon {
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.CENTER,
-            ATTR_SIZE, 14,
             ATTR_FONT, R.string.font_small,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_SPINNER | THEME,
             ATTR_MIN_HEIGHT, R.dimen.heightSelectItem,

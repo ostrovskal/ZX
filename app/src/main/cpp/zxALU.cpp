@@ -69,7 +69,7 @@ static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
 
 zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surface(nullptr), cpu(nullptr) {
     blink = blinkMsk = blinkShift = 0;
-    widthScreen = heightScreen = sizeBorder = 0;
+    sizeBorder = 0;
     pageTRDOS = &ROMS[ZX_ROM_TRDOS];
 
     RAMs = new uint8_t[ZX_TOTAL_RAM];
@@ -242,10 +242,6 @@ bool zxALU::openZ80(const char *name) {
             ptr += szSrc;
             sz -= szSrc;
         }
-        writePort(0xfd, 0x7f, head2->hardState);
-        //ssh_memcpy(zxSND::_AY, head2->sndRegs, 16);
-        writePort(0xfd, 0xff, head2->sndChipRegNumber);
-        if(length == 87 && head3) writePort(0xfd, 0x1f, head3->port1FFD);
     } else {
         if(!unpackBlock(ptr, TMP_BUF, &TMP_BUF[49152], sz, (head1->STATE1 & 32) == 32, true)) {
             info("Ошибка при распаковке openZ80(%s)!", name);
@@ -260,12 +256,19 @@ bool zxALU::openZ80(const char *name) {
     auto isZ80 = strcasecmp(name + strlen(name) - 4, ".z80") == 0;
     changeModel(model, *_MODEL, isZ80);
     *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL; *cpu->_AF = head1->AF;
-    *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY; *cpu->_PC = PC;
+    *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY;
     *cpu->_I = head1->I; *cpu->_R = head1->R; *cpu->_IM = (uint8_t)(head1->STATE2 & 3);
     *cpu->_IFF1 = head1->IFF1; *cpu->_IFF2 = head1->IFF2;
     *cpu->_R |= (head1->STATE1 & 1) << 7;
     *_FE = (uint8_t)(224 | ((head1->STATE1 & 14) >> 1));
     memcpy(&opts[RC_], &head1->BC_, 8);
+    *cpu->_PC = PC;
+/*
+    writePort(0xfd, 0x7f, head2->hardState);
+    //ssh_memcpy(zxSND::_AY, head2->sndRegs, 16);
+    writePort(0xfd, 0xff, head2->sndChipRegNumber);
+    if(length == 87 && head3) writePort(0xfd, 0x1f, head3->port1FFD);
+*/
     // копируем буфер
     memcpy(RAMs, TMP_BUF, 262144);
     // загружаем параметры джойстика
@@ -363,18 +366,19 @@ static bool presetsOps(PRESET* ptr, int ops, const char* name, char** l) {
 
 const char* zxALU::presets(const char *name, int ops) {
     if(ops == ZX_CMD_PRESETS_NAME) return progName;
-    ssh_memzero(TMP_BUF, 130000);
-    zxFile::readFile("joy_presets", TMP_BUF, false, nullptr);
-    auto buf = (char*)&TMP_BUF[81000];
-    char *lst = buf;
-    auto ptr = (PRESET*)TMP_BUF;
+    auto tmp = &TMP_BUF[524288 - 80000];
+    ssh_memzero(tmp, 80000);
+    zxFile::readFile("joy_presets", tmp, false, nullptr);
+    char* buf = (char*)(tmp + 40000);
+    auto lst = buf;
+    auto ptr = (PRESET*)tmp;
     // в имени убрать расширение
     if(ops == ZX_CMD_PRESETS_SET) {
         if(name) {
             auto n = strstr(name, ".");
             if(n) {
-                memcpy(&TMP_BUF[122000], name, n - name);
-                name = (char*)&TMP_BUF[122000];
+                memcpy(&buf[100], name, n - name);
+                name = &buf[100];
             }
             auto lenName = strlen(name);
             ssh_memzero(&progName, sizeof(progName));
@@ -392,7 +396,7 @@ const char* zxALU::presets(const char *name, int ops) {
         memcpy(&ptr->name, progName, sizeof(progName));
         ptr->joyType = opts[ZX_PROP_JOY_TYPE];
         memcpy(&ptr->joyL, &opts[ZX_PROP_JOY_KEYS], 8);
-        zxFile::writeFile("joy_presets", TMP_BUF, 40000, false);
+        zxFile::writeFile("joy_presets", tmp, 40000, false);
     }
     return buf;
 }
@@ -403,8 +407,6 @@ void zxALU::updateProps() {
     blinkMsk = (1U << (blinkShift + 1)) - 1;
     // граница
     sizeBorder = (uint32_t)opts[ZX_PROP_BORDER_SIZE] * 8;
-    widthScreen = sizeBorder * 2 + 256;
-    heightScreen = sizeBorder * 2 + 192;
 
     auto params = &modelParams[*_MODEL * 4];
     auto turbo = opts[ZX_PROP_TURBO_MODE] ? 2 : 1;
@@ -439,13 +441,13 @@ int zxALU::updateKeys(int key, int action) {
             }
         }
         if (action == 0) {
-            if (idx == 23) {
+            if (key == 23) {
                 mode &= ~ZX_CMD_KEY_MODE_SYMBOL;
                 opts[ZX_PROP_VALUES_SEMI_ROW + 7] = 255;
                 bitEx = 0;
                 opts[ZX_PROP_KEY_MODE] = (uint8_t)(mode ^ ZX_CMD_KEY_MODE_CAPS);
             }
-            if (idx == 33) {
+            if (key == 33) {
                 mode &= ~ZX_CMD_KEY_MODE_CAPS;
                 opts[ZX_PROP_VALUES_SEMI_ROW] = 255;
                 bitEx = 0;
@@ -625,19 +627,18 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
 uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
     switch(A0A7) {
         // звук AY
-//        case 0xfd: if(A8A15 == 0xff) return snd->ayRegs[*zxSND::_AY_REG]; break;
+//        case 0xFD: if(A8A15 == 0xff) return snd->ayRegs[*zxSND::_AY_REG]; break;
         // джойстик
-        case 0x1f: return *_KEMPSTON;
+        case 0x1F: return *_KEMPSTON;
         // клавиатура | MIC
-        case 0xfe: {
-            uint8_t ret = 255;
+        case 0xFC:// TODO
+        case 0xFE:
+            A0A7 = 255;
             for(int i = 0; i < 8; i++) {
                 if(A8A15 & (1 << i)) continue;
-                ret &= opts[i + ZX_PROP_VALUES_SEMI_ROW];
+                A0A7 &= opts[i + ZX_PROP_VALUES_SEMI_ROW];
             }
-  //          if(A0A7 == 254 && A8A15 == 247) ret = 253;
-            return ret/* | (tape->_FE8 << 3) */;
-        }
+            return A0A7/* | (tape->_FE8 << 3) */;
     }
     return _FF;
 }
@@ -684,6 +685,7 @@ void zxALU::updateCPU(int todo, bool interrupt) {
 //                tape->control(ticks);
             }
             ticks = step(true);
+//            ticks = step(false);
             todo -= ticks;
 //            tape->control(ticks);
         }

@@ -2,11 +2,13 @@
 
 package ru.ostrovskal.zx.forms
 
+import android.os.Message
 import android.text.InputType
 import android.view.LayoutInflater
 import ru.ostrovskal.sshstd.Common.*
 import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
 import ru.ostrovskal.sshstd.forms.Form
+import ru.ostrovskal.sshstd.objects.Theme
 import ru.ostrovskal.sshstd.ui.*
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Edit
@@ -49,6 +51,7 @@ class ZxFormIO: Form() {
                         }
                     }.lps(0, 0, 10, 3)
                     button {
+                        id = R.id.buttonNull1
                         isEnabled = false
                         iconResource = R.integer.I_OPEN
                         setOnClickListener {
@@ -57,6 +60,7 @@ class ZxFormIO: Form() {
                         }
                     }.lps(10, 1, 5, 3)
                     button {
+                        id = R.id.buttonNull2
                         isEnabled = false
                         iconResource = R.integer.I_SAVE
                         setOnClickListener {
@@ -65,6 +69,7 @@ class ZxFormIO: Form() {
                         }
                     }.lps(10, 4, 5, 3)
                     button {
+                        id = R.id.buttonNull3
                         isEnabled = false
                         iconResource = R.integer.I_DELETE
                         setOnClickListener {
@@ -77,10 +82,11 @@ class ZxFormIO: Form() {
                         }
                     }.lps(10, 7, 5, 3)
                     button {
+                        id = R.id.buttonNull4
                         iconResource = R.integer.I_CLOSE
                         setOnClickListener { footer(BTN_OK, 0) }
                     }.lps(10, 10, 5, 3)
-                    ribbon(0) {
+                    ribbon(R.id.ribbonMain) {
                         itemClickListener = {_, v, _, _ ->
                             (v as? Text)?.apply {
                                 name = text.toString()
@@ -91,7 +97,7 @@ class ZxFormIO: Form() {
                         backgroundSet(style_backgrnd_io)
                         adapter = ArrayListAdapter(context, ItemIO(), ItemIO(), files)
                     }.lps(0, 3, 10, 10)
-                }.lps(400.dp, 250.dp)
+                }.lps(Theme.dimen(ctx, R.dimen.ioWidth), Theme.dimen(ctx, R.dimen.ioHeight))
             }
         }
     }
@@ -99,5 +105,10 @@ class ZxFormIO: Form() {
     /** Класс, реализующий элемент списка файлов */
     private class ItemIO : UiComponent() {
         override fun createView(ui: UiCtx) = with(ui) { text(R.string.null_text, style_item_io) }
+    }
+
+    override fun handleMessage(msg: Message): Boolean {
+        wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
+        return super.handleMessage(msg)
     }
 }

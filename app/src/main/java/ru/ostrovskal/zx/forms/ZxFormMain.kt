@@ -18,14 +18,16 @@ import ru.ostrovskal.sshstd.ui.backgroundSet
 import ru.ostrovskal.sshstd.ui.cellLayout
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Tile
-import ru.ostrovskal.zx.R
-import ru.ostrovskal.zx.ZxCommon.*
-import ru.ostrovskal.zx.ZxKeyboard
-import ru.ostrovskal.zx.ZxView
-import ru.ostrovskal.zx.ZxWnd
+import ru.ostrovskal.zx.*
+import ru.ostrovskal.zx.ZxCommon.ZX_CMD_UPDATE_KEY
+import ru.ostrovskal.zx.ZxCommon.style_key_button
 
 @Suppress("unused")
 class ZxFormMain: Form() {
+
+    override val surface: Surface? get()= zxview
+
+    private inline fun ViewManager.zxView(init: ZxView.() -> Unit) = uiView({ ZxView(it) }, init)
 
     private val keyboard                = ZxKeyboard()
 
@@ -35,9 +37,44 @@ class ZxFormMain: Form() {
     // поверхность
     private var zxview: ZxView?         = null
 
-    override val surface: Surface? get()= zxview
+    private fun updateLayout() {
+        val show = if(ZxWnd.props[ZxCommon.ZX_PROP_SHOW_KEY].toBoolean) View.VISIBLE else View.GONE
+        val heightKeyboard = if(show == View.VISIBLE) ZxWnd.props[ZxCommon.ZX_PROP_KEY_SIZE] else 0
+        zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 15 - heightKeyboard)
+        keyLyt?.apply {
+            visibility = show
+            layoutParams = CellLayout.LayoutParams(0, 15 - heightKeyboard, 11, heightKeyboard.toInt())
+            if(show == View.VISIBLE) {
+                var szTextButton = heightKeyboard * 2.5f
+                if (szTextButton > 14f) szTextButton = 14f
+                loopChildren { (it as? TextView)?.textSize = szTextButton }
+            }
+        }
+        root.requestLayout()
+        root.invalidate()
+    }
 
-    private inline fun ViewManager.zxView(init: ZxView.() -> Unit) = uiView({ ZxView(it) }, init)
+    @SuppressLint("SetTextI18n")
+    override fun handleMessage(msg: Message): Boolean {
+        when(msg.action) {
+            ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
+            ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
+            ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal           -> {
+                FormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 0, 0))
+            }
+            ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal   -> {
+                val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
+                wnd.actionBar?.apply {
+                    if(customView == null) {
+                        setCustomView(R.layout.actionbar_view)
+                        displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM or ActionBar.DISPLAY_SHOW_HOME
+                    }
+                    (customView as? TextView)?.text = "$model - [ ${msg.obj} ]"
+                }
+            }
+        }
+        return true
+    }
 
     /** Реализация кнопки клавиатуры */
     private fun ViewManager.keyboardButton() = uiView({ Tile(it, style_key_button).apply {
@@ -63,44 +100,5 @@ class ZxFormMain: Form() {
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
-    }
-
-    private fun updateLayout() {
-        val show = if(ZxWnd.props[ZX_PROP_SHOW_KEY].toBoolean) View.VISIBLE else View.GONE
-        val heightKeyboard = if(show == View.VISIBLE) ZxWnd.props[ZX_PROP_KEY_SIZE] else 0
-        zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 15 - heightKeyboard)
-        keyLyt?.apply {
-            visibility = show
-            layoutParams = CellLayout.LayoutParams(0, 15 - heightKeyboard, 11, heightKeyboard.toInt())
-            if(show == View.VISIBLE) {
-                var szTextButton = heightKeyboard * 2.5f
-                if (szTextButton > 14f) szTextButton = 14f
-                loopChildren { (it as? TextView)?.textSize = szTextButton }
-            }
-        }
-        root.requestLayout()
-        root.invalidate()
-    }
-
-    @SuppressLint("SetTextI18n")
-    override fun handleMessage(msg: Message): Boolean {
-        when(msg.action) {
-            ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
-            ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
-            ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal           -> {
-                FormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 0, 0))
-            }
-            ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal   -> {
-                val model = getString(ZxWnd.modelNames[ZxWnd.props[ZX_PROP_MODEL_TYPE].toInt()])
-                wnd.actionBar?.apply {
-                    if(customView == null) {
-                        setCustomView(R.layout.actionbar_view)
-                        displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM or ActionBar.DISPLAY_SHOW_HOME
-                    }
-                    (customView as? TextView)?.text = "$model - [ ${msg.obj} ]"
-                }
-            }
-        }
-        return true
     }
 }
