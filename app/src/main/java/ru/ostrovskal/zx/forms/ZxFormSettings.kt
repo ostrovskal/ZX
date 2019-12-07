@@ -258,7 +258,7 @@ class ZxFormSettings : Form() {
             BTN_OK -> {
                 wnd.hand?.apply {
                     super.footer(btn, param)
-                    if (updateBorder) send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal)
+                    if (updateBorder) send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal, a1 = 0)
                     if (updateJoy) send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal)
                     if (updateKey) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
                     send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_SKIP_FRAMES.ordinal)
@@ -289,15 +289,15 @@ class ZxFormSettings : Form() {
             linearLayout {
                 cellLayout(10, 16) {
                     formHeader(R.string.settingsHead)
-                    root = tabLayout(sizeCaption = 18, style = style_tab_settins) {
+                    root = tabLayout(sizeCaption = 18, style = style_tab_settings) {
                         content.apply {
                             backgroundSet { solid = 0x80101010.toInt() }
                             padding = 2.dp
                         }
-                        page(R.id.pageCommon, nIcon = R.integer.I_COMMON, init = commonPage)
+                        page(R.id.pageCommon, nIcon = R.integer.I_TOOL, init = commonPage)
                         page(R.id.pageSound, nIcon = R.integer.I_SOUND, init = soundPage)
                         page(R.id.pageJoy, nIcon = R.integer.I_JOY, init = joyPage)
-                        page(R.id.pageScreen, nIcon = R.integer.I_EYE, init = screenPage)
+                        page(R.id.pageScreen, nIcon = R.integer.I_DISPLAY, init = screenPage)
                         page(R.id.pageTape, nIcon = R.integer.I_CASSETE, init = tapePage)
                     }.lps(0, 0, 10, 12)
                     formFooter(BTN_OK, R.integer.I_YES, BTN_NO, R.integer.I_NO, BTN_DEF, R.integer.I_DEFAULT)

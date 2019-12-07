@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="ioWidth">400dp</dimen>
+    <dimen name="ioWidthS">400sp</dimen>
     <dimen name="ioHeight">250dp</dimen>
     <dimen name="cloudWidth">400dp</dimen>
     <dimen name="cloudHeight">200dp</dimen>

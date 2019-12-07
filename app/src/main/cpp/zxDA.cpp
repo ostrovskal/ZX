@@ -281,8 +281,8 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
         n = hex ? 5 : 6; n -= length;
         while(n-- > 0) *daResult++ = '\t';
 */
-        ssh_strcpy(&daResult, "; ");
-        ssh_strcpy(&daResult, ssh_fmtValue(ticks, ZX_FV_NUMBER, false));
+        ssh_strcpy(&daResult, ";");
+        //ssh_strcpy(&daResult, ssh_fmtValue(ticks, ZX_FV_NUMBER, false));
     }
     return result;
 }

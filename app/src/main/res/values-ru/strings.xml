@@ -13,8 +13,6 @@
     <string name="menuExecute">Выполнение</string>
     <string name="menuExit">Выход</string>
     <string name="menuModel">Модель…</string>
-    <string name="menuKeyboard">Клавиатура</string>
-    <string name="menuJoystick">Джойстик</string>
     <string name="menuTurbo">Турбо режим</string>
     <string name="menuFilter">Фильтрация</string>
     <string name="menuTape">Захват ленты</string>
@@ -24,6 +22,7 @@
     <string name="menu128k">Синклер 128K</string>
     <string name="menuPentagon">Пентагон 128K</string>
     <string name="menuScorpion">Скорпион 256K</string>
+    <string name="menuKeyJoy">Клавиатура/Джойстик</string>
     <string name="hintName">имя</string>
     <string name="headerIO">Операции</string>
     <string name="downloadCloud">Скачивание…</string>

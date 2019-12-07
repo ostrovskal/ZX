@@ -15,6 +15,51 @@ public final class ZxCommon {
 
     public static final String ZX_AUTO_SAVE         = "auto_save.zx";
 
+    // IDS MENU
+    public final static int MENU_CLOUD              = 1000;
+    public final static int MENU_IO                 = 1001;
+    public final static int MENU_SETTINGS           = 1002;
+    public final static int MENU_PROPS              = 1003;
+    public final static int MENU_DISKS              = 1004;
+    public final static int MENU_MODEL              = 1005;
+    public final static int MENU_RESET              = 1006;
+    public final static int MENU_RESTORE            = 1007;
+    public final static int MENU_EXIT               = 1008;
+
+    public final static int MENU_PROPS_KEYBOARD     = 1009;
+    public final static int MENU_PROPS_JOYSTICK     = 1010;
+    public final static int MENU_PROPS_SOUND        = 1011;
+    public final static int MENU_PROPS_TAPE         = 1012;
+    public final static int MENU_PROPS_FILTER       = 1013;
+    public final static int MENU_PROPS_TURBO        = 1014;
+    public final static int MENU_PROPS_EXECUTE      = 1015;
+    public final static int MENU_PROPS_DEBUGGER     = 1016;
+
+    public final static int MENU_MRU                = 1017;
+    public final static int MENU_POKES              = 1018;
+
+    public final static int MENU_DISK_A             = 1200;
+    public final static int MENU_DISK_B             = 1201;
+    public final static int MENU_DISK_C             = 1202;
+    public final static int MENU_DISK_D             = 1203;
+
+    public final static int MENU_MODEL_48KK         = 1300;
+    public final static int MENU_MODEL_48KS         = 1301;
+    public final static int MENU_MODEL_128K         = 1302;
+    public final static int MENU_MODEL_PENTAGON     = 1303;
+    public final static int MENU_MODEL_SCORPION     = 1304;
+
+    public final static int MENU_MRU_1              = 1400;
+    public final static int MENU_MRU_2              = 1401;
+    public final static int MENU_MRU_3              = 1402;
+    public final static int MENU_MRU_4              = 1403;
+    public final static int MENU_MRU_5              = 1404;
+    public final static int MENU_MRU_6              = 1405;
+    public final static int MENU_MRU_7              = 1406;
+    public final static int MENU_MRU_8              = 1407;
+    public final static int MENU_MRU_9              = 1408;
+    public final static int MENU_MRU_10             = 1409;
+    
     // Формы эмулятора
     public final static int FORM_MAIN               = 0;
     public final static int FORM_OPTIONS            = 1;
@@ -50,6 +95,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
     public static final int ZX_PROP_SHOW_HEX        = 141; // Признак 16-тиричного вывода
     public static final int ZX_PROP_SHOW_DEBUGGER   = 142; // Признак режима отладчика
+    public static final int ZX_PROP_EXIT_ERROR      = 143; // Признак завершения с ошибкой(не загружать состояние)
 
     // 2. Байтовые значения
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -144,7 +190,7 @@ public final class ZxCommon {
             ATTR_SSH_COLOR_MESSAGE, 0xd2fa64 | COLOR,
             ATTR_SSH_COLOR_WINDOW, 0x030303 | COLOR,
             ATTR_SSH_COLOR_WIRED, 0xffffff | COLOR,
-            ATTR_SSH_ICON_VERT, 8,
+            ATTR_SSH_ICON_VERT, 9,
             ATTR_SSH_ICON_HORZ, 8,
     };
 
@@ -246,6 +292,7 @@ public final class ZxCommon {
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.START,
+            ATTR_MAX_LINES, 1,
             ATTR_SIZE, R.dimen.normal,
             ATTR_FONT, R.string.font_normal
     };
@@ -261,14 +308,15 @@ public final class ZxCommon {
             ATTR_MIN_HEIGHT, R.dimen.heightCheck,
             ATTR_SSH_HORZ, 2,
             ATTR_SSH_TILE, 0,
+            ATTR_MAX_LINES, 1,
             ATTR_SSH_SCALE, TILE_SCALE_MIN,
             ATTR_SSH_GRAVITY, TILE_GRAVITY_LEFT | TILE_GRAVITY_CENTER_VERT,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_CHECK | THEME
     };
 
-    public static final int[] style_tab_settins = {
-            ATTR_SSH_VERT, 1,
-            ATTR_SSH_HORZ, 2,
+    public static final int[] style_tab_settings = {
+            ATTR_SSH_VERT, 9,
+            ATTR_SSH_HORZ, 8,
             ATTR_CLICKABLE, 1,
             ATTR_FOCUSABLE, 1,
             ATTR_SSH_SCALE, TILE_SCALE_NONE,
@@ -320,6 +368,13 @@ public final class ZxCommon {
             ATTR_SSH_VERT, 3,
             ATTR_SSH_PATCH9, R.string.patch9_select_item,
             ATTR_SSH_TILE, 2
+    };
+
+    public static final int[] style_zx_toolbar = {
+            ATTR_SSH_VERT, 9,
+            ATTR_SSH_HORZ, 8,
+            ATTR_SSH_TILE, 0,
+            ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_ICONS | THEME
     };
 
     public static final String[] joyButtons     = {"K←", "K→", "K↑", "K↓", "K*", "6", "7", "9", "8", "0", "1", "2", "4", "3", "5", "←", "→", "↑",

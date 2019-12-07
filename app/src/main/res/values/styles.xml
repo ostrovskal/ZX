@@ -1,16 +1,21 @@
 <resources>
     <style name="ActionButtonStyle" parent="@android:style/Widget.Holo.Light.ActionButton">
         <item name="android:minWidth">0dip</item>
-        <item name="android:paddingLeft">-2dp</item>
-        <item name="android:paddingRight">-2dp</item>
-<!--
-        <item name="paddingStart">12dip</item>
-        <item name="paddingEnd">12dip</item>
-        <item name="scaleType">center</item>
-        <item name="maxLines">2</item>
--->
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:paddingRight">0dp</item>
+        <item name="android:scaleType">centerCrop</item>
+        <item name="android:maxLines">1</item>
     </style>
+    <style name="ActionButtonOverflow" parent="android:style/Widget.Holo.Light.ActionButton.Overflow">
+        <item name="android:src">@drawable/scrollbar_handle_vertical</item>
+        <item name="android:minWidth">0dip</item>
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:paddingRight">0dp</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
     <style name="ZxStyle" parent="StdTheme">
-        //<item name="android:actionButtonStyle">@style/ActionButtonStyle</item>
-    </style>
+        <item name="android:actionButtonStyle">@style/ActionButtonStyle</item>
+        <item name="android:actionOverflowButtonStyle">@style/ActionButtonOverflow</item>
+</style>
 </resources>

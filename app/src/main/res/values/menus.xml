@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+    <integer name="MENU_CLOUD">1000</integer>
+    <integer name="MENU_IO">1001</integer>
+    <integer name="MENU_SETTINGS">1002</integer>
+    <integer name="MENU_PROPS">1003</integer>
+    <integer name="MENU_DISKS">1004</integer>
+    <integer name="MENU_MODEL">1005</integer>
+    <integer name="MENU_RESET">1006</integer>
+    <integer name="MENU_RESTORE">1007</integer>
+    <integer name="MENU_EXIT">1008</integer>
+    <integer name="MENU_KEYBOARD">1009</integer>
+    <integer name="MENU_PROPS_SOUND">1011</integer>
+    <integer name="MENU_PROPS_TAPE">10012</integer>
+    <integer name="MENU_PROPS_FILTER">1013</integer>
+    <integer name="MENU_PROPS_TURBO">1014</integer>
+    <integer name="MENU_PROPS_EXECUTE">1015</integer>
+    <integer name="MENU_PROPS_DEBUGGER">1016</integer>
+    <integer name="MENU_MRU">10017</integer>
+    <integer name="MENU_POKES">1018</integer>
+    <integer name="MENU_DISK_A">1200</integer>
+    <integer name="MENU_DISK_B">1201</integer>
+    <integer name="MENU_DISK_C">1202</integer>
+    <integer name="MENU_DISK_D">1203</integer>
+    <integer name="MENU_MODEL_48KK">1300</integer>
+    <integer name="MENU_MODEL_48KS">1301</integer>
+    <integer name="MENU_MODEL_128K">1302</integer>
+    <integer name="MENU_MODEL_PENTAGON">1303</integer>
+    <integer name="MENU_MODEL_SCORPION">1304</integer>
+    <integer name="MENU_MRU_1">1400</integer>
+    <integer name="MENU_MRU_2">1401</integer>
+    <integer name="MENU_MRU_3">1402</integer>
+    <integer name="MENU_MRU_4">1403</integer>
+    <integer name="MENU_MRU_5">1404</integer>
+    <integer name="MENU_MRU_6">1405</integer>
+    <integer name="MENU_MRU_7">1406</integer>
+    <integer name="MENU_MRU_8">1407</integer>
+    <integer name="MENU_MRU_9">1408</integer>
+    <integer name="MENU_MRU_10">1409</integer>
+</resources>

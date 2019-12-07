@@ -47,6 +47,9 @@ public:
     // выполнение
     void execute();
 
+    // установка актуальных страниц
+    void setPages();
+
     // чтение из порта
     uint8_t readPort(uint8_t A0A7, uint8_t A8A15);
 
@@ -90,9 +93,6 @@ protected:
 
     // сохранение файла в формате Z80
     bool saveZ80(const char *name);
-
-    // установка актуальных страниц
-    void setPages();
 
     // исполнение инструкции процессора
     int step(bool allow_int);

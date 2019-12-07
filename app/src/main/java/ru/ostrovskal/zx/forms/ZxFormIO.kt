@@ -51,18 +51,16 @@ class ZxFormIO: Form() {
                         }
                     }.lps(0, 0, 10, 3)
                     button {
-                        id = R.id.buttonNull1
                         isEnabled = false
                         iconResource = R.integer.I_OPEN
                         setOnClickListener {
-                            (wnd as? ZxWnd)?.openMRU(R.id.menu_mru10, name, false)
+                            (wnd as? ZxWnd)?.openMRU(MENU_MRU_10, name, false)
                             footer(BTN_OK, 0)
                         }
                     }.lps(10, 1, 5, 3)
                     button {
-                        id = R.id.buttonNull2
                         isEnabled = false
-                        iconResource = R.integer.I_SAVE
+                        iconResource = R.integer.I_DISKETTE
                         setOnClickListener {
                             footer(BTN_OK, 0)
                             wnd.hand?.send(RECEPIENT_SURFACE_BG, ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal, o = root.byId<Edit>(R.id.editName)?.text)
@@ -82,7 +80,6 @@ class ZxFormIO: Form() {
                         }
                     }.lps(10, 7, 5, 3)
                     button {
-                        id = R.id.buttonNull4
                         iconResource = R.integer.I_CLOSE
                         setOnClickListener { footer(BTN_OK, 0) }
                     }.lps(10, 10, 5, 3)

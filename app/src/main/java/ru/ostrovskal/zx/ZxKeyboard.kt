@@ -14,11 +14,11 @@ class ZxKeyboard {
     private val icons = mapOf(
                     "←" to R.integer.I_LEFT, "→" to R.integer.I_RIGHT, "↑" to R.integer.I_UP, "↓" to R.integer.I_DOWN,
                     "✔" to R.integer.I_ENTER, "✖" to R.integer.I_DELETE, "▲" to R.integer.I_CAPS_ON, "△" to R.integer.I_CAPS_OFF,
-                    "✿" to R.integer.I_SYMBOL_ON, "❀" to R.integer.I_SYMBOL_OFF, "FUNT" to R.integer.I_FUNT, "edt" to R.integer.I_SETTINGS,
+                    "✿" to R.integer.I_SYMBOL_ON, "❀" to R.integer.I_SYMBOL_OFF, "FUNT" to R.integer.I_FUNT, "edt" to R.integer.I_EDIT,
                     "G0" to R.integer.I_G0, "G1" to R.integer.I_G1, "G2" to R.integer.I_G2, "G3" to R.integer.I_G3,
                     "G4" to R.integer.I_G4, "G5" to R.integer.I_G5, "G6" to R.integer.I_G6, "G7" to R.integer.I_G7,
                     "G8" to R.integer.I_G8, "G9" to R.integer.I_G9, "G10" to R.integer.I_G10, "G11" to R.integer.I_G11,
-                    "G12" to R.integer.I_G12, "G13" to R.integer.I_G13, "G15" to R.integer.I_G15
+                    "G12" to R.integer.I_G12, "G13" to R.integer.I_G13, "G14" to R.integer.I_G14
     )
 
     private val buttons = arrayOf(
@@ -29,7 +29,7 @@ class ZxKeyboard {
         Button("4",       "4", "4", "green",  "OPEN",     "$",    "inv","inv", "G3", "G11"),
         Button("5",       "5", "5", "cyan",   "CLOSE",    "%",    "←",  "←",   "G4", "G12"),
         Button("6",       "6", "6", "yellow", "MOVE",     "&",    "↓",  "↓",   "G5", "G13"),
-        Button("7",       "7", "7", "white",  "ERASE",    "'",    "↑",  "↑",   "G7", "G15"),
+        Button("7",       "7", "7", "white",  "ERASE",    "'",    "↑",  "↑",   "G7", "G14"),
         Button("8",       "8", "8", "",       "POINT",    "(",    "→",  "→",   "G6", " "),
         Button("9",       "9", "9", "bright", "CAT",      ")",    "[G]","[G]", "[G]","[G]"),
         Button("0",       "0", "0", "black",  "FORMAT",   "_",    "✖",  "✖",  "✖",  "✖"),

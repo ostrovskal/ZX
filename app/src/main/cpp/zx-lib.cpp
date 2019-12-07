@@ -84,7 +84,7 @@ extern "C" {
         return ret;
     }
 
-    void zxInit(JNIEnv *env, jobject, jobject asset) {
+    void zxInit(JNIEnv *env, jobject, jobject asset, jboolean errors) {
         info("zxInit1");
         TMP_BUF = new uint8_t[ZX_SIZE_TMP_BUF];
         ALU = new zxALU();
@@ -106,23 +106,28 @@ extern "C" {
         copyAFile(amgr, "labels.bin", nullptr, &labels);
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
-        ALU->load(ZX_AUTO_SAVE, ZX_CMD_IO_STATE);
+        if(!errors) ALU->load(ZX_AUTO_SAVE, ZX_CMD_IO_STATE);
         info("zxInit2");
     }
 
     jbyteArray zxSaveState(JNIEnv* env, jclass) {
+        info("zxSaveState1");
         auto jmemory = env->NewByteArray(262144);
         auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
         memcpy(mem, ALU->RAMs, 262144);
         env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
+        ALU->setPages();
+        info("zxSaveState2");
         return jmemory;
     }
 
     void zxLoadState(JNIEnv* env, jclass, jbyteArray jmemory) {
+        info("zxLoadState1");
         auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
         memcpy(ALU->RAMs, mem, 262144);
         env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
         ALU->updateProps();
+        info("zxLoadState2");
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props) {
@@ -174,11 +179,11 @@ extern "C" {
 
     long zxInt(JNIEnv*, jclass, jint idx, jboolean read, jint value) {
         if(!read) {
-            info("zxIntSave idx: %i value: %i", idx, value);
+//            info("zxIntSave idx: %i value: %i", idx, value);
             *(uint32_t*)(opts + idx) = (uint32_t)value;
         }
         auto ret = (long)(*(uint32_t*)(opts + idx));
-        info("zxIntRead idx: %i value: %i", idx, ret);
+//        info("zxIntRead idx: %i value: %i", idx, ret);
         return ret;
     }
 
@@ -207,7 +212,7 @@ extern "C" {
     }
 
     static JNINativeMethod zxMethods[] = {
-            { "zxInit", "(Landroid/content/res/AssetManager;)V", (void*)&zxInit },
+            { "zxInit", "(Landroid/content/res/AssetManager;Z)V", (void*)&zxInit },
             { "zxShutdown", "()V", (void*)&zxShutdown },
             { "zxProps", "([B)V", (void*)&zxProps },
             { "zxGetProp", "(Ljava/lang/String;I)V", (void*)&zxGetProp },
@@ -231,7 +236,7 @@ extern "C" {
             abort();
         }
         auto wnd = env->FindClass("ru/ostrovskal/zx/ZxWnd");
-        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)) - 2);
+        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)));
 
         return JNI_VERSION_1_6;
     }

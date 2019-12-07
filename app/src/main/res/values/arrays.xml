@@ -59,12 +59,12 @@
         <item>snd_ay,false</item>
         <item>snd_8bit,false</item>
         <item>snd_save,false</item>
-        <item>skip_frames,true</item>
+        <item>skip_frames,false</item>
         <item>execute,true</item>
         <item>hex,false</item>
         <item>debugger,false</item>
+        <item>#errors,false</item>
 
-        <item>unusedBool,false</item>
         <item>unusedBool,false</item>
         <item>unusedBool,false</item>
         <item>unusedBool,false</item>

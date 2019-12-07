@@ -99,11 +99,11 @@ enum MNEMONIC_OPS {
 
 #define _FC16(val)              fc  = (uint8_t)((val) > 65535)
 #define _FP(val)				fpv = tbl_parity[(uint8_t)(val)]
-#define _FH(x, y, z, c, n)	    fh  = hcarry(x, y, z, c, n)
-#define _FZ(val)                fz  = ((uint8_t)(val) == 0)
-#define _FS(val)                fs  = ((uint8_t)(val) >> 7)
+#define _FH(x, y, z, c, n)	    fh  = hcarry((uint8_t)(x), (uint8_t)(y), (uint8_t)(z), (uint8_t)(c), (uint8_t)(n))
+#define _FZ(val)                fz  = (uint8_t)((val) == 0)
+#define _FS(val)                fs  = (uint8_t)((val) >> 7)
 #define _FC(val)                fc  = (uint8_t)((val) > 255)
-#define _FV(x, y, z, c, n)      fpv = overflow(x, y, z, c, n)
+#define _FV(x, y, z, c, n)      fpv = overflow((uint8_t)(x), (uint8_t)(y), (uint8_t)(z), (uint8_t)(c), (uint8_t)(n))
 
 class zxCPU {
 public:
@@ -192,8 +192,8 @@ protected:
     // значение флага FPV
     bool resetPV;
 
+    zxFile f;
+
     // значение FC для установки
     uint16_t  _fc;
-
-    zxFile f;
 };

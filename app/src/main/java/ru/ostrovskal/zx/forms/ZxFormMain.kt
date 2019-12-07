@@ -63,13 +63,15 @@ class ZxFormMain: Form() {
                 FormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 0, 0))
             }
             ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal   -> {
-                val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
                 wnd.actionBar?.apply {
                     if(customView == null) {
                         setCustomView(R.layout.actionbar_view)
                         displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM or ActionBar.DISPLAY_SHOW_HOME
                     }
-                    (customView as? TextView)?.text = "$model - [ ${msg.obj} ]"
+                    (customView as? TextView)?.apply {
+                        val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
+                        text = if(config.portrait) "${msg.obj}" else "$model - ${msg.obj}"
+                    }
                 }
             }
         }

@@ -18,8 +18,11 @@ import ru.ostrovskal.zx.ZxCommon.*
 
 class ZxView(context: Context) : Surface(context) {
 
+    // активная поверхность рендеринга
+    private var surfaceActive: Bitmap?= null
+
     // поверхность рендеринга
-    private var surface             = Bitmap.createBitmap(256, 192, Bitmap.Config.ARGB_8888)
+    private var surface: Bitmap?    = null
 
     // кэшированный размер границы
     private var sizeBorder          = -1
@@ -51,12 +54,6 @@ class ZxView(context: Context) : Surface(context) {
     // "Пустая" кисть
     private var nil 				= Paint()
 
-    init {
-        frameTime = 20
-        updateJoy()
-        updateFilter()
-    }
-
     override fun onDetachedFromWindow() {
         wnd.main.removeView(joyCross)
         wnd.main.removeView(joyAction)
@@ -72,8 +69,11 @@ class ZxView(context: Context) : Surface(context) {
                 updateJoy()
             }
         }
+        updateJoy()
+        updateFilter()
+        isSkippedFrames = ZxWnd.props[ZX_PROP_SKIP_FRAMES].toBoolean
+        frameTime = 20
         updateSurface()
-        //wnd.hand?.send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal)
     }
 
     override fun updateState() {
@@ -87,7 +87,9 @@ class ZxView(context: Context) : Surface(context) {
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
-        canvas.drawBitmap(surface, null, surfaceRect, nil)
+        surfaceActive?.apply {
+            canvas.drawBitmap(this, null, surfaceRect, nil)
+        }
         if (ZxWnd.props[ZX_PROP_SHOW_FPS].toBoolean)
             sys.drawTextInBounds(canvas, fps.toString(), surfaceRect, Gravity.START or Gravity.TOP)
         if (!ZxWnd.props[ZX_PROP_EXECUTE].toBoolean)
@@ -115,10 +117,10 @@ class ZxView(context: Context) : Surface(context) {
     }
 
     private fun io(name: String, loading: Boolean): Boolean {
-        val result = ZxWnd.zxIO(name, loading) and loading
+        val result = ZxWnd.zxIO(name, loading)
         if(!result) {
             // удалить из списка недавних
-            wnd.openMRU(R.id.menu_mru1, name, true)
+            wnd.openMRU(MENU_MRU_1, name, true)
             // отобразить диалог с надписью об ошибке
             wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal, a1 =
                             if(loading) R.string.ioLoadError else R.string.ioSaveError)
@@ -128,11 +130,13 @@ class ZxView(context: Context) : Surface(context) {
 
     private fun updateSurface() {
         val szBorder = ZxWnd.props[ZX_PROP_BORDER_SIZE] * 16
-        if(sizeBorder != szBorder) {
+        if(sizeBorder != szBorder || surface == null) {
             sizeBorder = szBorder
-            surface = Bitmap.createBitmap(256 + szBorder, 192 + szBorder, Bitmap.Config.ARGB_8888)
-            ZxWnd.zxSurface(surface)
-            wnd.zxInitialize = true
+            surface = Bitmap.createBitmap(256 + szBorder, 192 + szBorder, Bitmap.Config.ARGB_8888)?.apply {
+                ZxWnd.zxSurface(this)
+                surfaceActive = this
+                wnd.zxInitialize = true
+            }
         }
     }
 

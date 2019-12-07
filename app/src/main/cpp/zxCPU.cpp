@@ -123,26 +123,30 @@ int zxCPU::step(int prefix, int offset) {
     uint8_t v8Dst, v8Src, fch(0), cb8(0);
     uint16_t vSrc, vDst;
     int dir(0), rep(0);
+    bool isPrefCB = false;
     uint32_t n32;
 
     int ticks = 0;
     flags = 0;
+    resetPV = false;
 
-    if(*zxALU::_STATE & ZX_HALT) return 4;
+    if((*zxALU::_STATE) & ZX_HALT) return 4;
 
     incrementR();
 
     auto pc = *_PC;
     if(pc == 0) {
-        // несанкционированный сброс(ошибка в программе)
-        ALU->signalRESET(true);
+        if(strcmp(ALU->presets(nullptr, ZX_CMD_PRESETS_NAME), "BASIC") != 0) {
+            // несанкционированный сброс(ошибка в программе)
+            ALU->signalRESET(true);
+        }
     }
     if(offset == 256) {
         if(prefix) {
             initOperand(_RPHL, _N_, prefix, vSrc, cb8, &ticks);
-            prefix = 0;
+            prefix = 0; isPrefCB = true;
         }
-    } else resetPV = false;
+    }
 
     codeOps = rm8PC();
 
@@ -152,23 +156,11 @@ int zxCPU::step(int prefix, int offset) {
     auto regDst = m->regDst;
     auto regSrc = m->regSrc;
 
-//    auto mskFlags1 = mskFlags;
     ticks += m->tiks;
 
     auto dst = initOperand(regDst, regSrc, prefix, vDst, v8Dst, &ticks);
     initOperand(regSrc, regDst, prefix, vSrc, v8Src, &ticks);
 
-/*
-    static bool debug = false;
-    static int num = 1;
-    if(pc == 41283) debug = true;
-    if(debug) {
-        if (!prefix && !offset) {
-            auto buf = zxDA::daMake(&pc, DA_PC | DA_TICKS | DA_CODE | DA_PN | DA_PNN, 0);
-            info(buf);
-        }
-    }
-*/
     if(ops >= O_LDI) {
         dir = codeOps & 8 ? -1 : 1;
         rep = codeOps & 16;
@@ -214,18 +206,19 @@ int zxCPU::step(int prefix, int offset) {
         // SZ***V0C / SZ***V1C
         case O_ADC: case O_SBC:
             fch = getFlag(FC);
+            vSrc += fch;
         // --***-0C
         case O_ADD: case O_SUB:
             fn = (uint8_t) ((ops - O_ADD) & 1);
             if (regDst & _R16) {
                 if(ops == O_ADD) opts[RTMP] = (uint8_t)(vDst >> 8);
-                *(uint16_t*)dst = _fc = (uint16_t)(n32 = fn ? vDst - (vSrc + fch) : vDst + (vSrc + fch));
-                flags = FC | FZ; _FC16(n32); _FZ(_fc);
+                *(uint16_t*)dst = _fc = (uint16_t)(n32 = fn ? (vDst - vSrc) : (vDst + vSrc));
+                flags = FC | FZ; _FC16(n32); _FZ(_fc); fch = 0;
                 v8Dst = (uint8_t) (vDst >> 8); v8Src = (uint8_t) (vSrc >> 8); res = (uint8_t) (_fc >> 8);
             } else {
                 // SZ5H3V0C / SZ5H3V1C
                 v8Dst = *_A;
-                *_A = res = (uint8_t)(_fc = (uint16_t)(fn ? v8Dst - (v8Src + fch) : v8Dst + (v8Src + fch)));
+                *_A = res = (uint8_t)(_fc = (uint16_t)(fn ? (v8Dst - (v8Src + fch)) : (v8Dst + (v8Src + fch))));
             }
             break;
         case O_INC: case O_DEC:
@@ -273,27 +266,15 @@ int zxCPU::step(int prefix, int offset) {
             *_SP += 2;
             break;
         case O_JMP:
-/*
-            mskFlags = 0;
-            if(mskFlags1 && !isFlag((uint8_t)(mskFlags1 - 1))) break;
-*/
             *_PC = vSrc;
             ticks = 14;
             break;
         case O_JR:
-/*
-            mskFlags = 0;
-            if(mskFlags1 && !isFlag((uint8_t)(mskFlags1 - 1))) break;
-*/
             *_PC += (int8_t)v8Src;
             opts[RTMP] = (uint8_t)(*_PC >> 8);
             ticks = 12;
             break;
         case O_CALL:
-/*
-            mskFlags = 0;
-            if(mskFlags1 && !isFlag((uint8_t)(mskFlags1 - 1))) break;
-*/
             call(vSrc);
             ticks = 17;
             break;
@@ -301,34 +282,30 @@ int zxCPU::step(int prefix, int offset) {
             *_IFF1 = *_IFF2;
             ticks = 8;
         case O_RET:
-/*
-            mskFlags = 0;
-            if(mskFlags1 && !isFlag((uint8_t)(mskFlags1 - 1))) break;
-*/
             *_PC = rm16(*_SP);
             *_SP += 2;
             ticks += 6;
             break;
         case O_ROT:
-            res = rotate(ticks > 15 ? cb8 : v8Dst, offset == 256);
-            if(ticks > 15) { wm8(vSrc, res); if(regDst == _RPHL) break; }
+            res = rotate(isPrefCB ? cb8 : v8Dst, offset == 256);
+            if(isPrefCB) { wm8(vSrc, res); if(regDst == _RPHL) break; }
             if(regDst == _RPHL) wm8(vDst, res); else *dst = res;
             break;
         case O_SET:
             // под префиксом?
-            if(ticks > 15) { cb8 |= v8Src; wm8(vSrc, cb8); if(regDst == _RPHL) break;}
+            if(isPrefCB) { cb8 |= v8Src; wm8(vSrc, cb8); if(regDst == _RPHL) break;}
             else cb8 = v8Dst | v8Src;
             if(regDst == _RPHL) wm8(vDst, cb8); else *dst = cb8;
             break;
         case O_RES:
             // под префиксом?
-            if(ticks > 15) { cb8 &= ~v8Src; wm8(vSrc, cb8); if(regDst == _RPHL) break; }
+            if(isPrefCB) { cb8 &= ~v8Src; wm8(vSrc, cb8); if(regDst == _RPHL) break; }
             else cb8 = v8Dst & ~v8Src;
             if(regDst == _RPHL) wm8(vDst, cb8); else *dst = cb8;
             break;
         case O_BIT:
             // *Z513*0-
-            if(ticks > 15) v8Dst = cb8;
+            if(isPrefCB) v8Dst = cb8;
             _FZ(v8Dst & v8Src); fpv = fz; fn = 0; fh = 1;
             flags = FS | FZ | FH | FPV | F3 | F5;
             fs = (uint8_t)(v8Src == 128 && !fz);
@@ -397,7 +374,6 @@ int zxCPU::step(int prefix, int offset) {
             F5=бит 1 операции переданный байт + A
          */
         case O_LDI:
-//ldi:
             v8Src = rm8(*_HL);
             wm8(*_DE, v8Src);
             *_DE += dir; *_HL += dir; *_BC -= 1;
@@ -406,7 +382,6 @@ int zxCPU::step(int prefix, int offset) {
             f3 = (uint8_t)((v8Src + v8Dst) & 8);
             f5 = (uint8_t)((v8Src + v8Dst) & 2);
             if(rep && fpv) { *_PC -= 2; ticks = 21; }
-//            if(rep && fpv) { ticks += 5; goto ldi; }
             break;
         /*
             SZ*H**1-
@@ -460,36 +435,10 @@ int zxCPU::step(int prefix, int offset) {
         if(mskFlags & flags & F3) f3 = (uint8_t)(res & 8);
         if(mskFlags & flags & FPV) _FV(v8Dst, v8Src, res, fch, fn);
         if(mskFlags & flags & FC) _FC(_fc);
-        uint8_t f = fc | (fn << 1) | (fpv << 2) | /*f3 | */(fh << 4) | /*f5 | */(fz << 6) | (fs << 7);
+        uint8_t f = fc | (fn << 1) | (fpv << 2) | f3 | (fh << 4) | f5 | (fz << 6) | (fs << 7);
         *_F &= ~mskFlags;
         *_F |= (f & mskFlags);
     }
-/*
-    if(debug) {
-        if(!prefix && !offset) {
-            int nn;
-            auto buf = ssh_fmtValue(num, ZX_FV_NUM16, true);
-            auto size = strlen(buf);
-            buf[size] = ' ';
-            num++;
-            f.write(buf, size + 1);
-            buf = zxDA::daMake(&pc, DA_PC | DA_TICKS | DA_CODE | DA_PN | DA_PNN, 0);
-            size = strlen(buf);
-            auto end = buf + size;
-            ssh_strcpy(&end, " AF = "); nn = *_AF;
-            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
-            ssh_strcpy(&end, " HL = "); nn = *_HL;
-            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
-            ssh_strcpy(&end, " DE = "); nn = *_DE;
-            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
-            ssh_strcpy(&end, " BC = "); nn = *_BC;
-            ssh_strcpy(&end, ssh_fmtValue(nn, ZX_FV_NUM16, true));
-            *end++ = '\r';
-            *end++ = '\n';
-            f.write(buf, end - buf);
-        }
-    }
-*/
     return ticks;
 }
 
@@ -531,67 +480,24 @@ void zxCPU::special(uint16_t vDst, uint8_t v8Dst, uint8_t v8Src) {
             res = *_A;
             flags = FH | FC; fh = fn = 0; fc = 1;
             break;
-/*
+        case DAA:
             // SZ5*3P-*
-            v8Dst = *_A; v8Src = 0; fc = getFlag(FC); fh = getFlag(FH);
-            if (((v8Dst & 15) > 9) || fh) v8Src = 6;
-            if ((v8Dst > 0x99) || fc) { v8Src |= 96; fc = 1; }
-            _fc = (uint16_t)(getFlag(FN) ? -v8Src : v8Src);
-            *_A = res = (v8Dst + (uint8_t) (_fc));
-            _FP(res); flags = FPV;
-*/
-        case DAA: {
-            // SZ5*3P-*
-            auto a = *_A;
-            auto oa = a;
-            auto ofc = getFlag(FC);
+            res = *_A;
+            v8Dst = getFlag(FC);
             fh = getFlag(FH);
             fn = getFlag(FN);
             fc = 0;
-            if(((a & 15) > 9) || fh) {
-                vDst = (uint16_t)(a + (fn ? -6 : 6));
-                *_A = (uint8_t)vDst;
-                fc = ofc | (uint8_t)(vDst > 255 ? 1 : 0);
+            if(((res & 15) > 9) || fh) {
+                _fc = res += (uint8_t)(fn ? -6 : 6);
+                fc = v8Dst | (uint8_t)(_fc > 255);
                 fh = 1;
             } else fh = 0;
-            if((oa > 0x99) || ofc) {
-                a += (fn ? -96 : 96);
+            if((*_A > 0x99) || v8Dst) {
+                res += (fn ? -96 : 96);
                 fc = 1;
             } else fc = 0;
-            res = a; _FP(res); flags = FH | FC | FPV;
-            /*
-            v8Dst = *_A;
-            auto oldA = v8Dst;
-            auto oldC = getFlag(FC);
-            fh = getFlag(FH);
-            fc = 0;
-            if (getFlag(FN)) {
-                if (((v8Dst & 0xf) > 9) || fh) {
-                    v8Dst += 6;
-                    fc = oldC | (v8Dst > 255);
-                    fh = 1;
-                } else fh = 0;
-                if ((oldA > 0x99) || oldC) {
-                    v8Dst += 0x60;
-                    fc = 1;
-                }
-                else fc = 0;
-            } else {
-                if (((*_A & 0xf) > 9) || fh) {
-                    v8Dst -= 6;
-                    fc = oldC | (v8Dst > 255);
-                    fh = 1;
-                } else fh = 0;
-                if ((oldA > 0x99) || oldC) {
-                    v8Dst -= 0x60;
-                    fc = 1;
-                }
-            }
-            res = *_A = v8Dst;
-            flags = FPV | FC | FH; _FP(res);
-*/
-        }
-        break;
+            *_A = res; flags = FH | FPV | FC; _FP(res);
+            break;
         case EI: case DI:
             *_IFF1 = *_IFF2 = (uint8_t) ((codeOps & 8) >> 3);
             modifySTATE(0, ZX_INT);

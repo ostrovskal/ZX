@@ -287,7 +287,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_NEG,  4,  C_NEG,  F_NEG   },  // NEG_4
         { _N_,  _N_,    O_RET,  14, C_RET           },  // RET_2=101
         { _N_,  _N_,    O_IM,   8,  C_IM            },  // IM0_2
-        { _RHL, _RA,    O_SPEC, 18, C_RRD,  F_RLRD  },  // RRD
+        { _RPHL,_RA,    O_SPEC, 18, C_RRD,  F_RLRD  },  // RRD
         { _RL,  _RC,    O_IN,   12, C_IN,   F_IN    },  // IN_L_BC
         { _RL,  _RC,    O_OUT,  12, C_OUT           },  // OUT_PC_L
         { _RHL, _RHL,   O_ADC,  15, C_ADC,  F_ADSBC16}, // ADC_HL_HL
@@ -295,7 +295,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_NEG,  4,  C_NEG,  F_NEG   },  // NEG_5
         { _N_,  _N_,    O_RET,  14, C_RET           },  // RET_3
         { _N_,  _N_,    O_IM,   8,  C_IM            },  // IM0_3
-        { _RHL, _RA,    O_SPEC, 18, C_RLD,  F_RLRD  },  // RLD
+        { _RPHL,_RA,    O_SPEC, 18, C_RLD,  F_RLRD  },  // RLD
         { _N_,  _N_,    O_SPEC, 12, C_IN,   F_F_PC  },  // IN_F_PC
         { _N_,  _N_,    O_SPEC, 12, C_OUT           },  // OUT_PC_0
         { _RHL, _RSP,   O_SBC,  15, C_SBC,  F_ADSBC16}, // SBC_HL_SP

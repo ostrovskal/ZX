@@ -263,12 +263,12 @@ bool zxALU::openZ80(const char *name) {
     *_FE = (uint8_t)(224 | ((head1->STATE1 & 14) >> 1));
     memcpy(&opts[RC_], &head1->BC_, 8);
     *cpu->_PC = PC;
-/*
-    writePort(0xfd, 0x7f, head2->hardState);
-    //ssh_memcpy(zxSND::_AY, head2->sndRegs, 16);
-    writePort(0xfd, 0xff, head2->sndChipRegNumber);
-    if(length == 87 && head3) writePort(0xfd, 0x1f, head3->port1FFD);
-*/
+    if(head2) {
+        writePort(0xfd, 0x7f, head2->hardState);
+        //ssh_memcpy(zxSND::_AY, head2->sndRegs, 16);
+        writePort(0xfd, 0xff, head2->sndChipRegNumber);
+    }
+    if(head3 && length == 87) writePort(0xfd, 0x1f, head3->port1FFD);
     // копируем буфер
     memcpy(RAMs, TMP_BUF, 262144);
     // загружаем параметры джойстика
@@ -703,8 +703,10 @@ void zxALU::updateCPU(int todo, bool interrupt) {
 void zxALU::updateFrame() {
     uint32_t line, i, tmp, c;
 
-    auto isBlink = ((blink & blinkMsk) >> blinkShift) == 0;
     auto dest = surface;
+    if(!dest) return;
+
+    auto isBlink = ((blink & blinkMsk) >> blinkShift) == 0;
     auto szBorder = sizeBorder >> 1;
     auto colours = (uint32_t*)&opts[ZX_PROP_COLORS];
 

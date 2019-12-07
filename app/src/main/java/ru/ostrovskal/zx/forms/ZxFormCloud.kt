@@ -83,7 +83,7 @@ class ZxFormCloud : Form() {
         // загрузить отмеченные файлы из облака
         wnd.launch {
             FormProgress().show(wnd, R.string.downloadCloud, true).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal) { fp ->
-                delay(1000L)
+                delay(500L)
                 fp.maximum = checkedCount
                 var idx = 1
                 checked.forEachIndexed { index, b ->

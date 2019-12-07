@@ -8,10 +8,13 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MenuItem.SHOW_AS_ACTION_ALWAYS
+import android.view.MenuItem.SHOW_AS_ACTION_NEVER
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import ru.ostrovskal.sshstd.Common.*
+import ru.ostrovskal.sshstd.TileDrawable
 import ru.ostrovskal.sshstd.Wnd
 import ru.ostrovskal.sshstd.layouts.AbsoluteLayout
 import ru.ostrovskal.sshstd.objects.Settings
@@ -19,6 +22,7 @@ import ru.ostrovskal.sshstd.objects.Theme
 import ru.ostrovskal.sshstd.ui.UiComponent
 import ru.ostrovskal.sshstd.ui.UiCtx
 import ru.ostrovskal.sshstd.ui.absoluteLayout
+import ru.ostrovskal.sshstd.ui.menuIcon
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.ZxCommon.*
 import java.io.FileNotFoundException
@@ -62,23 +66,27 @@ class ZxWnd : Wnd() {
     // признак запуска эмулятора
     var zxInitialize            = false
 
-    private var isInit          = false
-
-    private var idsMap          = mapOf<Int, Int>()
-
-    private fun menuId(id: Int) = idsMap[id] ?: error("ID not found!")
-
     companion object {
         init {
             System.loadLibrary("zx-lib")
         }
 
-        val modelNames  = listOf(R.string.menu48kk, R.string.menu48k, R.string.menu128k, R.string.menuPentagon, R.string.menuScorpion)
+        private val menuProps       = listOf(ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0, ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER)
 
-        val props       = ByteArray(ZX_PROPS_COUNT)
+        val modelNames              = listOf(R.string.menu48kk, R.string.menu48k, R.string.menu128k, R.string.menuPentagon, R.string.menuScorpion)
 
+        val props                   = ByteArray(ZX_PROPS_COUNT)
+
+        val menuItems               = listOf(   R.integer.MENU_KEYBOARD, R.integer.I_KEY, R.integer.MENU_CLOUD, R.integer.I_CLOUD,
+                                                R.integer.MENU_IO, R.integer.I_OPEN, R.integer.MENU_SETTINGS, R.integer.I_SETTINGS,
+                                                R.integer.MENU_PROPS, R.integer.I_PROPS, R.integer.MENU_DISKS, R.integer.I_DISKETTE,
+                                                R.integer.MENU_MODEL, R.integer.I_MODEL, R.integer.MENU_RESET, R.integer.I_RESET,
+                                                R.integer.MENU_RESTORE, R.integer.I_RESTORE, R.integer.MENU_EXIT, R.integer.I_EXIT,
+                                                R.integer.MENU_PROPS_SOUND, R.integer.I_SOUND, R.integer.MENU_PROPS_TAPE, R.integer.I_CASSETE,
+                                                R.integer.MENU_PROPS_FILTER, R.integer.I_FILTER, R.integer.MENU_PROPS_TURBO, R.integer.I_TURBO,
+                                                R.integer.MENU_PROPS_EXECUTE, R.integer.I_COMPUTER, R.integer.MENU_PROPS_DEBUGGER, R.integer.I_DEBUGGER)
         @JvmStatic
-        external fun zxInit(asset: AssetManager)
+        external fun zxInit(asset: AssetManager, errors: Boolean)
 
         @JvmStatic
         external fun zxProps(props: ByteArray)
@@ -116,18 +124,16 @@ class ZxWnd : Wnd() {
         @JvmStatic
         external fun zxLoadState(mem: ByteArray)
 
-/*
         @JvmStatic
         external fun zxStringToNumber(value: String, radix: Int): Int
 
         @JvmStatic
         external fun zxNumberToString(value: Int, radix: Int): String
-*/
     }
 
-    override fun onPause() {
+    override fun onStop() {
         exit()
-        super.onPause()
+        super.onStop()
     }
 
     override fun applyTheme() {
@@ -139,23 +145,22 @@ class ZxWnd : Wnd() {
             // Создаем UI хэндлер
             hand = Handler(Looper.getMainLooper(), this)
             // Инициализируем установки
-            Settings.initialize(getSharedPreferences(logTag, Context.MODE_PRIVATE), loadResource("settings", "array_str", arrayOf("")))
+            val settings = loadResource("settings", "array_str", arrayOf(""))
+            Settings.initialize(getSharedPreferences(logTag, Context.MODE_PRIVATE), settings)
+            val errors = if(restart) false else "#errors".b
+            if(errors) Settings.default()
             // Применяем тему
             applyTheme()
-            if(!isInit) {
-                // Инициализация эмулятора
-                runBlocking {
-                    withContext(Dispatchers.IO) {
-                        zxProps(props)
-                        loadResource("settings", "array_str", arrayOf("")).forEachIndexed { i, key ->
-                            if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i)
-                        }
-                        zxInit(assets)
-                    }
+            // Инициализация эмулятора
+            runBlocking {
+                withContext(Dispatchers.IO) {
+                    zxProps(props)
+                    settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
+                    zxInit(assets, errors)
+                    if(restart) hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_SURFACE.ordinal)
                 }
-                isInit = true
             }
-            zxInitialize = isInit
+            "#errors".b = true
         }
     }
 
@@ -167,13 +172,7 @@ class ZxWnd : Wnd() {
             if (i < ZX_PROPS_INIT_COUNT) key.substringBeforeLast(',').s = zxSetProp(i)
         }
         zxShutdown()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean("init", isInit)
-        outState.putByteArray("props", props)
-        outState.putByteArray("memory", zxSaveState())
-        super.onSaveInstanceState(outState)
+        "#errors".b = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -181,27 +180,16 @@ class ZxWnd : Wnd() {
         super.onCreate(savedInstanceState)
         Main().setContent(this, SSH_APP_MODE_GAME or SSH_APP_MODE_TITLE or SSH_APP_MODE_FULLSCREEN)
         // загружаем фрагмент
-        savedInstanceState?.apply {
-            getByteArray("props")?.copyInto(props)
-            isInit = getBoolean("init")
-            getByteArray("memory")?.apply { zxLoadState(this) }
-        } ?: instanceForm(FORM_MAIN)
+        if(savedInstanceState == null) instanceForm(FORM_MAIN)
     }
 
     override fun onMenuItemSelected(featureId: Int, item: MenuItem): Boolean {
         item.subMenu.apply {
-            when (item.itemId) {
-                R.id.menu_model -> getItem(props[ZX_PROP_MODEL_TYPE].toInt()).isChecked = true
-                R.id.menu_disk  -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
-                R.id.menu_props -> {
-                    getItem(0).isChecked = props[ZX_PROP_SND_LAUNCH].toBoolean
-                    getItem(1).isChecked = props[ZX_PROP_TRAP_TAPE].toBoolean
-                    getItem(2).isChecked = "filter".b
-                    getItem(3).isChecked = props[ZX_PROP_TURBO_MODE].toBoolean
-                    getItem(4).isChecked = props[ZX_PROP_EXECUTE].toBoolean
-                    getItem(5).isChecked = props[ZX_PROP_SHOW_DEBUGGER].toBoolean
-                }
-                R.id.menu_mru   -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
+            when (resources.getInteger(item.itemId)) {
+                MENU_MODEL  -> getItem(props[ZX_PROP_MODEL_TYPE].toInt()).isChecked = true
+                MENU_DISKS  -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
+                MENU_PROPS  -> repeat(6) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
+                MENU_MRU    -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
             }
         }
         return super.onMenuItemSelected(featureId, item)
@@ -209,77 +197,72 @@ class ZxWnd : Wnd() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
-        idsMap = mapOf( R.id.menu_disk1 to 0, R.id.menu_disk2 to 1, R.id.menu_disk3 to 2, R.id.menu_disk4 to 3,
-                        R.id.menu_48kk to 0, R.id.menu_48k to 1, R.id.menu_128k to 2, R.id.menu_pentagon to 3, R.id.menu_scorpion to 4,
-                        R.id.menu_mru1 to 0, R.id.menu_mru2 to 1, R.id.menu_mru3 to 2, R.id.menu_mru4 to 3, R.id.menu_mru5 to 4,
-                        R.id.menu_mru6 to 5, R.id.menu_mru7 to 6, R.id.menu_mru8 to 7, R.id.menu_mru9 to 8, R.id.menu_mru10 to 9,
-                        R.id.menu_sound to ZX_PROP_SND_LAUNCH, R.id.menu_tape to ZX_PROP_TRAP_TAPE, R.id.menu_turbo to ZX_PROP_TURBO_MODE,
-                        R.id.menu_keyboard to ZX_PROP_SHOW_KEY, R.id.menu_joystick to ZX_PROP_SHOW_JOY, R.id.menu_execute to ZX_PROP_EXECUTE,
-                        R.id.menu_debugger to ZX_PROP_SHOW_DEBUGGER
-        )
-        menu.findItem(R.id.menu_keyboard).apply {
-            val isKey = props[ZX_PROP_SHOW_KEY].toBoolean
-            this.title = if(isKey) "key" else "joy"
-            setIcon(if(isKey) R.drawable.zx_menu_key else R.drawable.zx_menu_joy)
+        // установить иконки на элементы меню
+        for(idx in 0 until 32 step 2) {
+            menu.findItem(menuItems[idx])?.let {
+                menuIcon(it, style_zx_toolbar) {
+                    val idTile = if (idx == 0) { if(props[ZX_PROP_SHOW_KEY].toBoolean) R.integer.I_KEY else R.integer.I_JOY } else menuItems[idx + 1]
+                    tile = resources.getInteger(idTile)
+                    //resolveTile(tile, bounds)
+                    setBounds(0, 0, 40, 40)
+                }
+            }
         }
+        menu.findItem(R.integer.MENU_IO)?.setShowAsAction(if(config.portrait) SHOW_AS_ACTION_NEVER else SHOW_AS_ACTION_ALWAYS)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when(val id = item.itemId) {
-            R.id.menu_pokes                     -> instanceForm(FORM_POKES)
-            R.id.menu_cloud                     -> instanceForm(FORM_LOADING)
-            R.id.menu_io                        -> instanceForm(FORM_IO, "filter", ".z80,.tap,.tga")
-            R.id.menu_settings                  -> instanceForm(FORM_OPTIONS)
-            R.id.menu_restore                   -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
-            R.id.menu_reset                     -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_RESET.ordinal)
-            R.id.menu_debugger                  -> {
+        when(val id = resources.getInteger(item.itemId)) {
+            MENU_POKES                              -> instanceForm(FORM_POKES)
+            MENU_CLOUD                              -> instanceForm(FORM_LOADING)
+            MENU_IO                                 -> instanceForm(FORM_IO, "filter", ".z80,.tap,.tga")
+            MENU_SETTINGS                           -> instanceForm(FORM_OPTIONS)
+            MENU_RESTORE                            -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
+            MENU_RESET                              -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_RESET.ordinal)
+            MENU_PROPS_DEBUGGER                     -> {
                 hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal, 200)
                 updatePropsMenuItem(id)
             }
-            R.id.menu_exit                      -> finish()
-            R.id.menu_keyboard,
-            R.id.menu_joystick                  -> {
-                val isKey = item.run {
-                    val t = title
-                    title = if(t == "key") "joy" else "key"
-                    t == "key"
+            MENU_EXIT                               -> finish()
+            MENU_PROPS_KEYBOARD                     -> {
+                (item.icon as? TileDrawable)?.apply {
+                    val isKey = tile == 38
+                    tile = if(isKey) 32 else 38
+                    updatePropsMenuItem(if(isKey) MENU_PROPS_JOYSTICK else MENU_PROPS_KEYBOARD)
                 }
-                item.setIcon(if(isKey) R.drawable.zx_menu_joy else R.drawable.zx_menu_key)
-                updatePropsMenuItem(if(isKey) R.id.menu_joystick else R.id.menu_keyboard)
             }
-            R.id.menu_sound, R.id.menu_turbo,
-            R.id.menu_tape, R.id.menu_execute    -> updatePropsMenuItem(id)
-            R.id.menu_disk1, R.id.menu_disk2,
-            R.id.menu_disk3, R.id.menu_disk4    -> {
-                props[ZX_PROP_ACTIVE_DISK] = menuId(id).toByte()
+            MENU_PROPS_SOUND, MENU_PROPS_TURBO,
+            MENU_PROPS_TAPE, MENU_PROPS_EXECUTE   -> updatePropsMenuItem(id)
+            MENU_DISK_A, MENU_DISK_B,
+            MENU_DISK_C, MENU_DISK_D              -> {
+                props[ZX_PROP_ACTIVE_DISK] = (id - MENU_DISK_A).toByte()
                 instanceForm(FORM_IO, "filter", ".trd")
             }
-            R.id.menu_48kk, R.id.menu_48k,
-            R.id.menu_128k, R.id.menu_pentagon,
-            R.id.menu_scorpion                  -> {
-                props[ZX_PROP_MODEL_TYPE] = menuId(id).toByte()
+            MENU_MODEL_48KK, MENU_MODEL_48KS,
+            MENU_MODEL_128K, MENU_MODEL_PENTAGON,
+            MENU_MODEL_SCORPION                  -> {
+                props[ZX_PROP_MODEL_TYPE] = (id - MENU_MODEL_48KK).toByte()
                 hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_MODEL.ordinal)
             }
-            R.id.menu_filter                    -> {
+            MENU_PROPS_FILTER                    -> {
                 "filter".b = !"filter".b
                 hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_FILTER.ordinal)
             }
-            R.id.menu_mru1, R.id.menu_mru2,
-            R.id.menu_mru3, R.id.menu_mru4,
-            R.id.menu_mru5, R.id.menu_mru6,
-            R.id.menu_mru7, R.id.menu_mru8,
-            R.id.menu_mru9, R.id.menu_mru10     -> openMRU(id, item.title.toString(), false)
+            MENU_MRU_1, MENU_MRU_2,
+            MENU_MRU_3, MENU_MRU_4,
+            MENU_MRU_5, MENU_MRU_6,
+            MENU_MRU_7, MENU_MRU_8,
+            MENU_MRU_9, MENU_MRU_10             -> openMRU(id, item.title.toString(), false)
         }
         return super.onOptionsItemSelected(item)
     }
 
     private fun updatePropsMenuItem(id: Int) {
-        val prop = menuId(id)
-
+        val prop = menuProps[id - MENU_PROPS_KEYBOARD]
         val isChecked = !props[prop].toBoolean
 
-        if(id == R.id.menu_keyboard || id == R.id.menu_joystick) {
+        if(id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
             props[ZX_PROP_SHOW_KEY] = 0.toByte()
             props[ZX_PROP_SHOW_JOY] = 0.toByte()
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal, 100)
@@ -290,7 +273,7 @@ class ZxWnd : Wnd() {
     }
 
     fun openMRU(id: Int, title: String, error: Boolean) {
-        val idx = menuId(id) + 1
+        val idx = (id - MENU_MRU_1) + 1
         var pos = idx
         try {
             if(error) throw FileNotFoundException()
@@ -521,13 +504,43 @@ class ZxWnd : Wnd() {
 6. поворот экрана без ИД                                    +
 7. при сбросе программы(PC = 0) - активировать сброс        +
 
- 6 декабря 2019 - 17:00
- осталось:
- 1. проверить Z80
- 2. DAA
- 3. еше сравнить два дешифратора
- 4. восстановление onResume
- 5. смена ориентации - состояние эмулятора
- 6.
+6 декабря 2019 - 17:00
+осталось:
+1. проверить Z80                                            +
+2. DAA
+3. еше сравнить два дешифратора                             +
+4. восстановление onResume                                  +
+5. смена ориентации - состояние эмулятора                   +
+6. изменение границы - блокировать поток                    +
+7. иконка облака
+8. вылет облака без инета
+9. все-таки есть ошибка - exolon
+
+18:30
+сейчас:
+1. иконка облака                                            +
+2. вылет облака без инета
+3. иконки actionBar - в тайлы?
+4. все-таки есть ошибка - exolon+, dizzy+, пзу++-
+5. сброс при ошибке в проге
+6. исправить иконку - установки                             +
+7. после записи файла - ошибка без ошибки                   +
+8. ошибка в виджете прогресса
+9, надписи в списке в одну строку                           +
+10. подписывать все билды одним сертификатом                +
+
+22:00
+осталось:
+1. вылет облака без инета
+2. иконки actionBar - в тайлы?
+3. сброс при ошибке в проге
+4. ошибка в пзу - числа                                     +
+5. размер текста на разных экранах
+6. пропуск кадров - неверно
+7. звук тапа убрать нах???
+8. задержка при выделении в списке                          +
+9. клава компаньона на fc неверна
+
+
 
  */
