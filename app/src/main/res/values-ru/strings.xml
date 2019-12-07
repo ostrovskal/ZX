@@ -27,7 +27,7 @@
     <string name="headerIO">Операции</string>
     <string name="downloadCloud">Скачивание…</string>
     <string name="headerCloud">Загрузка из облака</string>
-    <string name="connectCloud">Запрос…</string>
+    <string name="connectCloud">Загрузка…</string>
     <string name="connectError">Не удалось подключиться к серверу. Проверьте свое интернет соединение!</string>
     <string name="hintAddress">адрес</string>
     <string name="hintValue">значение</string>

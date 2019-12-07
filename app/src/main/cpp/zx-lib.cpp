@@ -32,7 +32,7 @@ static void copyAFile(AAssetManager* aMgr, const char* aPath, const char* path, 
             result = true;
         }
     }
-    if(!result) info("Не удалось скопировать файл <%s>!", aPath);
+    if(!result) debug("Не удалось скопировать файл <%s>!", aPath);
 }
 
 extern "C" {
@@ -43,7 +43,7 @@ extern "C" {
     }
 
     void zxSurface(JNIEnv *env, jclass, jobject bmp) {
-        info("zxSurface1");
+        info("zxSurface");
         if(objBmp) {
             env->DeleteGlobalRef(objBmp);
             objBmp = nullptr;
@@ -58,11 +58,11 @@ extern "C" {
         }
         AndroidBitmap_unlockPixels(env, bmp);
         ALU->updateProps();
-        info("zxSurface2");
+        debug("zxSurface finish");
     }
 
     void zxShutdown(JNIEnv *env, jobject) {
-        info("zxShutdown1");
+        info("zxShutdown");
         if(objBmp) {
             env->DeleteGlobalRef(objBmp);
             objBmp = nullptr;
@@ -71,21 +71,22 @@ extern "C" {
             env->DeleteGlobalRef(objProps);
             objProps = nullptr;
         }
-        info("zxShutdown2");
+        debug("zxShutdown finish");
     }
 
     jboolean zxIO(JNIEnv* env, jclass, jstring nm, jboolean load) {
+        info("zxIO");
         auto name = env->GetStringUTFChars(nm, nullptr);
         info("zxIO1 name: %s load: %i", name, load);
         auto type = parseExtension(name);
         auto ret = (jboolean)(load ? ALU->load(name, type) : ALU->save(name, type));
-        if(!ret) info("Не удалось загрузить/записать <%s>!", name);
-        info("zxIO2");
+        if(!ret) debug("Не удалось загрузить/записать <%s>!", name);
+        debug("zxIO finish");
         return ret;
     }
 
     void zxInit(JNIEnv *env, jobject, jobject asset, jboolean errors) {
-        info("zxInit1");
+        info("zxInit");
         TMP_BUF = new uint8_t[ZX_SIZE_TMP_BUF];
         ALU = new zxALU();
 
@@ -107,31 +108,31 @@ extern "C" {
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
         if(!errors) ALU->load(ZX_AUTO_SAVE, ZX_CMD_IO_STATE);
-        info("zxInit2");
+        debug("zxInit finish");
     }
 
     jbyteArray zxSaveState(JNIEnv* env, jclass) {
-        info("zxSaveState1");
+        info("zxSaveState");
         auto jmemory = env->NewByteArray(262144);
         auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
         memcpy(mem, ALU->RAMs, 262144);
         env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
         ALU->setPages();
-        info("zxSaveState2");
+        debug("zxSaveState finish");
         return jmemory;
     }
 
     void zxLoadState(JNIEnv* env, jclass, jbyteArray jmemory) {
-        info("zxLoadState1");
+        info("zxLoadState");
         auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
         memcpy(ALU->RAMs, mem, 262144);
         env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
         ALU->updateProps();
-        info("zxLoadState2");
+        debug("zxLoadState finish");
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props) {
-        info("zxProps1");
+        info("zxProps");
         if(!(objProps = env->NewGlobalRef(props))) {
             info("NewGlobalRef(props) error!");
             abort();
@@ -139,18 +140,18 @@ extern "C" {
         opts = (uint8_t*) env->GetPrimitiveArrayCritical(props, nullptr);
         ssh_memzero(opts, ZX_PROPS_COUNT);
         env->ReleasePrimitiveArrayCritical((jarray)props, opts, JNI_ABORT);
-        info("zxProps2");
+        debug("zxProps finish");
     }
 
     jstring zxPresets(JNIEnv* env, jclass, jint cmd) {
-        info("zxPresets1");
+        info("zxPresets");
         auto ret = ALU->presets("", cmd);
-        info("zxPresets2 res: %s", ret);
+        debug("zxPresets res: %s", ret);
         return env->NewStringUTF(ret);
     }
 
     jstring zxSetProp(JNIEnv* env, jclass, jint idx) {
-//        info("zxSetProp1 idx: %i", idx);
+//        debug("zxSetProp idx: %i", idx);
         const char* ret = nullptr;
         idx += ZX_PROP_FIRST_LAUNCH;
         uint32_t n = opts[idx];
@@ -160,37 +161,37 @@ extern "C" {
             n = *(uint32_t*)(opts + (ZX_PROP_COLORS + (idx - ZX_PROP_COLORS) * 4));
             ret = ssh_ntos(&n, RADIX_HEX);
         }
-//        info("zxSetProp2 res: %s", ret);
+//        debug("zxSetProp2 finish res: %s", ret);
         return env->NewStringUTF(ret);
     }
 
     void zxGetProp(JNIEnv* env, jclass, jstring key, jint idx) {
         auto kv = env->GetStringUTFChars(key, nullptr);
-//        info("zxGetProp1 kv: %s idx: %i", kv, idx);
+//        debug("zxGetProp kv: %s idx: %i", kv, idx);
         if(kv) {
             idx += ZX_PROP_FIRST_LAUNCH;
             if (idx < ZX_PROP_ACTIVE_DISK) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_BOL);
             else if (idx < ZX_PROP_COLORS) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_DEC);
             else if (idx < (ZX_PROP_COLORS + 23))
                 *(uint32_t *) (opts + (ZX_PROP_COLORS + (idx - ZX_PROP_COLORS) * 4)) = *(uint32_t *) ssh_ston(kv, RADIX_HEX);
-//            info("zxGetProp2");
+//            debug("zxGetProp finish");
         }
     }
 
     long zxInt(JNIEnv*, jclass, jint idx, jboolean read, jint value) {
         if(!read) {
-//            info("zxIntSave idx: %i value: %i", idx, value);
+//            debug("zxIntSave idx: %i value: %i", idx, value);
             *(uint32_t*)(opts + idx) = (uint32_t)value;
         }
         auto ret = (long)(*(uint32_t*)(opts + idx));
-//        info("zxIntRead idx: %i value: %i", idx, ret);
+//        debug("zxIntRead idx: %i value: %i", idx, ret);
         return ret;
     }
 
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
-//        info("zxCmd1 cmd: %i", cmd);
+//        debug("zxCmd cmd: %i", cmd);
         switch(cmd) {
-            default:                info("Неизвестная комманда в zxCmd(%i)", cmd); break;
+            default:                debug("Неизвестная комманда в zxCmd(%i)", cmd); break;
             case ZX_CMD_POKE:       ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
             case ZX_CMD_UPDATE_KEY: ALU->updateKeys(arg1, arg2); break;
             case ZX_CMD_PRESETS:    ALU->presets(env->GetStringUTFChars(arg3, nullptr), arg1); break;
@@ -199,7 +200,7 @@ extern "C" {
             case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], *ALU->_MODEL, true); break;
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
         }
-//        info("zxCmd2");
+//        debug("zxCmd finish");
         return 0;
     }
 
@@ -236,7 +237,7 @@ extern "C" {
             abort();
         }
         auto wnd = env->FindClass("ru/ostrovskal/zx/ZxWnd");
-        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)));
+        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)) - 4);
 
         return JNI_VERSION_1_6;
     }

@@ -9,4 +9,8 @@
     <dimen name="pokeHeight">150dp</dimen>
     <dimen name="settingsWidth">520dp</dimen>
     <dimen name="settingsHeight">280dp</dimen>
+    <dimen name="paddingHorzDebEdit">3dp</dimen>
+    <dimen name="text_deb">6sp</dimen>
+    <dimen name="deb_list">8sp</dimen>
+    <dimen name="text_flags">8sp</dimen>
 </resources>

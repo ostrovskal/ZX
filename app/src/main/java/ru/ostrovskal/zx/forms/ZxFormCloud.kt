@@ -56,7 +56,7 @@ class ZxFormCloud : Form() {
     override fun handleMessage(msg: Message): Boolean {
         if(msg.action == ZxWnd.ZxMessages.ACT_DROPBOX_LIST_FILES_FINISH.ordinal) {
             if(msg.arg1 == BTN_NO) {
-                FormMessage().show(wnd, intArrayOf(R.string.app_name, R.string.connectError, BTN_OK, R.integer.I_YES, 0, 0, 0, 0))
+                FormMessage().show(wnd, intArrayOf(R.string.app_name, R.string.connectError, R.integer.I_YES, 0, 0, 0, 0))
             } else {
                 root.byIdx<Ribbon>(3).adapter = LoadingAdapter(wnd, filesCloud)
             }
@@ -93,6 +93,7 @@ class ZxFormCloud : Form() {
                         fp.primary = idx++
                     }
                 }
+                delay(500)
                 BTN_OK
             }
         }
@@ -105,13 +106,11 @@ class ZxFormCloud : Form() {
                     formHeader(R.string.headerCloud)
                     backgroundSet(style_form)
                     button {
-                        id = R.id.buttonNull1
                         isEnabled = false
                         iconResource = R.integer.I_OPEN
                         setOnClickListener { downloadCheckedFiles() }
                     }.lps(10, 4, 5, 3)
                     button {
-                        id = R.id.buttonNull2
                         iconResource = R.integer.I_CLOSE
                         setOnClickListener { thread?.interrupt(); footer(BTN_OK, 0) }
                     }.lps(10, 7, 5, 3)
@@ -130,7 +129,8 @@ class ZxFormCloud : Form() {
         override fun createView(position: Int, convertView: View?, resource: UiComponent, parent: ViewGroup, color: Boolean): View? {
             return ((convertView ?: resource.createView(UiCtx(context))) as? Check)?.apply {
                 text = getItem(position)?.name
-                isChecked = checked[position]
+                tile = checked[position].toInt
+                data = tile.toFloat()
                 setOnClickListener {
                     if (isChecked) checkedCount++ else checkedCount--
                     checked[position] = isChecked

@@ -57,7 +57,9 @@ class ZxWnd : Wnd() {
         // обновление смены пропуска кадров
         ACT_UPDATE_SKIP_FRAMES,
         // обновление главной разметки
-        ACT_UPDATE_MAIN_LAYOUT
+        ACT_UPDATE_MAIN_LAYOUT,
+        // обновление отладчика(a1 - параметры)
+        ACT_UPDATE_DEBUGGER
     }
 
     // главная разметка
@@ -71,7 +73,8 @@ class ZxWnd : Wnd() {
             System.loadLibrary("zx-lib")
         }
 
-        private val menuProps       = listOf(ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0, ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER)
+        val menuProps               = listOf(ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0,
+                                            ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER, ZX_PROP_SHOW_HEX)
 
         val modelNames              = listOf(R.string.menu48kk, R.string.menu48k, R.string.menu128k, R.string.menuPentagon, R.string.menuScorpion)
 
@@ -84,7 +87,8 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_RESTORE, R.integer.I_RESTORE, R.integer.MENU_EXIT, R.integer.I_EXIT,
                                                 R.integer.MENU_PROPS_SOUND, R.integer.I_SOUND, R.integer.MENU_PROPS_TAPE, R.integer.I_CASSETE,
                                                 R.integer.MENU_PROPS_FILTER, R.integer.I_FILTER, R.integer.MENU_PROPS_TURBO, R.integer.I_TURBO,
-                                                R.integer.MENU_PROPS_EXECUTE, R.integer.I_COMPUTER, R.integer.MENU_PROPS_DEBUGGER, R.integer.I_DEBUGGER)
+                                                R.integer.MENU_PROPS_EXECUTE, R.integer.I_COMPUTER, R.integer.MENU_PROPS_DEBUGGER, R.integer.I_DEBUGGER,
+                                                R.integer.MENU_PROPS_HEX_DEC, R.integer.I_HEX)
         @JvmStatic
         external fun zxInit(asset: AssetManager, errors: Boolean)
 
@@ -118,6 +122,7 @@ class ZxWnd : Wnd() {
         @JvmStatic
         external fun zxPresets(cmd: Int): String
 
+/*
         @JvmStatic
         external fun zxSaveState(): ByteArray
 
@@ -129,6 +134,7 @@ class ZxWnd : Wnd() {
 
         @JvmStatic
         external fun zxNumberToString(value: Int, radix: Int): String
+*/
     }
 
     override fun onStop() {
@@ -157,7 +163,7 @@ class ZxWnd : Wnd() {
                     zxProps(props)
                     settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
                     zxInit(assets, errors)
-                    if(restart) hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_SURFACE.ordinal)
+                    if(restart) hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_SURFACE.ordinal, a1 = 1)
                 }
             }
             "#errors".b = true
@@ -185,11 +191,11 @@ class ZxWnd : Wnd() {
 
     override fun onMenuItemSelected(featureId: Int, item: MenuItem): Boolean {
         item.subMenu.apply {
-            when (resources.getInteger(item.itemId)) {
-                MENU_MODEL  -> getItem(props[ZX_PROP_MODEL_TYPE].toInt()).isChecked = true
-                MENU_DISKS  -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
-                MENU_PROPS  -> repeat(6) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
-                MENU_MRU    -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
+            when (item.itemId) {
+                R.integer.MENU_MODEL  -> getItem(props[ZX_PROP_MODEL_TYPE].toInt()).isChecked = true
+                R.integer.MENU_DISKS  -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
+                R.integer.MENU_PROPS  -> repeat(7) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
+                R.integer.MENU_MRU    -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
             }
         }
         return super.onMenuItemSelected(featureId, item)
@@ -198,16 +204,19 @@ class ZxWnd : Wnd() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         // установить иконки на элементы меню
-        for(idx in 0 until 32 step 2) {
+        for(idx in 0 until 34 step 2) {
             menu.findItem(menuItems[idx])?.let {
                 menuIcon(it, style_zx_toolbar) {
-                    val idTile = if (idx == 0) { if(props[ZX_PROP_SHOW_KEY].toBoolean) R.integer.I_KEY else R.integer.I_JOY } else menuItems[idx + 1]
-                    tile = resources.getInteger(idTile)
+                    tile = resources.getInteger(menuItems[idx + 1])
                     //resolveTile(tile, bounds)
                     setBounds(0, 0, 40, 40)
                 }
             }
         }
+        menu.findItem(R.integer.MENU_KEYBOARD)?.apply { (icon as? TileDrawable)?.tile =
+            resources.getInteger(if(props[ZX_PROP_SHOW_KEY].toBoolean) R.integer.I_KEY else R.integer.I_JOY) }
+        menu.findItem(R.integer.MENU_PROPS_HEX_DEC)?.apply { (icon as? TileDrawable)?.tile =
+            resources.getInteger(if(props[ZX_PROP_SHOW_HEX].toBoolean) R.integer.I_HEX else R.integer.I_DEC) }
         menu.findItem(R.integer.MENU_IO)?.setShowAsAction(if(config.portrait) SHOW_AS_ACTION_NEVER else SHOW_AS_ACTION_ALWAYS)
         return true
     }
@@ -220,20 +229,11 @@ class ZxWnd : Wnd() {
             MENU_SETTINGS                           -> instanceForm(FORM_OPTIONS)
             MENU_RESTORE                            -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
             MENU_RESET                              -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_RESET.ordinal)
-            MENU_PROPS_DEBUGGER                     -> {
-                hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal, 200)
-                updatePropsMenuItem(id)
-            }
             MENU_EXIT                               -> finish()
-            MENU_PROPS_KEYBOARD                     -> {
-                (item.icon as? TileDrawable)?.apply {
-                    val isKey = tile == 38
-                    tile = if(isKey) 32 else 38
-                    updatePropsMenuItem(if(isKey) MENU_PROPS_JOYSTICK else MENU_PROPS_KEYBOARD)
-                }
-            }
-            MENU_PROPS_SOUND, MENU_PROPS_TURBO,
-            MENU_PROPS_TAPE, MENU_PROPS_EXECUTE   -> updatePropsMenuItem(id)
+            MENU_PROPS_DEBUGGER,
+            MENU_PROPS_KEYBOARD, MENU_PROPS_SOUND,
+            MENU_PROPS_TURBO, MENU_PROPS_HEX_DEC,
+            MENU_PROPS_TAPE, MENU_PROPS_EXECUTE   -> updatePropsMenuItem(item)
             MENU_DISK_A, MENU_DISK_B,
             MENU_DISK_C, MENU_DISK_D              -> {
                 props[ZX_PROP_ACTIVE_DISK] = (id - MENU_DISK_A).toByte()
@@ -258,15 +258,30 @@ class ZxWnd : Wnd() {
         return super.onOptionsItemSelected(item)
     }
 
-    private fun updatePropsMenuItem(id: Int) {
+    private fun updatePropsMenuItem(item: MenuItem) {
+        var id = resources.getInteger(item.itemId)
+        val drawable = (item.icon as? TileDrawable)
+        val tile = drawable?.tile ?: -1
+
+        if(id == MENU_PROPS_KEYBOARD) {
+            if(tile == 38) id = MENU_PROPS_JOYSTICK
+        }
         val prop = menuProps[id - MENU_PROPS_KEYBOARD]
         val isChecked = !props[prop].toBoolean
 
+        if(id == MENU_PROPS_DEBUGGER)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
+
+        if(id == MENU_PROPS_HEX_DEC) {
+            drawable?.tile = if(isChecked) 43 else 44
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, 255)
+        }
         if(id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
             props[ZX_PROP_SHOW_KEY] = 0.toByte()
             props[ZX_PROP_SHOW_JOY] = 0.toByte()
-            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal, 100)
-            hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_JOY.ordinal, 200)
+            drawable?.tile = if(tile == 38) 32 else 38
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
+            hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_JOY.ordinal)
         }
         props[prop] = isChecked.toByte
         zxCmd(ZX_CMD_PROPS, 0, 0, "")
@@ -310,237 +325,3 @@ class ZxWnd : Wnd() {
         }
     }
 }
-
-/*
-23 ноября 2019 - 12:00
-осталось:
-1. сообщение об ошибке                      +
-2. проверить на всех платформах и на моем   +
-3. MRU                                      +
-4. native:
-    4.1. presets
-    4.2. open/save
-    4.3. changeModel                +-
-    4.4. signalRESET                +-
-    4.5. updateKEY                  +
-5. лента в настройках
-
-29 ноября 2019- 0:10
-сейчас:
-1. декомпозиция загрузки из облака  +
-2. native:
-    2.1. open/save                  +
-    2.2. продумать changeModel      +
-    2.3. продумать signalRESET      +
-    2.4. presets
-
-3:00
-сейчас:
-1. presets          +
-2. writePort        +
-3. readPort         +
-4. updateFrame      +
-5. step             +
-6. updateCPU        +
-7. execute          +
-
-осталось:
-1. изменить имена AY регистров
-2. убрать промежуточный массив цветов             +
-
-8:00
-осталось:
-1. новый дешифратор процессора:
-разрядность(8,16)
-операция(jump,aripth,shift,bits,assign,load,save,spec,rst,)
-регистр
-флаги
-длина??
-такты
-
-29 ноября 2019 - 14:30
-сейчас:
-1. определить структуру инструкции      +
-2. сделать массив структур инструкций   +-
-3. выполнение операций                  +-
-
-23:00
-сейчас:
-1. арифметика                           +
-2. логические                           +
-
-30 ноября 2019 - 0:10
-сейчас:
-1. переходы с флагом
-2. сдвиги
-3. [hl]                                 +
-4. проверить префиксы                   +
-5. вычисление флагов
-6. расставить такты
-7. порты
-
-2:20
-осталось:
-1. сдвиги                               +
-2. расставить такты                     +
-3. порты
-4. битовые операции                     +
-5. префикс + битовые операции
-6. реорганизовать структуру             +
-
-5:40
-осталось:
-1. порты                                +
-2. префикс + битовые операции
-3. переходы с флагом
-4. расставить маски флагов
-5. операции с PREF_ED                   +
-6. убрать условие в инкр/декр           +
-7. строковые операции                   +
-8. RLD/RRD                              +
-
-8:00
-осталось:
-1. при смене [HL] [IX/IY + D] менять такты  +
-2. все проверить                            +-?
-3. префикс + битовые операции
-4. переходы с флагом                        +
-
-9:30
-осталось:
-1. префикс + битовые операции               +
-2. все проверить
-3. запустить систему
-4. расставить маски флагов                  +
-5. расставить вычисление флагов
-6. панель навигации после восстановления
-7. поставить zxemu и проверить некоторые инструкции +
-8. changeModel при загрузке .z80 и меню     +
-
-1 декабря 2019 - 7:00
-осталось:
-1. панель навигации после восстановления
-2. все проверить
-3. запустить систему
-4. проверить флаги
-5. сделать нормальный дизасм
-
-19:10
-сейчас:
-1. косметические изменения          +
-2. трассировать после запуска
-3. сделать нормальный дизасм
-4. панель навигации после восстановления
-
-2 декабря 2019 - 0:0
-сейчас:
-1. убрать флаги                         +
-2. переделать структуры                 +
-3. переделать установку флагов          +
-4. определить сбрасываемые флаги        +
-5. трассировать после запуска
-6. сделать нормальный дизасм
-7. панель навигации после восстановления
-8. установка флагов в одном месте       +
-
-2 декабря 2019 - 17:00
-сейчас:
-1. проверить установку флагов           +
-2. диасм инструкции                     +
-3. трассировать после запуска           +
-4. панель навигации после восстановления
-
-4 декабря 2019 - 18:00
-осталось:
-1. панель навигации после восстановления
-2. режим отладчика в вертикальной ориентации
-3. в дизасм добавить метки с описанием ПЗУ
-    и при прямом чтении/записи в операнд            +
-4. клавиатура                                       +
-5. мелькание курсора
-6. DAA
-7. в тулбар - клава/джойстик
-8. ошибка в сохранении\загрузке состояния           +
-9. список всех инструций - проверить                +
-
-5 декабря 2019 - 16:00
-осталось:
-1. в тулбар - клава/джойстик
-2. сравнить работу двух дешифраторов
-3. вставить вычисление флагов в виндовс эмулятор            +
-4. переделать сохранение/загрузку - опять какая-то хрень    +
-5. форма установок                                          +
-
-6 декабря 2019 - 0:10
-осталось:
-1. в тулбар - клава/джойстик
-2. сравнить работу двух дешифраторов                        +
-3. панель навигации после восстановления
-4. режим отладчика в вертикальной ориентации
-5.
-
-сейчас - 4:30
-1. в тулбар - клава/джойстик                                +
-
-6:00
-2. управляющие кнопки клавы
-2. изменение ориентации                                     +
-3. разметка для отладчика
-4. опять настройки слитают
-5. опрос порта FC у компаньона
-6. openZ80
-7. габариты форм для разных ориентаций                      +
-8. ид элементов, чтобы не падала при смене ориентации       +
-9. сделать одну главную форму - остальные от нее            +
-10. DAA
-
-8:00
-осталось:
-1. управляющие кнопки клавы                                 +
-2. openZ80                                                  +
-3. DAA
-4. опрос порта FC у компаньона
-5. проброс сообщений в основную форму                       +
-6. поворот экрана без ИД                                    +
-7. при сбросе программы(PC = 0) - активировать сброс        +
-
-6 декабря 2019 - 17:00
-осталось:
-1. проверить Z80                                            +
-2. DAA
-3. еше сравнить два дешифратора                             +
-4. восстановление onResume                                  +
-5. смена ориентации - состояние эмулятора                   +
-6. изменение границы - блокировать поток                    +
-7. иконка облака
-8. вылет облака без инета
-9. все-таки есть ошибка - exolon
-
-18:30
-сейчас:
-1. иконка облака                                            +
-2. вылет облака без инета
-3. иконки actionBar - в тайлы?
-4. все-таки есть ошибка - exolon+, dizzy+, пзу++-
-5. сброс при ошибке в проге
-6. исправить иконку - установки                             +
-7. после записи файла - ошибка без ошибки                   +
-8. ошибка в виджете прогресса
-9, надписи в списке в одну строку                           +
-10. подписывать все билды одним сертификатом                +
-
-22:00
-осталось:
-1. вылет облака без инета
-2. иконки actionBar - в тайлы?
-3. сброс при ошибке в проге
-4. ошибка в пзу - числа                                     +
-5. размер текста на разных экранах
-6. пропуск кадров - неверно
-7. звук тапа убрать нах???
-8. задержка при выделении в списке                          +
-9. клава компаньона на fc неверна
-
-
-
- */

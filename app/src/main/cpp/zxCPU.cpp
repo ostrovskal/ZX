@@ -424,7 +424,7 @@ int zxCPU::step(int prefix, int offset) {
             res = *_B; flags = FH | FC | FPV;
             if(fpv && rep) { *_PC -= 2; ticks = 21; }
             break;
-        default: info("found *ED* from PC: %i", pc);
+        default: debug("found *ED* from PC: %i", pc);
     }
     if(mskFlags) {
         flags = ~flags;

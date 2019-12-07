@@ -15,7 +15,33 @@ public final class ZxCommon {
 
     public static final String ZX_AUTO_SAVE         = "auto_save.zx";
 
-    // IDS MENU
+    // UPDATE DEBUGGER
+    public final static int ZX_PC                   = 1;
+    public final static int ZX_REG                  = 2;
+    public final static int ZX_SP                   = 4;
+    public final static int ZX_SEL                  = 8;
+
+    // REGISTERS
+    public final static int ZX_CPU_F                = 6;
+    public final static int ZX_CPU_RAM              = 35;
+    public final static int ZX_CPU_ROM              = 36;
+    public final static int ZX_CPU_VID              = 37;
+    public final static int ZX_CPU_AY               = 42;
+    public final static int ZX_CPU_RR               = 25;
+    public final static int ZX_CPU_AF1              = 6;
+    public final static int ZX_CPU_AF2              = 14;
+    public final static int ZX_CPU_HL1              = 4;
+    public final static int ZX_CPU_HL2              = 12;
+    public final static int ZX_CPU_DE1              = 2;
+    public final static int ZX_CPU_DE2              = 10;
+    public final static int ZX_CPU_BC1              = 0;
+    public final static int ZX_CPU_BC2              = 8;
+    public final static int ZX_CPU_IX               = 16;
+    public final static int ZX_CPU_IY               = 18;
+    public final static int ZX_CPU_PC               = 22;
+    public final static int ZX_CPU_SP               = 20;
+    public final static int ZX_CPU_STATE            = 29;
+
     public final static int MENU_CLOUD              = 1000;
     public final static int MENU_IO                 = 1001;
     public final static int MENU_SETTINGS           = 1002;
@@ -34,9 +60,10 @@ public final class ZxCommon {
     public final static int MENU_PROPS_TURBO        = 1014;
     public final static int MENU_PROPS_EXECUTE      = 1015;
     public final static int MENU_PROPS_DEBUGGER     = 1016;
+    public final static int MENU_PROPS_HEX_DEC      = 1017;
 
-    public final static int MENU_MRU                = 1017;
-    public final static int MENU_POKES              = 1018;
+    public final static int MENU_MRU                = 1018;
+    public final static int MENU_POKES              = 1019;
 
     public final static int MENU_DISK_A             = 1200;
     public final static int MENU_DISK_B             = 1201;
@@ -375,6 +402,78 @@ public final class ZxCommon {
             ATTR_SSH_HORZ, 8,
             ATTR_SSH_TILE, 0,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_ICONS | THEME
+    };
+
+    public static final int[] style_debugger_flags = {
+            ATTR_SHADOW_TEXT, R.string.shadow_null,
+            ATTR_SIZE, R.dimen.text_flags,
+            ATTR_FONT, R.string.font_small,
+            ATTR_GRAVITY, Gravity.CENTER,
+            ATTR_MAX_LINES, 1,
+            ATTR_COLOR_DEFAULT, 0xf77499 | COLOR
+    };
+
+    public static final int[] style_debugger_text = {
+            ATTR_SHADOW_TEXT, R.string.shadow_text,
+            ATTR_SIZE, R.dimen.text_deb,
+            ATTR_FONT, R.string.font_small,
+            ATTR_GRAVITY, Gravity.CENTER,
+            ATTR_MAX_LINES, 1,
+            ATTR_COLOR_DEFAULT, 0xffffff | COLOR
+    };
+
+    public static final int[] style_debugger_ribbon = {
+            ATTR_SELECTOR, ATTR_SSH_COLOR_SELECTOR | THEME,
+            ATTR_LONG_CLICKABLE, 1,
+            ATTR_PADDING, 2
+    };
+
+    public static final int[] style_debugger_item = {
+            ATTR_SHADOW_TEXT, R.string.shadow_null,
+            ATTR_PADDING, 3,
+            ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
+            ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
+            ATTR_GRAVITY, Gravity.START,
+            ATTR_SIZE, R.dimen.deb_list
+    };
+
+    public static final int[] style_debugger_action = {
+            ATTR_SHADOW_TEXT, R.string.shadow_text,
+            ATTR_COLOR_DEFAULT, 0xf77499 | COLOR,
+            ATTR_CLICKABLE, 1,
+            ATTR_FOCUSABLE, 1,
+            ATTR_PADDING, 0,
+            ATTR_MIN_HEIGHT, R.dimen.heightButton,
+            ATTR_SSH_PRESSED_OFFS, 0,
+            ATTR_SSH_WIDTH_SELECTOR, 0,
+            ATTR_SSH_COLOR_SELECTOR, 0,
+            ATTR_GRAVITY, Gravity.CENTER,
+            ATTR_SSH_HORZ, 3,
+            ATTR_SSH_TILE, 0,
+            ATTR_SSH_GRAVITY, TILE_GRAVITY_CENTER | TILE_GRAVITY_BACKGROUND,
+            ATTR_SSH_BITMAP_NAME, R.drawable.tool,
+            ATTR_SSH_STATES, TILE_STATE_PRESS
+    };
+
+    public static final int[] style_debugger_edit = {
+            ATTR_SHADOW_TEXT, R.string.shadow_null,
+            ATTR_GRAVITY, Gravity.CENTER,
+            ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
+            ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
+            ATTR_SIZE, R.dimen.text_deb,
+            ATTR_FOCUSABLE_TOUCH_MODE, 1,
+            ATTR_COLOR_HINT, ATTR_SSH_COLOR_HINT | THEME,
+            //ATTR_FOCUSABLE, 1,
+            ATTR_CLICKABLE, 1,
+            ATTR_SSH_TILE, 0,
+            ATTR_PADDING_HORZ, R.dimen.paddingHorzDebEdit,
+            ATTR_PADDING_VERT, 0,//R.dimen.paddingVertEdit,
+            ATTR_IME_OPTIONS, IME_FLAG_NO_EXTRACT_UI,
+            ATTR_INPUT_TYPE, android.text.InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS,
+            ATTR_SSH_SHAPE, TILE_SHAPE_RECT,
+            ATTR_SSH_WIDTH_SELECTOR, 1,
+            ATTR_SSH_COLOR_SELECTOR, Color.DKGRAY | COLOR,
+            ATTR_SSH_SOLID, 0x00007f | COLOR
     };
 
     public static final String[] joyButtons     = {"K←", "K→", "K↑", "K↓", "K*", "6", "7", "9", "8", "0", "1", "2", "4", "3", "5", "←", "→", "↑",

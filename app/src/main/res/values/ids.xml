@@ -39,4 +39,32 @@
     <item name="seekCommon3" type="id" />
     <item name="seekCommon4" type="id" />
     <item name="seekCommon5" type="id" />
+    <item name="idS" type="id" />
+    <item name="idZ" type="id" />
+    <item name="idY" type="id" />
+    <item name="idH" type="id" />
+    <item name="idX" type="id" />
+    <item name="idP" type="id" />
+    <item name="idN" type="id" />
+    <item name="idC" type="id" />
+    <item name="idRAM" type="id" />
+    <item name="idROM" type="id" />
+    <item name="idVID" type="id" />
+    <item name="idRR" type="id" />
+    <item name="idAF1" type="id" />
+    <item name="idAF2" type="id" />
+    <item name="idHL1" type="id" />
+    <item name="idHL2" type="id" />
+    <item name="idDE1" type="id" />
+    <item name="idDE2" type="id" />
+    <item name="idBC1" type="id" />
+    <item name="idBC2" type="id" />
+    <item name="idIX" type="id" />
+    <item name="idIY" type="id" />
+    <item name="idPC" type="id" />
+    <item name="idSP" type="id" />
+    <item name="idII" type="id" />
+    <item name="idIM" type="id" />
+    <item name="idRI" type="id" />
+    <item name="idAY" type="id" />
 </resources>

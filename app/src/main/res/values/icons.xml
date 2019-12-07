@@ -45,7 +45,7 @@
     <integer name="I_CM">42</integer>
     <integer name="I_HEX">43</integer>
     <integer name="I_DEC">44</integer>
-    <integer name="I_10">45</integer>
+    <integer name="I_APPLY">45</integer>
     <integer name="I_16">46</integer>
     <integer name="I_CLOUD">47</integer>
     <integer name="I_G0">48</integer>

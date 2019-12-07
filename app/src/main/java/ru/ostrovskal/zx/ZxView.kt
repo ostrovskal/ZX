@@ -73,7 +73,7 @@ class ZxView(context: Context) : Surface(context) {
         updateFilter()
         isSkippedFrames = ZxWnd.props[ZX_PROP_SKIP_FRAMES].toBoolean
         frameTime = 20
-        updateSurface()
+        updateSurface(true)
     }
 
     override fun updateState() {
@@ -100,7 +100,7 @@ class ZxView(context: Context) : Surface(context) {
         var ret = false
         when (msg.action) {
             ACT_INIT_SURFACE                                -> ret = true
-            ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal     -> updateSurface()
+            ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal     -> updateSurface(msg.arg1 != 0)
             ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal         -> updateJoy()
             ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal      -> updateFilter()
             ZxWnd.ZxMessages.ACT_RESET.ordinal              -> { ZxWnd.zxCmd(ZX_CMD_RESET, 0, 0, ""); ret = true }
@@ -128,16 +128,16 @@ class ZxView(context: Context) : Surface(context) {
         return result
     }
 
-    private fun updateSurface() {
+    private fun updateSurface(force: Boolean) {
         val szBorder = ZxWnd.props[ZX_PROP_BORDER_SIZE] * 16
-        if(sizeBorder != szBorder || surface == null) {
+        if(sizeBorder != szBorder || surface == null || force) {
             sizeBorder = szBorder
             surface = Bitmap.createBitmap(256 + szBorder, 192 + szBorder, Bitmap.Config.ARGB_8888)?.apply {
                 ZxWnd.zxSurface(this)
-                surfaceActive = this
-                wnd.zxInitialize = true
             }
         }
+        surfaceActive = surface
+        wnd.zxInitialize = true
     }
 
     private fun updateJoy() {

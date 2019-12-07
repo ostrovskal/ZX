@@ -289,10 +289,11 @@ class ZxFormSettings : Form() {
             linearLayout {
                 cellLayout(10, 16) {
                     formHeader(R.string.settingsHead)
+                    backgroundSet { alpha =  255; solid = Color.WHITE }
                     root = tabLayout(sizeCaption = 18, style = style_tab_settings) {
                         content.apply {
-                            backgroundSet { solid = 0x80101010.toInt() }
                             padding = 2.dp
+                            backgroundSet(style_form) { alpha = 128 }
                         }
                         page(R.id.pageCommon, nIcon = R.integer.I_TOOL, init = commonPage)
                         page(R.id.pageSound, nIcon = R.integer.I_SOUND, init = soundPage)

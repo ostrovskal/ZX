@@ -166,6 +166,7 @@ constexpr int RADIX_BOL 				= 6;
 
 // вывод отладочной информации
 void info(const char* msg, ...);
+void debug(const char* msg, ...);
 
 // разбить строку на подстроки
 char** ssh_split(const char* str, const char* delim, int* count = nullptr);

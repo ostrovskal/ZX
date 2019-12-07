@@ -1,10 +1,19 @@
 package ru.ostrovskal.zx
 
+import android.view.ViewGroup
+import android.view.ViewManager
+import ru.ostrovskal.sshstd.Common
+import ru.ostrovskal.sshstd.layouts.CellLayout
+import ru.ostrovskal.sshstd.ui.backgroundSet
+import ru.ostrovskal.sshstd.ui.cellLayout
+import ru.ostrovskal.sshstd.utils.uiView
 import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.zx.ZxCommon.*
 
 class ZxKeyboard {
-    
+
+    private var root: ViewGroup? = null
+
     private class Button(@JvmField val k: CharSequence, @JvmField val l: CharSequence, @JvmField val c: CharSequence,
                         @JvmField val e: CharSequence, @JvmField val e2: CharSequence, @JvmField val e1: CharSequence,
                         @JvmField val cl: CharSequence, @JvmField val ck: CharSequence, @JvmField val g1: CharSequence,
@@ -100,7 +109,26 @@ class ZxKeyboard {
         }
     }
 
-    fun initButton(idx: Int, tile: Tile) {
-        buttons[idx].tile = tile
+    /** Реализация кнопки клавиатуры */
+    private fun ViewManager.keyboardButton() = uiView({ Tile(it, style_key_button).apply {
+        setOnTouchListener { v, event ->
+            root?.apply { ZxWnd.zxCmd(ZX_CMD_UPDATE_KEY, indexOfChild(v) + 1, event.action, "") }
+            false
+        } } }, {} )
+
+    fun layout(ui: CellLayout) = with(ui) {
+        cellLayout(11, 4) {
+            root = this
+            backgroundSet(Common.style_form)
+            repeat(4) { y ->
+                repeat(11) rep@{ x ->
+                    if(y == 3 && x > 8) return@rep
+                    var xx = x
+                    if(y == 3 && x > 4) xx += 2
+                    val btn = keyboardButton().lps(xx, y, if(y == 3 && x == 4) 3 else 1, 1)
+                    buttons[y * 11 + x + 1].tile = btn
+                }
+            }
+        }
     }
 }

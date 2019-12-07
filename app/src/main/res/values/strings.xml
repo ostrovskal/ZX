@@ -28,6 +28,7 @@
     <string name="menuScorpion">Scorpion 256K</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Keyboard/Joystick</string>
+    <string name="menuHexDec" translatable="false">Hex\\Dec</string>
     <string name="hintName">name</string>
     <string name="headerIO">Operations</string>
     <string name="downloadCloud">Download…</string>
@@ -82,4 +83,32 @@
     <string name="descImage" translatable="false">desc</string>
     <string name="ioLoadError">Failed to read. The file is corrupt!</string>
     <string name="ioSaveError">Failed to write. Unknown file format!</string>
+    <string name="flagS" translatable="false">S</string>
+    <string name="flagZ" translatable="false">Z</string>
+    <string name="flagY" translatable="false">Y</string>
+    <string name="flagH" translatable="false">H</string>
+    <string name="flagX" translatable="false">X</string>
+    <string name="flagP" translatable="false">P</string>
+    <string name="flagN" translatable="false">N</string>
+    <string name="flagC" translatable="false">C</string>
+    <string name="ram" translatable="false">RAM</string>
+    <string name="rom" translatable="false">ROM</string>
+    <string name="vid" translatable="false">VID</string>
+    <string name="rr" translatable="false">R</string>
+    <string name="raf1" translatable="false">AF</string>
+    <string name="raf2" translatable="false">AF\'</string>
+    <string name="rhl1" translatable="false">HL</string>
+    <string name="rhl2" translatable="false">HL\'</string>
+    <string name="rde1" translatable="false">DE</string>
+    <string name="rde2" translatable="false">DE\'</string>
+    <string name="rbc1" translatable="false">BC</string>
+    <string name="rbc2" translatable="false">BC\'</string>
+    <string name="rix" translatable="false">IX</string>
+    <string name="riy" translatable="false">IY</string>
+    <string name="rpc" translatable="false">PC</string>
+    <string name="rsp" translatable="false">SP</string>
+    <string name="shadow_null" translatable="false">0,0,0,#ff000000</string>
+    <string name="im" translatable="false">IM</string>
+    <string name="ay" translatable="false">AY</string>
+    <string name="state" translatable="false">ST</string>
 </resources>

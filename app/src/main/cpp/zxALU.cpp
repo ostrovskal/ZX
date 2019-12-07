@@ -138,7 +138,7 @@ bool zxALU::openState(const char *name) {
     for (int i = 0; i < pages; i++) {
         size_t size = *(uint16_t*)ptr; ptr += sizeof(uint16_t);
         if (!unpackBlock(ptr, PAGE_RAM[i], PAGE_RAM[i] + 16384, size, true, false)) {
-            info("Ошибка при распаковке страницы %i состояния эмулятора!!!", i);
+            debug("Ошибка при распаковке страницы %i состояния эмулятора!!!", i);
             signalRESET(true);
             return false;
         }
@@ -197,7 +197,7 @@ bool zxALU::openZ80(const char *name) {
             case 3: case 4: case 5: case 6: if(!isMod) model = MODEL_128K; break;
             case 9: model = MODEL_PENTAGON; break;
             case 10: model = MODEL_SCORPION; break;
-            default: info("Неизвестное оборудование в %s!", name); return false;
+            default: debug("Неизвестное оборудование в %s!", name); return false;
         }
         head1 = &head2->head1;
         PC = head2->PC;
@@ -231,12 +231,12 @@ bool zxALU::openZ80(const char *name) {
                     break;
             }
             if(!isPage) {
-                info("Неизвестная страница %i в openZ80(%s)!", numPage, name);
+                debug("Неизвестная страница %i в openZ80(%s)!", numPage, name);
                 return false;
             }
             auto page = &TMP_BUF[numPage * 16384];
             if(!unpackBlock(ptr, page, page + 16384, szSrc, szData != 65535, false)) {
-                info("Ошибка при распаковке страницы %i в openZ80(%s)!", numPage, name);
+                debug("Ошибка при распаковке страницы %i в openZ80(%s)!", numPage, name);
                 return false;
             }
             ptr += szSrc;
@@ -244,7 +244,7 @@ bool zxALU::openZ80(const char *name) {
         }
     } else {
         if(!unpackBlock(ptr, TMP_BUF, &TMP_BUF[49152], sz, (head1->STATE1 & 32) == 32, true)) {
-            info("Ошибка при распаковке openZ80(%s)!", name);
+            debug("Ошибка при распаковке openZ80(%s)!", name);
             return false;
         }
         // перераспределяем буфер 0->5, 1->2, 2->0
@@ -536,9 +536,6 @@ void zxALU::signalRESET(bool resetTape) {
     ssh_memzero(RAMs, ZX_TOTAL_RAM);
     // очищаем регистры/порты
     ssh_memzero(opts, MODEL);
-    // все регистры в FFFF, кроме альтернативных
-//    ssh_memset(opts, 255, IFF1);
-//    ssh_memset(&opts[RC_], 0, RXL);
     // сбрасываем клавиатуру
     ssh_memset(&opts[ZX_PROP_VALUES_SEMI_ROW], 255, 8);
     opts[ZX_PROP_KEY_MODE] = 0; opts[ZX_PROP_KEY_CURSOR_MODE] = MODE_K;
@@ -574,7 +571,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
                 // 1 -> 1 - ROM 2, 0 - ROM from 0x7FFD
                 // 4 -> 1 - RAM SCORPION, 0 - from 0x7FFD
                 // A0, A2, A5, A12 = 1; A1, A14, A15 = 0
-                info("writePort %X-%X=%i", A8A15, A0A7, val);
+                debug("writePort %X-%X=%i", A8A15, A0A7, val);
                 *_1FFD = val;
                 if (val & 1) *_ROM = 100;
                 else {
@@ -597,7 +594,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             *_VID = (uint8_t)((val & 8) ? 7 : 5);
             *_RAM = (uint8_t)(val & 7);
             if(*_MODEL == MODEL_SCORPION) {
-                info("writePort %X-%X=%i", A8A15, A0A7, val);
+                debug("writePort %X-%X=%i", A8A15, A0A7, val);
                 if(!(*_1FFD & 2)) *_ROM = (uint8_t)((val & 16) >> 4);
                 *_RAM += (uint8_t)((*_1FFD & 16) >> 1);
             } else {
@@ -631,7 +628,7 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
         // джойстик
         case 0x1F: return *_KEMPSTON;
         // клавиатура | MIC
-        case 0xFC:// TODO
+//        case 0xFC:// TODO
         case 0xFE:
             A0A7 = 255;
             for(int i = 0; i < 8; i++) {

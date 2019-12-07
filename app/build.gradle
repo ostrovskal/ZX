@@ -25,14 +25,15 @@ android {
         versionCode 16
         versionName "1.0.6"
         externalNativeBuild {
-            cmake {
-                cppFlags "-std=c++11"
-            }
+            cmake {  cppFlags "-std=c++11" }
         }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.config
+            externalNativeBuild {
+                cmake { cppFlags "-DDEBUG" }
+            }
         }
         release {
             minifyEnabled true
