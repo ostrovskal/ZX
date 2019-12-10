@@ -94,6 +94,8 @@
     <string name="ram" translatable="false">RAM</string>
     <string name="rom" translatable="false">ROM</string>
     <string name="vid" translatable="false">VID</string>
+    <string name="im" translatable="false">IM</string>
+    <string name="ay" translatable="false">AY</string>
     <string name="rr" translatable="false">R</string>
     <string name="raf1" translatable="false">AF</string>
     <string name="raf2" translatable="false">AF\'</string>
@@ -108,7 +110,10 @@
     <string name="rpc" translatable="false">PC</string>
     <string name="rsp" translatable="false">SP</string>
     <string name="shadow_null" translatable="false">0,0,0,#ff000000</string>
-    <string name="im" translatable="false">IM</string>
-    <string name="ay" translatable="false">AY</string>
     <string name="state" translatable="false">ST</string>
+    <string name="radiiFormMessage" translatable="false">40,35,40,35,20,20,20,20</string>
+    <string name="menuAddress">Address</string>
+    <string name="menuCode">Code</string>
+    <string name="menuValue">Content</string>
+    <string name="menuTrace">Tracer</string>
 </resources>

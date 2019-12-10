@@ -5,6 +5,31 @@
         android:title="@string/menuKeyJoy"
         android:showAsAction="always"/>
     <item
+        android:id="@integer/MENU_DEBUGGER1"
+        android:title="@string/menuDebugger"
+        android:showAsAction="always">
+        <menu>
+            <group android:checkableBehavior="all">
+                <item
+                    android:id="@integer/MENU_DEBUGGER_HEX_DEC"
+                    android:title="@string/menuHexDec"
+                    android:showAsAction="never" />
+                <item
+                    android:id="@integer/MENU_DEBUGGER_ADDRESS"
+                    android:title="@string/menuAddress"
+                    android:showAsAction="never" />
+                <item
+                    android:id="@integer/MENU_DEBUGGER_CODE"
+                    android:title="@string/menuCode"
+                    android:showAsAction="never" />
+                <item
+                    android:id="@integer/MENU_DEBUGGER_VALUE"
+                    android:title="@string/menuValue"
+                    android:showAsAction="never" />
+            </group>
+        </menu>
+    </item>
+    <item
         android:id="@integer/MENU_CLOUD"
         android:title="@string/menuLoadCloud"
         android:showAsAction="ifRoom" />
@@ -47,8 +72,8 @@
                     android:title="@string/menuDebugger"
                     android:showAsAction="never" />
                 <item
-                    android:id="@integer/MENU_PROPS_HEX_DEC"
-                    android:title="@string/menuHexDec"
+                    android:id="@integer/MENU_PROPS_TRACER"
+                    android:title="@string/menuTrace"
                     android:showAsAction="never" />
             </group>
         </menu>

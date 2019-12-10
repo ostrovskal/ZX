@@ -6,6 +6,21 @@
 
 #include "zxStks.h"
 
+struct BREAK_POINT {
+    // начальный адрес
+    uint16_t address1;
+    // конечный адрес
+    uint16_t address2;
+    // маска
+    uint8_t msk;
+    // значение
+    uint8_t val;
+    // операция со значением
+    uint8_t ops;
+    // флаги(тип: 0 - исполнение, 1 - запись в память, 2 - чтение из порта, 3 - запись в порт, 32 - неактивна)
+    uint8_t flg;
+};
+
 class zxALU {
 public:
     zxALU();
@@ -80,6 +95,27 @@ public:
     // буфер ОЗУ
     uint8_t* RAMs;
 
+    void startTracer();
+
+    // файл трассировщика
+    zxFile ftracer;
+
+    // проверить на срабатывании точки останова
+    bool checkBPs(uint16_t address, uint8_t flg);
+
+    // быстрая установка в коде
+    void quickBP(uint16_t address);
+
+    // выполнение при трассировке
+    int stepDebug();
+
+    int traceIn();
+
+    int traceOut();
+
+    // процессор
+    zxCPU* cpu;
+
 protected:
 
     // загрузка состояния
@@ -120,9 +156,6 @@ protected:
 
     // цвет и размер границы
     uint32_t sizeBorder, colorBorder;
-
-    // процессор
-    zxCPU* cpu;
 
     // звуковая карта
     //zxSND* snd;

@@ -25,18 +25,33 @@ extern uint8_t* 			            labels;
 extern uint8_t* 			            TMP_BUF;
 extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
+extern BREAK_POINT 			            bps[8];
 
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
-constexpr const char* ZX_AUTO_SAVE      = "auto_save.zx";
-
 #define ZX_TOTAL_RAM                    262144
+
+constexpr int ZX_BP_NONE                = 0; // не учитывается
+constexpr int ZX_BP_EXEC                = 1; // исполнение
+constexpr int ZX_BP_WMEM                = 2; // запись в память
+constexpr int ZX_BP_RPORT               = 3; // чтение из порта
+constexpr int ZX_BP_WPORT               = 4; // запись в порт
+constexpr int ZX_BP_PAUSE               = 32;// неактивная точка
+
+constexpr int ZX_BP_OPS_EQ              = 0; // ==
+constexpr int ZX_BP_OPS_NQ              = 1; // !=
+constexpr int ZX_BP_OPS_GT              = 2; // >
+constexpr int ZX_BP_OPS_LS              = 3; // <
+constexpr int ZX_BP_OPS_GTE             = 4; // >=
+constexpr int ZX_BP_OPS_LSE             = 5; // <=
 
 // Биты состояний
 enum ZX_STATE {
-    ZX_INT 	= 0x01,// прерывание
-    ZX_NMI 	= 0x02,//
-    ZX_HALT = 0x04,// останов. ждет прерывания
-    ZX_TRDOS= 0x08 // режим диска
+    ZX_INT 	= 0x01, // прерывание
+    ZX_NMI 	= 0x02, //
+    ZX_HALT = 0x04, // останов. ждет прерывания
+    ZX_TRDOS= 0x08, // режим диска
+    ZX_BP   = 0x10, // сработала точка останова
+    ZX_DEBUG= 0x20  // режим отладки активирован
 };
 
 // Позиция ПЗУ различных моделей
@@ -49,14 +64,15 @@ constexpr int ZX_ROM_TRDOS              = 163840;
 
 // Разделяемые свойства
 // 0. Байтовые значения, вычисляемые во время работы программы
-constexpr int ZX_PROP_JOY_TYPE        = 80; // Текущий тип джойстика
-constexpr int ZX_PROP_JOY_KEYS        = 81; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
-constexpr int ZX_PROP_JOY_CROSS_VALUE = 89; // Нажатые кнопки джойстика-крестовины
-constexpr int ZX_PROP_JOY_ACTION_VALUE= 90; // Нажатые кнопки джойстика-управления
-constexpr int ZX_PROP_KEY_CURSOR_MODE = 91; // Режим курсора (E, G, L, K т.п.)
-constexpr int ZX_PROP_KEY_MODE        = 92; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
-constexpr int ZX_PROP_VALUES_SEMI_ROW = 93; // Значения в полурядах клавиатуры (8) 93 - 100
-constexpr int ZX_PROP_VALUES_KEMPSTON = 101; // Значение для кемпстон-джойстика
+constexpr int ZX_PROP_JOY_TYPE        = 68; // Текущий тип джойстика
+constexpr int ZX_PROP_JOY_KEYS        = 69; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
+constexpr int ZX_PROP_JOY_CROSS_VALUE = 77; // Нажатые кнопки джойстика-крестовины
+constexpr int ZX_PROP_JOY_ACTION_VALUE= 78; // Нажатые кнопки джойстика-управления
+constexpr int ZX_PROP_KEY_CURSOR_MODE = 79; // Режим курсора (E, G, L, K т.п.)
+constexpr int ZX_PROP_KEY_MODE        = 80; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
+constexpr int ZX_PROP_VALUES_SEMI_ROW = 81; // Значения в полурядах клавиатуры (8) 93 - 100
+constexpr int ZX_PROP_VALUES_KEMPSTON = 89; // Значение для кемпстон-джойстика
+constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 
 // 1. Булевы значения
 constexpr int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
@@ -72,7 +88,13 @@ constexpr int ZX_PROP_SND_8BIT        = 137; // Признак 8 битного 
 constexpr int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
 constexpr int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображений
 constexpr int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
-constexpr int ZX_PROP_SHOW_HEX        = 141; // Признак 16-тиричного вывода
+constexpr int ZX_PROP_SHOW_DEBUGGER   = 141; // Признак режима отладчика
+constexpr int ZX_PROP_TRACER          = 142; // Признак записи трассировки
+constexpr int ZX_PROP_SHOW_HEX        = 143; // Признак 16-тиричного вывода
+constexpr int ZX_PROP_SHOW_ADDRESS    = 144; // Признак отображения адреса инструкции
+constexpr int ZX_PROP_SHOW_CODE       = 145; // Признак отображения кода инструкции
+constexpr int ZX_PROP_SHOW_CODE_VALUE = 146; // Признак отображения содержимого по коду
+constexpr int ZX_PROP_ERRORS          = 147; // Признак наличия ошибки при выходе в прошлый раз
 
 // 2. Байтовые значения
 constexpr int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -90,7 +112,10 @@ constexpr int ZX_PROP_JOY_SIZE        = 160; // Размер экранного 
 // 3. Целые значения
 constexpr int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
 
-constexpr int ZX_PROPS_COUNT          = 267; // Размер буфера
+// 4. Значение структур
+constexpr int ZX_PROP_BPS             = 192; // значения точек останова (8 * 8) 258 - 321
+
+constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 
 // Модели памяти
 constexpr int MODEL_48KK              = 0; // Компаньон 2.02 48К
@@ -104,12 +129,13 @@ constexpr uint8_t MODE_K              = 0;
 constexpr uint8_t MODE_L              = 1;
 constexpr uint8_t MODE_C              = 2;
 constexpr uint8_t MODE_E              = 3;
-constexpr uint8_t MODE_E1             = 4;
-constexpr uint8_t MODE_E2             = 5;
+constexpr uint8_t MODE_SE             = 4;
+constexpr uint8_t MODE_SK             = 5;
 constexpr uint8_t MODE_CL             = 6;
 constexpr uint8_t MODE_CK             = 7;
 constexpr uint8_t MODE_G              = 8;
 constexpr uint8_t MODE_G1             = 9;
+constexpr uint8_t MODE_CE             = 10;
 
 // Варианты форматирования чисел
 constexpr int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
@@ -124,6 +150,7 @@ constexpr int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
 constexpr int ZX_FV_PVAL8				= 18;// "3{X}", "2{#X}"
 constexpr int ZX_FV_PVAL16				= 20;// "5{X}", "4{#X}"
 constexpr int ZX_FV_NUMBER				= 22;// "0X", "0#X"
+constexpr int ZX_FV_SIMPLE				= 24;// "0X", "0X"
 
 // Команды
 constexpr int ZX_CMD_MODEL              = 0; // Установка модели памяти
@@ -138,6 +165,11 @@ constexpr int ZX_CMD_PRESETS_LOAD       = 8; // Загрузить параме�
 constexpr int ZX_CMD_PRESETS_LIST       = 9; // Получить список пресетов
 constexpr int ZX_CMD_PRESETS_NAME       = 10;// Получить имя программы
 constexpr int ZX_CMD_PRESETS_SET        = 11;// Установить имя программы
+constexpr int ZX_CMD_TRACER             = 12;// Запуск трасировщика
+constexpr int ZX_CMD_QUICK_BP           = 13;// Быстрая установка точки останова
+constexpr int ZX_CMD_TRACE_IN           = 14;// Трассировка с заходом
+constexpr int ZX_CMD_TRACE_OUT          = 15;// Трассировка без захода
+
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
@@ -169,7 +201,7 @@ void info(const char* msg, ...);
 void debug(const char* msg, ...);
 
 // разбить строку на подстроки
-char** ssh_split(const char* str, const char* delim, int* count = nullptr);
+char __unused ** ssh_split(const char* str, const char* delim, int* count = nullptr);
 
 // число в строку
 char* ssh_ntos(void* v, int r, char** end = nullptr);

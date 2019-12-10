@@ -36,7 +36,6 @@ enum CPU_REGS {
     RXL, RXH, RYL, RYH,
     RSPL, RSPH, RPCL, RPCH,
     RI, RR, IFF1, IFF2, IM,
-    STATE,
     PORT_FE, PORT_1F, PORT_FD,
     FE16, FE8,
     RAM, ROM, VID,
@@ -46,41 +45,13 @@ enum CPU_REGS {
     AY_BVOL, AY_CVOL, AY_EFINE, AY_ECOARSE, AY_ESHAPE, AY_PORTA, AY_BEEPER,
     TRDOS_CMD, TRDOS_TRK, TRDOS_SEC, TRDOS_DAT, TRDOS_SYS,
     RTMP,
+    STATE,
     MODEL,
+    // 67
     COUNT_REGS
 };
 
-enum DA_MNEMONIC_NAMES {
-    C_C, C_B, C_E, C_D, C_L, C_H, C_R, C_A,
-    C_NULL, C_PHL,
-    C_I, C_BC, C_DE, C_HL, C_AF, C_SP,
-    C_FNZ, C_FZ, C_FNC, C_FC, C_FPO, C_FPE, C_FP, C_FM,
-    C_XL, C_XH, C_YL, C_YH, C_PIX, C_PIY, C_F, C_IX, C_IY, C_IM,
-    C_PBC, C_PDE,
-    C_NOP, C_EX_AF, C_DJNZ, C_JR,
-    C_RLCA, C_RRCA, C_RLA, C_RRA, C_DAA, C_CPL, C_SCF, C_CCF,
-    C_DI, C_EI,
-    C_ADD, C_ADC, C_SUB, C_SBC, C_AND, C_XOR, C_OR, C_CP,
-    C_RLC, C_RRC, C_RL, C_RR, C_SLA, C_SRA, C_SLI, C_SRL,
-    C_BIT, C_RES, C_SET,
-    C_INC, C_DEC,
-    C_RRD, C_RLD,
-    C_LDI, C_CPI, C_INI, C_OTI,
-    C_LDD, C_CPD, C_IND, C_OTD,
-    C_LDIR, C_CPIR, C_INIR, C_OTIR,
-    C_LDDR, C_CPDR, C_INDR, C_OTDR,
-    C_EXX, C_EX_DE, C_EX_SP, C_LD, C_JP, C_CALL,
-    C_RET, C_RETI, C_RETN, C_RST, C_PUSH, C_POP,
-    C_HALT, C_NEG, C_IN, C_OUT, C_IX_NONI, C_IY_NONI, C_ED_NONI,
-    C_COMMA, C_0, C_PC, C_SRC, C_DST, C_CB_PHL,
-    C_N, C_NN, C_PNN, C_NUM
-};
-
 #pragma clang diagnostic pop
-
-enum MNEMONIC_FLAGS {
-    _NZ = 1, _Z, _NC, _C, _PO, _PE, _P, _M
-};
 
 enum MNEMONIC_OPS {
     O_ADD, O_SUB, O_ADC, O_SBC, O_DEC, O_OR, O_INC, O_XOR, O_AND, O_CP,
@@ -120,7 +91,7 @@ public:
     zxCPU();
 
     // выполнение операции
-    int step(int prefix, int offset);
+    int step();
 
     // запрос на маскируемое прерывание
     int signalINT();
@@ -138,6 +109,9 @@ public:
     // адреса регистров
     static uint8_t*  regs[36];
 
+    // ПС при старте декодирования инструкции
+    static uint16_t PC;
+
 protected:
 
     inline void incrementR() {
@@ -148,7 +122,7 @@ protected:
     int call(uint16_t address);
 
     // инициализация операнда
-    uint8_t * initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, uint8_t& v8, int* ticks);
+    uint8_t* initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, uint8_t& v8);
 
     // читаем 16 бит из PC
     inline uint16_t rm16PC() { return (rm8PC() | rm8PC() << 8); }
@@ -163,7 +137,7 @@ protected:
     }
 
     // пишем в память 8 бит
-    void wm8(uint16_t address, uint8_t val) { ::wm8(realPtr(address), val); }
+    void wm8(uint16_t address, uint8_t val);
 
     // проверить на наличие флага
     bool isFlag(uint8_t num) { return ((*_F & flags_cond[num]) ? 1 : 0) == (num & 1); }
@@ -181,7 +155,10 @@ protected:
     uint8_t rotate(uint8_t value, bool isCB);
 
     // флаги
-    uint8_t fc, fn, fpv, f3, fh, f5, fz, fs;
+    uint8_t fc, fn, fpv, fx, fh, fy, fz, fs;
+
+    // такты
+    int ticks;
 
     // спец. флаги
     uint8_t flags;
@@ -191,8 +168,6 @@ protected:
 
     // значение флага FPV
     bool resetPV;
-
-    zxFile f;
 
     // значение FC для установки
     uint16_t  _fc;

@@ -14,8 +14,15 @@
         <item name="android:maxLines">1</item>
     </style>
 
+    <style name="ActionBarStyle" parent="android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:background">@color/actionBarBackground</item>
+    </style>
+
     <style name="ZxStyle" parent="StdTheme">
+        <item name="android:textColor">@color/actionBarText</item>
+        <item name="android:itemBackground">@color/actionBarBackground</item>
+        <item name="android:actionBarStyle">@style/ActionBarStyle</item>
         <item name="android:actionButtonStyle">@style/ActionButtonStyle</item>
         <item name="android:actionOverflowButtonStyle">@style/ActionButtonOverflow</item>
-</style>
+    </style>
 </resources>

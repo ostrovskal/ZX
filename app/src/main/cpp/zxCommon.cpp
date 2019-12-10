@@ -1,3 +1,4 @@
+#include <alloca.h>
 //
 // Created by Сергей on 21.11.2019.
 //
@@ -9,12 +10,15 @@ zxALU*      ALU         = nullptr;
 uint8_t*    opts        = nullptr;
 uint8_t*    labels      = nullptr;
 
+// массив точек останова
+BREAK_POINT bps[8];
+
 std::string FOLDER_FILES= "data/data/ru.ostrovskal.zx/files/";
 std::string FOLDER_CACHE= "data/data/ru.ostrovskal.zx/cache/";
 
-static uint8_t sym[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-static uint8_t tbl[] = { 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15, 14, 14, 14, 14, 14, 14, 12, 12 };
-static uint8_t valid[] = { 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+static uint8_t sym[] =  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+static uint8_t tbl[] =  { 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15, 14, 14, 14, 14, 14, 14, 12, 12 };
+static uint8_t valid[] ={ 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   1,  2,  3,  4,  5,  6,  7,  8,  9 };
 
 void info(const char* msg, ...) {
     va_list varArgs;
@@ -108,7 +112,7 @@ uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* blk, bool sign, uint32_
     return dst;
 }
 
-static void itos(int n, uint8_t** buffer) {
+static void itos(int n, char** buffer) {
     auto buf = *buffer;
     uint8_t s = 0;
     if(n < 0) { s = '-'; n = -n; }
@@ -119,10 +123,12 @@ static void itos(int n, uint8_t** buffer) {
 
 // преобразовать число в строку, в зависимости от системы счисления
 char* ssh_ntos(void* v, int r, char** end) {
+    static char buffer[32];
     static uint8_t tbl[] = { 0, 10, 15, 4, 1, 1, 7, 3, 8, 10, 4, 10, 0, 0 };
-    auto buf = &TMP_BUF[256]; *buf = 0;
-    if(end) *end = (char*)buf;
-    uint8_t* st; uint8_t c(tbl[r * 2 + 0]), s(tbl[r * 2 + 1]);
+    auto buf = &buffer[16]; *buf = 0;
+    if(end) *end = buf;
+    char* st;
+    uint8_t c(tbl[r * 2 + 0]), s(tbl[r * 2 + 1]);
     int n; double d(0);
     uint8_t sgn = 0;
     switch(r) {
@@ -141,12 +147,12 @@ char* ssh_ntos(void* v, int r, char** end) {
             // отбросим дробную часть
             n = (int)d;
             itos(n, &buf);
-            st = buf; buf = &TMP_BUF[256]; *buf++ = '.';
+            st = buf; buf = &buffer[16]; *buf++ = '.';
             for(int i = 0 ; i < c; i++) {
                 d -= n; d *= 10.0; n = (uint32_t)d;
                 *buf++ = (uint8_t)(n + '0');
             }
-            if(end) *end = (char*)buf;
+            if(end) *end = buf;
             *buf = 0; buf = st;
             break;
         case RADIX_BOL:
@@ -154,16 +160,17 @@ char* ssh_ntos(void* v, int r, char** end) {
             break;
         default: debug("Неизвестная система счисления! %i", r); break;
     }
-    return (char*)buf;
+    return buf;
 }
 
 static int stoi(const char** s, uint8_t order, uint8_t msk) {
     const char* str = *s, *end = str - 1;
     int n(0), nn(1);
     // поиск конца
-    while(*++end) {
-        auto ch = *end & -33;
-        if (ch > 'F') break;
+    char ch;
+    while((ch = *++end)) {
+        if(ch >='a') ch -= 32;
+        if(ch < '0' && ch > 'F') break;
         if (!(tbl[ch & 31] & msk)) break;
     }
     *s = end;
@@ -223,7 +230,7 @@ void* ssh_ston(const char* s, int r, const char** end) {
     return &res;
 }
 
-char** ssh_split(const char* str, const char* delim, int* count) {
+char __unused ** ssh_split(const char* str, const char* delim, int* count) {
     static char* tmp[32];
     int c = 0;
     auto ld = strlen(delim);
@@ -245,12 +252,15 @@ static const char* fmtTypes[]	= { "3X", "2X", "3X ", "2X ",
                                      "5[X]", "4[#X]",
                                      "3{X}", "2{#X}",
                                      "5{X}", "4{#X}",
-                                     "0X", "0#X"};
+                                     "0X", "0#X",
+                                     "0X", "0X"
+};
 
 char* ssh_fmtValue(int value, int offs, bool hex) {
+    static char buffer[32];
     char ch;
     char* end = nullptr;
-    auto buf = (char*)&TMP_BUF[1024], tmp = buf;
+    auto tmp = &buffer[0];
     auto rdx = offs + (hex ? opts[ZX_PROP_SHOW_HEX] : 0);
     auto res = ssh_ntos(&value, rdx & 1, &end);
     auto spec = fmtTypes[rdx];
@@ -268,5 +278,5 @@ char* ssh_fmtValue(int value, int offs, bool hex) {
         } else *tmp++ = ch;
     }
     *tmp = 0;
-    return buf;
+    return buffer;
 }

@@ -61,14 +61,14 @@
         <item>snd_save,false</item>
         <item>skip_frames,false</item>
         <item>execute,true</item>
-        <item>hex,false</item>
         <item>debugger,false</item>
+        <item>tracer,false</item>
+        <item>hex,false</item>
+        <item>debugger_address,true</item>
+        <item>debugger_code,false</item>
+        <item>debugger_value,false</item>
         <item>#errors,false</item>
 
-        <item>unusedBool,false</item>
-        <item>unusedBool,false</item>
-        <item>unusedBool,false</item>
-        <item>unusedBool,false</item>
         <item>unusedBool,false</item>
         <item>unusedBool1,true</item>
 
@@ -81,8 +81,8 @@
         <item>snd_vol_ay,100</item>
         <item>blink_speed,4</item>
         <item>cpu_speed,10</item>
-        <item>key_size,5</item>
-        <item>joy_size,3</item>
+        <item>key_size,4</item>
+        <item>joy_size,2</item>
 
         <item>unusedByte,0</item>
         <item>unusedByte,0</item>
@@ -117,6 +117,15 @@
         <item>unusedInt,0</item>
         <item>unusedInt,0</item>
         <item>unusedInt1,1</item>
+
+        <item>#bp0,0#0#0#0#0#0</item>
+        <item>#bp1,0#0#0#0#0#0</item>
+        <item>#bp2,0#0#0#0#0#0</item>
+        <item>#bp3,0#0#0#0#0#0</item>
+        <item>#bp4,0#0#0#0#0#0</item>
+        <item>#bp5,0#0#0#0#0#0</item>
+        <item>#bp6,0#0#0#0#0#0</item>
+        <item>#bp7,0#0#0#0#0#0</item>
 
         <item>#mru1,Empty</item>
         <item>#mru2,Empty</item>

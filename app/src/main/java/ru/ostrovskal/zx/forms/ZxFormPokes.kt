@@ -1,6 +1,5 @@
 package ru.ostrovskal.zx.forms
 
-import android.os.Message
 import android.view.LayoutInflater
 import ru.ostrovskal.sshstd.Common.BTN_OK
 import ru.ostrovskal.sshstd.Common.style_form
@@ -58,9 +57,11 @@ class ZxFormPokes : Form() {
             }
         }
     }
+/*
 
     override fun handleMessage(msg: Message): Boolean {
         wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
         return super.handleMessage(msg)
     }
+*/
 }

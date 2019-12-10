@@ -10,7 +10,9 @@
     <dimen name="settingsWidth">520dp</dimen>
     <dimen name="settingsHeight">280dp</dimen>
     <dimen name="paddingHorzDebEdit">3dp</dimen>
-    <dimen name="text_deb">6sp</dimen>
-    <dimen name="deb_list">8sp</dimen>
-    <dimen name="text_flags">8sp</dimen>
+    <dimen name="debuggerTextFlags">8sp</dimen>
+    <dimen name="debuggerTextDef">10sp</dimen>
+    <dimen name="textSettings">14sp</dimen>
+    <dimen name="settingsTextColor">14sp</dimen>
+    <dimen name="actionBar">25dp</dimen>
 </resources>

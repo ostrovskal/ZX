@@ -13,9 +13,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.ostrovskal.sshstd.Common.*
 import ru.ostrovskal.sshstd.DropBox
+import ru.ostrovskal.sshstd.STORAGE
 import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
+import ru.ostrovskal.sshstd.forms.FORM_PROGRESS_DOWNLOAD
+import ru.ostrovskal.sshstd.forms.FORM_PROGRESS_WAIT
 import ru.ostrovskal.sshstd.forms.Form
-import ru.ostrovskal.sshstd.forms.FormMessage
 import ru.ostrovskal.sshstd.forms.FormProgress
 import ru.ostrovskal.sshstd.objects.Theme
 import ru.ostrovskal.sshstd.ui.*
@@ -39,40 +41,41 @@ class ZxFormCloud : Form() {
     private var thread: Thread? = null
 
     // Количество выбранных файлов
-    private var checkedCount    = 0
+    @STORAGE
+    private var checkedCount                = 0
 
     // Список уже загруженных
     private var filesLocal      = File(folderFiles).list()?.run { filter { it.validFileExtensions(validExt) } } ?: listOf()
 
     // Список в облаке
-    private var filesCloud      = mutableListOf<DropBox.FileInfo>()
+    private var filesCloud= mutableListOf<DropBox.FileInfo>()
 
     // Выбранные
-    private var checked         = mutableListOf(false)
+    private var checked                     = BooleanArray(0) { false }
 
     // DropBox
-    private val dbx             by lazy { DropBox("zx", getString(R.string.dropbox_token)) }
+    private val dbx                by lazy { DropBox("zx", getString(R.string.dropbox_token)) }
 
     override fun handleMessage(msg: Message): Boolean {
         if(msg.action == ZxWnd.ZxMessages.ACT_DROPBOX_LIST_FILES_FINISH.ordinal) {
             if(msg.arg1 == BTN_NO) {
-                FormMessage().show(wnd, intArrayOf(R.string.app_name, R.string.connectError, R.integer.I_YES, 0, 0, 0, 0))
+                ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, R.string.connectError, R.integer.I_YES, 0, 0, 0, 0))
             } else {
                 root.byIdx<Ribbon>(3).adapter = LoadingAdapter(wnd, filesCloud)
             }
         } else if(msg.action == ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal)
             footer(BTN_OK, 0)
-        else wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
         return super.handleMessage(msg)
     }
 
     override fun initContent(content: ViewGroup) {
+        removeForm("progress")
         wnd.launch {
-            FormProgress().show(wnd, R.string.connectCloud, false).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_LIST_FILES_FINISH.ordinal) {
+            FormProgress().show(wnd, R.string.connectCloud, FORM_PROGRESS_WAIT).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_LIST_FILES_FINISH.ordinal) {
                 val result = withContext(Dispatchers.IO) {dbx.folders("/ZX") }
                 result?.filter { it.name.validFileExtensions(validExt) && !filesLocal.contains(it.name) }?.run {
                     filesCloud = sortedBy { it.name }.toMutableList()
-                    checked = MutableList(filesCloud.size) { false }
+                    checked = BooleanArray(filesCloud.size) { false }
                     BTN_OK
                 } ?: BTN_NO
             }
@@ -82,7 +85,7 @@ class ZxFormCloud : Form() {
     private fun downloadCheckedFiles() {
         // загрузить отмеченные файлы из облака
         wnd.launch {
-            FormProgress().show(wnd, R.string.downloadCloud, true).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal) { fp ->
+            FormProgress().show(wnd, R.string.downloadCloud, FORM_PROGRESS_DOWNLOAD).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal) { fp ->
                 delay(500L)
                 fp.maximum = checkedCount
                 var idx = 1
@@ -107,7 +110,7 @@ class ZxFormCloud : Form() {
                     backgroundSet(style_form)
                     button {
                         isEnabled = false
-                        iconResource = R.integer.I_OPEN
+                        iconResource = R.integer.I_DOWNLOAD
                         setOnClickListener { downloadCheckedFiles() }
                     }.lps(10, 4, 5, 3)
                     button {

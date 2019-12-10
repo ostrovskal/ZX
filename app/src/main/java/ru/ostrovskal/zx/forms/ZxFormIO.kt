@@ -2,7 +2,6 @@
 
 package ru.ostrovskal.zx.forms
 
-import android.os.Message
 import android.text.InputType
 import android.view.LayoutInflater
 import ru.ostrovskal.sshstd.Common.*
@@ -60,7 +59,7 @@ class ZxFormIO: Form() {
                     }.lps(10, 1, 5, 3)
                     button {
                         isEnabled = false
-                        iconResource = R.integer.I_DISKETTE
+                        iconResource = R.integer.I_SAVE
                         setOnClickListener {
                             footer(BTN_OK, 0)
                             wnd.hand?.send(RECEPIENT_SURFACE_BG, ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal, o = root.byId<Edit>(R.id.editName)?.text)
@@ -102,10 +101,5 @@ class ZxFormIO: Form() {
     /** Класс, реализующий элемент списка файлов */
     private class ItemIO : UiComponent() {
         override fun createView(ui: UiCtx) = with(ui) { text(R.string.null_text, style_item_io) }
-    }
-
-    override fun handleMessage(msg: Message): Boolean {
-        wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
-        return super.handleMessage(msg)
     }
 }

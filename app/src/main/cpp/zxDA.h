@@ -2,34 +2,32 @@
 // Created by Сергей on 03.12.2019.
 //
 
+#pragma once
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-#pragma once
 
 enum DA_INSTRUCTION_FLAGS {
     DA_PC   = 1,   // адрес
     DA_CODE = 2,   // машинные коды
-    DA_TICKS= 4,   // такты
+    DA_REGS = 4,   // такты
     DA_PN   = 8,   // содержимое адреса
-    DA_PNN  = 16   // вычисляемое значение
+    DA_PNN  = 16,  // вычисляемое значение
+    DA_LABEL= 32   // метки
 };
 
 class zxDA {
 public:
-    struct DA_LABEL {
-        int address;
-        const char* label;
-    };
+    // парсер инструкции
+    static size_t cmdParser(uint16_t* pc, uint16_t* buffer, bool regsSave);
 
-    zxDA() {}
-
-    // формирование дизассемблерной строки инструкции
-    static char* daMake(uint16_t* pc, int flags, int bp, int prefix = 0, int offset = 0, int ticks = 0);
-
+    // формирование распарсенной дизассемблерной строки инструкции
+    static const char* cmdToString(uint16_t* buffer, char* daResult, int flags, int bp);
 protected:
     // получение информации об операндах инструкции
-    static int getDaOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16 = nullptr, uint8_t* v8 = nullptr,
-                     uint16_t *pc = nullptr, int* ticks = nullptr, uint8_t* offset = nullptr);
+    static int getOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16 = nullptr, uint16_t *pc = nullptr, int* ticks = nullptr, uint8_t* offset = nullptr);
+
+    static zxCPU::MNEMONIC* skipPrefix(uint16_t* pc, uint16_t* code, int* pref, int* prefix, int* ticks, uint16_t* v, uint8_t* offs);
 
     static const char* searchLabel(int address);
 };

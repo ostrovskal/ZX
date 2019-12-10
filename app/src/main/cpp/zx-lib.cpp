@@ -39,6 +39,10 @@ extern "C" {
 
     int zxExecute(JNIEnv*, jclass) {
         ALU->execute();
+        if(*ALU->_STATE & ZX_BP) {
+            modifySTATE(0, ZX_BP);
+            return 2;
+        }
         return ALU->updateKeys(0, 0);
     }
 
@@ -75,9 +79,8 @@ extern "C" {
     }
 
     jboolean zxIO(JNIEnv* env, jclass, jstring nm, jboolean load) {
-        info("zxIO");
         auto name = env->GetStringUTFChars(nm, nullptr);
-        info("zxIO1 name: %s load: %i", name, load);
+        info("zxIO name: %s load: %i", name, load);
         auto type = parseExtension(name);
         auto ret = (jboolean)(load ? ALU->load(name, type) : ALU->save(name, type));
         if(!ret) debug("Не удалось загрузить/записать <%s>!", name);
@@ -85,8 +88,9 @@ extern "C" {
         return ret;
     }
 
-    void zxInit(JNIEnv *env, jobject, jobject asset, jboolean errors) {
-        info("zxInit");
+    void zxInit(JNIEnv *env, jobject, jobject asset, jstring name, jboolean errors) {
+        auto nameSave = env->GetStringUTFChars(name, nullptr);
+        info("zxInit name: %s error: %i", nameSave, errors);
         TMP_BUF = new uint8_t[ZX_SIZE_TMP_BUF];
         ALU = new zxALU();
 
@@ -107,7 +111,7 @@ extern "C" {
         copyAFile(amgr, "labels.bin", nullptr, &labels);
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
-        if(!errors) ALU->load(ZX_AUTO_SAVE, ZX_CMD_IO_STATE);
+        if(!errors) ALU->load(nameSave, ZX_CMD_IO_STATE);
         debug("zxInit finish");
     }
 
@@ -151,45 +155,64 @@ extern "C" {
     }
 
     jstring zxSetProp(JNIEnv* env, jclass, jint idx) {
-//        debug("zxSetProp idx: %i", idx);
-        const char* ret = nullptr;
+        debug("zxSetProp idx: %i", idx);
+        char* ret = nullptr;
         idx += ZX_PROP_FIRST_LAUNCH;
         uint32_t n = opts[idx];
         if(idx < ZX_PROP_ACTIVE_DISK) ret = ssh_ntos(&n, RADIX_BOL);
         else if(idx < ZX_PROP_COLORS) ret = ssh_ntos(&n, RADIX_DEC);
-        else if(idx < (ZX_PROP_COLORS + 23)) {
+        else if(idx < (ZX_PROP_COLORS + 22)) {
             n = *(uint32_t*)(opts + (ZX_PROP_COLORS + (idx - ZX_PROP_COLORS) * 4));
             ret = ssh_ntos(&n, RADIX_HEX);
+        } else if(idx < (ZX_PROP_BPS + 8)) {
+            auto bp = &bps[idx - ZX_PROP_BPS];
+            auto tmp = ret = (char*)&TMP_BUF[65536];
+            n = bp->address1; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX)); *tmp++ = '#';
+            n = bp->address2; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX)); *tmp++ = '#';
+            n = bp->msk; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX)); *tmp++ = '#';
+            n = bp->val; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX)); *tmp++ = '#';
+            n = bp->ops; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX)); *tmp++ = '#';
+            n = bp->flg; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX));
         }
-//        debug("zxSetProp2 finish res: %s", ret);
+        debug("zxSetProp2 finish res: %s", ret);
         return env->NewStringUTF(ret);
     }
 
     void zxGetProp(JNIEnv* env, jclass, jstring key, jint idx) {
         auto kv = env->GetStringUTFChars(key, nullptr);
-//        debug("zxGetProp kv: %s idx: %i", kv, idx);
+        debug("zxGetProp kv: %s idx: %i", kv, idx);
         if(kv) {
             idx += ZX_PROP_FIRST_LAUNCH;
             if (idx < ZX_PROP_ACTIVE_DISK) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_BOL);
             else if (idx < ZX_PROP_COLORS) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_DEC);
-            else if (idx < (ZX_PROP_COLORS + 23))
+            else if (idx < (ZX_PROP_COLORS + 22))
                 *(uint32_t *) (opts + (ZX_PROP_COLORS + (idx - ZX_PROP_COLORS) * 4)) = *(uint32_t *) ssh_ston(kv, RADIX_HEX);
-//            debug("zxGetProp finish");
+            else if(idx < (ZX_PROP_BPS + 8)) {
+                auto bp = &bps[idx - ZX_PROP_BPS];
+                bp->address1 = *(uint16_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
+                bp->address2 = *(uint16_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
+                bp->msk = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
+                bp->val = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
+                bp->ops = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
+                bp->flg = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv);
+            }
+            debug("zxGetProp finish");
         }
     }
 
     long zxInt(JNIEnv*, jclass, jint idx, jboolean read, jint value) {
         if(!read) {
-//            debug("zxIntSave idx: %i value: %i", idx, value);
+            debug("zxIntSave idx: %i value: %i", idx, value);
             *(uint32_t*)(opts + idx) = (uint32_t)value;
         }
         auto ret = (long)(*(uint32_t*)(opts + idx));
-//        debug("zxIntRead idx: %i value: %i", idx, ret);
+        debug("zxIntRead idx: %i value: %i", idx, ret);
         return ret;
     }
 
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
-//        debug("zxCmd cmd: %i", cmd);
+        debug("zxCmd cmd: %i", cmd);
+        int ret(0);
         switch(cmd) {
             default:                debug("Неизвестная комманда в zxCmd(%i)", cmd); break;
             case ZX_CMD_POKE:       ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
@@ -199,21 +222,33 @@ extern "C" {
             case ZX_CMD_PROPS:      ALU->updateProps(); break;
             case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], *ALU->_MODEL, true); break;
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
+            case ZX_CMD_TRACER:     ALU->startTracer(); break;
+            case ZX_CMD_QUICK_BP:   ALU->quickBP((uint16_t)arg1); break;
+            case ZX_CMD_TRACE_IN:   ret = ALU->traceIn(); break;
+            case ZX_CMD_TRACE_OUT:  ret = ALU->traceOut(); break;
         }
-//        debug("zxCmd finish");
-        return 0;
+        debug("zxCmd finish");
+        return ret;
     }
 
     jint zxStringToNumber(JNIEnv* env, jclass, jstring value, jint radix) {
         return *(jint*)ssh_ston(env->GetStringUTFChars(value, nullptr), (int)radix);
     }
 
+    jstring zxFormatNumber(JNIEnv* env, jclass, jint value, jint radix, jboolean force) {
+        auto ret = ssh_fmtValue(value, radix, force);
+        debug("zxFormatNumber value: %i type: %i ret: <%s>", value, radix, ret);
+        return env->NewStringUTF(ret);
+    }
+
     jstring zxNumberToString(JNIEnv* env, jclass, jint value, jint radix) {
-        return env->NewStringUTF(ssh_ntos(&value, radix));
+        auto ret = ssh_ntos(&value, radix);
+        debug("zxNumberToString value: %i type: %i ret: <%s>", value, radix, ret);
+        return env->NewStringUTF(ret);
     }
 
     static JNINativeMethod zxMethods[] = {
-            { "zxInit", "(Landroid/content/res/AssetManager;Z)V", (void*)&zxInit },
+            { "zxInit", "(Landroid/content/res/AssetManager;Ljava/lang/String;Z)V", (void*)&zxInit },
             { "zxShutdown", "()V", (void*)&zxShutdown },
             { "zxProps", "([B)V", (void*)&zxProps },
             { "zxGetProp", "(Ljava/lang/String;I)V", (void*)&zxGetProp },
@@ -224,6 +259,7 @@ extern "C" {
             { "zxIO", "(Ljava/lang/String;Z)Z", (void*)&zxIO },
             { "zxPresets", "(I)Ljava/lang/String;", (void*)&zxPresets },
             { "zxInt", "(IZI)J", (void*)&zxInt },
+            { "zxFormatNumber", "(IIZ)Ljava/lang/String;", (void*)&zxFormatNumber },
             { "zxSaveState", "()[B", (void*)&zxSaveState },
             { "zxLoadState", "([B)V", (void*)&zxLoadState },
             { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },

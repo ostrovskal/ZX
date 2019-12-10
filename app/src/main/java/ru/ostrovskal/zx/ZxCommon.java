@@ -14,12 +14,29 @@ public final class ZxCommon {
     private ZxCommon() { }
 
     public static final String ZX_AUTO_SAVE         = "auto_save.zx";
+    public static final String ZX_TMP_SAVE          = "tmp_save.zx";
+
+    // DEBUGGER ACTION
+    public final static int DEBUGGER_ACT_UNDO       = 0;
+    public final static int DEBUGGER_ACT_BP         = 1;
+    public final static int DEBUGGER_ACT_REDO       = 2;
+    public final static int DEBUGGER_ACT_BP_LIST    = 3;
+    public final static int DEBUGGER_ACT_ACTION     = 4;
+    public final static int DEBUGGER_ACT_PREV       = 5;
+    public final static int DEBUGGER_ACT_MODE       = 6;
+    public final static int DEBUGGER_ACT_NEXT       = 7;
+    public final static int DEBUGGER_ACT_TRACE_IN   = 8;
+    public final static int DEBUGGER_ACT_TRACE_OUT  = 9;
+    public final static int DEBUGGER_ACT_SET_PC     = 10;
+    public final static int DEBUGGER_ACT_SET_SP     = 11;
+    public final static int DEBUGGER_ACT_SET_ASM    = 12;
 
     // UPDATE DEBUGGER
     public final static int ZX_PC                   = 1;
     public final static int ZX_REG                  = 2;
     public final static int ZX_SP                   = 4;
     public final static int ZX_SEL                  = 8;
+    public final static int ZX_ALL                  = ZX_PC | ZX_REG | ZX_SP | ZX_SEL;
 
     // REGISTERS
     public final static int ZX_CPU_F                = 6;
@@ -60,10 +77,14 @@ public final class ZxCommon {
     public final static int MENU_PROPS_TURBO        = 1014;
     public final static int MENU_PROPS_EXECUTE      = 1015;
     public final static int MENU_PROPS_DEBUGGER     = 1016;
-    public final static int MENU_PROPS_HEX_DEC      = 1017;
-
-    public final static int MENU_MRU                = 1018;
-    public final static int MENU_POKES              = 1019;
+    public final static int MENU_PROPS_TRACER       = 1017;
+    public final static int MENU_DEBUGGER_HEX_DEC   = 1018;
+    public final static int MENU_DEBUGGER_ADDRESS   = 1019;
+    public final static int MENU_DEBUGGER_CODE      = 1020;
+    public final static int MENU_DEBUGGER_VALUE     = 1021;
+    public final static int MENU_MRU                = 1022;
+    public final static int MENU_POKES              = 1023;
+    public final static int MENU_DEBUGGER1          = 1024;
 
     public final static int MENU_DISK_A             = 1200;
     public final static int MENU_DISK_B             = 1201;
@@ -97,14 +118,15 @@ public final class ZxCommon {
     // Разделяемые свойства
 
     // 0. Байтовые значения, вычисляемые во время работы программы
-    public static final int ZX_PROP_JOY_TYPE        = 80; // Текущий тип джойстика
-    public static final int ZX_PROP_JOY_KEYS        = 81; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
-    public static final int ZX_PROP_JOY_CROSS_VALUE = 89; // Нажатые кнопки джойстика-крестовины
-    public static final int ZX_PROP_JOY_ACTION_VALUE= 90; // Нажатые кнопки джойстика-управления
-    public static final int ZX_PROP_KEY_CURSOR_MODE = 91; // Режим курсора (E, G, L, K т.п.)
-    public static final int ZX_PROP_KEY_MODE        = 92; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
-    public static final int ZX_PROP_VALUES_SEMI_ROW = 93; // Значения в полурядах клавиатуры (8) 93 - 100
-    public static final int ZX_PROP_VALUES_KEMPSTON = 101; // Значение для кемпстон-джойстика
+    public static final int ZX_PROP_JOY_TYPE        = 68; // Текущий тип джойстика
+    public static final int ZX_PROP_JOY_KEYS        = 69; // Привазанные к джойстику коды кнопок клавиатуры (8) 69 - 76
+    public static final int ZX_PROP_JOY_CROSS_VALUE = 77; // Нажатые кнопки джойстика-крестовины
+    public static final int ZX_PROP_JOY_ACTION_VALUE= 78; // Нажатые кнопки джойстика-управления
+    public static final int ZX_PROP_KEY_CURSOR_MODE = 79; // Режим курсора (E, G, L, K т.п.)
+//    public static final int ZX_PROP_KEY_MODE        = 80; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
+//    public static final int ZX_PROP_VALUES_SEMI_ROW = 81; // Значения в полурядах клавиатуры (8) 81 - 88
+//    public static final int ZX_PROP_VALUES_KEMPSTON = 89; // Значение для кемпстон-джойстика
+    public static final int ZX_PROP_VALUES_BUTTON     = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 
     // 1. Булевы значения
     public static final int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
@@ -120,9 +142,13 @@ public final class ZxCommon {
     public static final int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
     public static final int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображений
     public static final int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
-    public static final int ZX_PROP_SHOW_HEX        = 141; // Признак 16-тиричного вывода
-    public static final int ZX_PROP_SHOW_DEBUGGER   = 142; // Признак режима отладчика
-    public static final int ZX_PROP_EXIT_ERROR      = 143; // Признак завершения с ошибкой(не загружать состояние)
+    public static final int ZX_PROP_SHOW_DEBUGGER   = 141; // Признак режима отладчика
+    public static final int ZX_PROP_TRACER          = 142; // Признак записи трассировки
+    public static final int ZX_PROP_SHOW_HEX        = 143; // Признак 16-тиричного вывода
+    public static final int ZX_PROP_SHOW_ADDRESS    = 144; // Признак отображения адреса инструции
+    public static final int ZX_PROP_SHOW_CODE       = 145; // Признак режима кода инструкции
+    public static final int ZX_PROP_SHOW_CODE_VALUE = 146; // Признак режима содержимого кода
+//    public static final int ZX_PROP_EXIT_ERROR    = 147; // Признак завершения с ошибкой(не загружать состояние)
 
     // 2. Байтовые значения
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -140,54 +166,66 @@ public final class ZxCommon {
     // 3. Целые значения
     public static final int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
 
-    public static final int ZX_PROPS_COUNT          = 267; // Размер буфера свойств
-    public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_COLORS - ZX_PROP_FIRST_LAUNCH) +  22; // Количество свойств
+    // 4. Значение структур
+    public static final int ZX_PROP_BPS             = 192; // значения точек останова (8 * 8) 258 - 321
+
+    public static final int ZX_PROPS_COUNT          = 410; // Размер буфера свойств
+    public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_BPS - ZX_PROP_FIRST_LAUNCH) + 8; // Количество свойств
 
     // Модели памяти
+/*
     public static final int MODEL_48KK              = 0; // Компаньон 2.02 48К
     public static final int MODEL_48K               = 1; // Синклер 48К
     public static final int MODEL_128K              = 2; // Синклер 128К
     public static final int MODEL_PENTAGON          = 3; // Пентагон 128К
     public static final int MODEL_SCORPION          = 4; // Скорпион 256К
+*/
 
     // Варианты форматирования чисел
     public static final int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
     public static final int ZX_FV_CODE				= 2; // "3X ", "2X "
     public static final int ZX_FV_PADDR16			= 4; // "5(X)", "4(#X)"
     public static final int ZX_FV_PADDR8			= 6; // "3(X)", "2(#X)"
-    public static final int ZX_FV_P_OFFS			= 8; // "3+X)", "2+#X)"
-    public static final int ZX_FV_M_OFFS			= 10;// "3-X)", "2-#X)"
-    public static final int ZX_FV_NUM16				= 12;// "5X", "4X"
-    public static final int ZX_FV_OPS16				= 14;// "5X", "4#X"
-    public static final int ZX_FV_OPS8				= 16;// "3X", "2#X"
-    public static final int ZX_FV_CVAL				= 18;// "5[X]", "4[#X]"
-    public static final int ZX_FV_PVAL				= 20;// "3{X}", "2{#X}"
+    public static final int ZX_FV_OFFS			    = 8; // "3+-X)", "2+-#X)"
+    public static final int ZX_FV_NUM16				= 10;// "5X", "4X"
+    public static final int ZX_FV_OPS16				= 12;// "5X", "4#X"
+    public static final int ZX_FV_OPS8				= 14;// "3X", "2#X"
+    public static final int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
+    public static final int ZX_FV_PVAL8				= 18;// "3{X}", "2{#X}"
+    public static final int ZX_FV_PVAL16			= 20;// "3{X}", "2{#X}"
     public static final int ZX_FV_NUMBER			= 22;// "0X", "0X"
+    public static final int ZX_FV_SIMPLE			= 24;// "0X", "0X"
 
     // Режимы курсора
     public static final byte MODE_K                 = 0;
     public static final byte MODE_L                 = 1;
     public static final byte MODE_C                 = 2;
     public static final byte MODE_E                 = 3;
-    public static final byte MODE_E1                = 4;
-    public static final byte MODE_E2                = 5;
+    public static final byte MODE_SK                = 4;
+    public static final byte MODE_SE                = 5;
     public static final byte MODE_CL                = 6;
     public static final byte MODE_CK                = 7;
     public static final byte MODE_G                 = 8;
     public static final byte MODE_G1                = 9;
+    public static final byte MODE_CE                = 10;
 
     // Команды
-    public static final int ZX_CMD_MODEL            = 0; // Установка модели памяти
-    public static final int ZX_CMD_PROPS            = 1; // Установка свойств
-    public static final int ZX_CMD_RESET            = 2; // Сброс
-    public static final int ZX_CMD_UPDATE_KEY       = 3; // Обковление кнопок
-    public static final int ZX_CMD_PRESETS          = 4; // Установка/получение пресетов джойстика
-    public static final int ZX_CMD_POKE             = 5; // Установка POKE
-    public static final int ZX_CMD_DIAG             = 6; // Диагностика
-    public static final int ZX_CMD_PRESETS_SAVE     = 7; // Сохранить параметры джойстика
-    public static final int ZX_CMD_PRESETS_LOAD     = 8; // Загрузить параметры джойстика
-    public static final int ZX_CMD_PRESETS_LIST     = 9; // Получить список пресетов
-    public static final int ZX_CMD_PRESETS_NAME     = 10;// Получить имя программы
+    public static final int ZX_CMD_MODEL            = 0;  // Установка модели памяти
+    public static final int ZX_CMD_PROPS            = 1;  // Установка свойств
+    public static final int ZX_CMD_RESET            = 2;  // Сброс
+    public static final int ZX_CMD_UPDATE_KEY       = 3;  // Обковление кнопок
+    public static final int ZX_CMD_PRESETS          = 4;  // Установка/получение пресетов джойстика
+    public static final int ZX_CMD_POKE             = 5;  // Установка POKE
+//    public static final int ZX_CMD_DIAG             = 6;// Диагностика
+    public static final int ZX_CMD_PRESETS_SAVE     = 7;  // Сохранить параметры джойстика
+    public static final int ZX_CMD_PRESETS_LOAD     = 8;  // Загрузить параметры джойстика
+    public static final int ZX_CMD_PRESETS_LIST     = 9;  // Получить список пресетов
+    public static final int ZX_CMD_PRESETS_NAME     = 10; // Получить имя программы
+//    public static final int ZX_CMD_PRESETS_SET    = 11; // Установить имя программы
+public static final int ZX_CMD_TRACER               = 12; // Запуск трасировщика
+    public static final int ZX_CMD_QUICK_BP         = 13; // Быстрая установка точки останова
+    public static final int ZX_CMD_TRACE_IN         = 14; // Трассировка с заходом
+    public static final int ZX_CMD_TRACE_OUT        = 15; // Трассировка без захода
 
     // Тема по умолчанию
     public static final int[] themeDef = {
@@ -217,8 +255,8 @@ public final class ZxCommon {
             ATTR_SSH_COLOR_MESSAGE, 0xd2fa64 | COLOR,
             ATTR_SSH_COLOR_WINDOW, 0x030303 | COLOR,
             ATTR_SSH_COLOR_WIRED, 0xffffff | COLOR,
-            ATTR_SSH_ICON_VERT, 9,
-            ATTR_SSH_ICON_HORZ, 8,
+            ATTR_SSH_ICON_VERT, 10,
+            ATTR_SSH_ICON_HORZ, 10,
     };
 
     /** Стиль кнопки клавиатуры */
@@ -236,6 +274,7 @@ public final class ZxCommon {
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_SSH_HORZ, 2,
             ATTR_SSH_TILE, 1,
+            ATTR_MAX_LINES, 1,
             ATTR_SSH_GRAVITY, TILE_GRAVITY_CENTER | TILE_GRAVITY_BACKGROUND,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_BUTTONS | THEME,
             ATTR_SSH_STATES, TILE_STATE_PRESS
@@ -342,6 +381,7 @@ public final class ZxCommon {
     };
 
     public static final int[] style_tab_settings = {
+            ATTR_SSH_SCALE_ICON, 49152,
             ATTR_SSH_VERT, 9,
             ATTR_SSH_HORZ, 8,
             ATTR_CLICKABLE, 1,
@@ -359,6 +399,7 @@ public final class ZxCommon {
 
     public static final int[] style_text_settings = {
             ATTR_SHADOW_TEXT, R.string.shadow_text,
+            ATTR_SIZE, R.dimen.textSettings,
             ATTR_GRAVITY, Gravity.CENTER_VERTICAL,
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_FONT, R.string.font_normal
@@ -367,6 +408,7 @@ public final class ZxCommon {
     public static final int[] style_color_text_settings = {
             ATTR_SHADOW_TEXT, R.string.shadow_text,
             ATTR_FONT, R.string.font_small,
+            ATTR_SIZE, R.dimen.settingsTextColor,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_COLOR_DEFAULT, 0xffffff | COLOR
     };
@@ -378,6 +420,7 @@ public final class ZxCommon {
             ATTR_PADDING_HORZ, R.dimen.paddingHorzSelectItem,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_FONT, R.string.font_small,
+            ATTR_SIZE, R.dimen.large,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_SPINNER | THEME,
             ATTR_SSH_VERT, 3,
             ATTR_SSH_TILE, 0
@@ -389,6 +432,7 @@ public final class ZxCommon {
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_FONT, R.string.font_small,
+            ATTR_SIZE, R.dimen.normal,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_SPINNER | THEME,
             ATTR_MIN_HEIGHT, R.dimen.heightSelectItem,
             ATTR_PADDING_HORZ, R.dimen.paddingHorzSelectItem,
@@ -398,15 +442,15 @@ public final class ZxCommon {
     };
 
     public static final int[] style_zx_toolbar = {
-            ATTR_SSH_VERT, 9,
-            ATTR_SSH_HORZ, 8,
+            ATTR_SSH_VERT, 10,
+            ATTR_SSH_HORZ, 10,
             ATTR_SSH_TILE, 0,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_ICONS | THEME
     };
 
     public static final int[] style_debugger_flags = {
             ATTR_SHADOW_TEXT, R.string.shadow_null,
-            ATTR_SIZE, R.dimen.text_flags,
+            ATTR_SIZE, R.dimen.debuggerTextFlags,
             ATTR_FONT, R.string.font_small,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_MAX_LINES, 1,
@@ -415,7 +459,7 @@ public final class ZxCommon {
 
     public static final int[] style_debugger_text = {
             ATTR_SHADOW_TEXT, R.string.shadow_text,
-            ATTR_SIZE, R.dimen.text_deb,
+            ATTR_SIZE, R.dimen.debuggerTextDef,
             ATTR_FONT, R.string.font_small,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_MAX_LINES, 1,
@@ -434,7 +478,7 @@ public final class ZxCommon {
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.START,
-            ATTR_SIZE, R.dimen.deb_list
+            ATTR_SIZE, R.dimen.debuggerTextDef
     };
 
     public static final int[] style_debugger_action = {
@@ -460,7 +504,7 @@ public final class ZxCommon {
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
-            ATTR_SIZE, R.dimen.text_deb,
+            ATTR_SIZE, R.dimen.debuggerTextDef,
             ATTR_FOCUSABLE_TOUCH_MODE, 1,
             ATTR_COLOR_HINT, ATTR_SSH_COLOR_HINT | THEME,
             //ATTR_FOCUSABLE, 1,
@@ -474,6 +518,14 @@ public final class ZxCommon {
             ATTR_SSH_WIDTH_SELECTOR, 1,
             ATTR_SSH_COLOR_SELECTOR, Color.DKGRAY | COLOR,
             ATTR_SSH_SOLID, 0x00007f | COLOR
+    };
+
+    /** Стиль для формы сообщений */
+    public static final int[] style_form_message         = {
+            ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_BACKGROUND | THEME,
+            ATTR_SSH_RADII, R.string.radiiFormMessage,
+            ATTR_SSH_SHAPE, TILE_SHAPE_ROUND,
+            ATTR_SSH_TILE, 0
     };
 
     public static final String[] joyButtons     = {"K←", "K→", "K↑", "K↓", "K*", "6", "7", "9", "8", "0", "1", "2", "4", "3", "5", "←", "→", "↑",

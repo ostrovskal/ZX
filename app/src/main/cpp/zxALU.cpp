@@ -4,7 +4,7 @@
 
 #include "zxCommon.h"
 #include "zxALU.h"
-#include "zxMnemonic.h"
+#include "stkMnemonic.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "missing_default_case"
@@ -76,9 +76,11 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surfa
 
     for (int i = 0; i < 16; i++) PAGE_RAM[i] = (RAMs + i * 16384);
 
+    ssh_memzero(&bps, sizeof(bps));
+
     // инициализация системы
     _MODEL     		= &opts[MODEL];
-    _STATE     		= &opts[STATE];
+    _STATE     		= &opts[STATE]; *_STATE = 0;
     _KEMPSTON		= &opts[ZX_PROP_VALUES_KEMPSTON];
     _1FFD    		= &opts[PORT_1F];
     _7FFD    		= &opts[PORT_FD];
@@ -348,9 +350,9 @@ static bool presetsOps(PRESET* ptr, int ops, const char* name, char** l) {
             if(*(lst - 1)) *lst++ = ',';
             *l = ssh_strcpy(&lst, ptr->name);
             break;
-            // Загрузить параметры джойстика
-        case ZX_CMD_PRESETS_LOAD:
+        // Загрузить параметры джойстика
         case ZX_CMD_PRESETS_SET:
+        case ZX_CMD_PRESETS_LOAD:
             if(isFind) {
                 opts[ZX_PROP_JOY_TYPE] = ptr->joyType;
                 memcpy(&opts[ZX_PROP_JOY_KEYS], &ptr->joyL, 8);
@@ -365,6 +367,9 @@ static bool presetsOps(PRESET* ptr, int ops, const char* name, char** l) {
 }
 
 const char* zxALU::presets(const char *name, int ops) {
+    // джойстик по умолчанию
+    static uint8_t joyDef[] = {0, 47, 48, 49, 50, 51, 0, 0, 0};
+
     if(ops == ZX_CMD_PRESETS_NAME) return progName;
     auto tmp = &TMP_BUF[524288 - 80000];
     ssh_memzero(tmp, 80000);
@@ -386,14 +391,19 @@ const char* zxALU::presets(const char *name, int ops) {
         }
     }
     // ищем имя в БД
+    bool isOK = false;
     while(ptr->name[0]) {
-        if(presetsOps(ptr, ops, name, &lst)) break;
+        isOK = presetsOps(ptr, ops, name, &lst);
+        if(isOK) break;
         ptr += sizeof(PRESET);
     }
     // Сохранить/Добавить параметры джойстика
-    if(ops == ZX_CMD_PRESETS_SAVE) {
+    if(ops == ZX_CMD_PRESETS_SAVE || ops == ZX_CMD_PRESETS_SET) {
         ssh_memzero(&ptr->name, 31);
         memcpy(&ptr->name, progName, sizeof(progName));
+        if(ops == ZX_CMD_PRESETS_SET && !isOK) {
+            memcpy(&opts[ZX_PROP_JOY_TYPE], joyDef, sizeof(joyDef));
+        }
         ptr->joyType = opts[ZX_PROP_JOY_TYPE];
         memcpy(&ptr->joyL, &opts[ZX_PROP_JOY_KEYS], 8);
         zxFile::writeFile("joy_presets", tmp, 40000, false);
@@ -462,28 +472,44 @@ int zxALU::updateKeys(int key, int action) {
     } else {
         // опрос клавиатуры из ПЗУ
         if (opts[ZX_PROP_SHOW_KEY]) {
-            // проверить режим клавиатуры
-            uint8_t nmode = MODE_K;
-            auto kmode = opts[ZX_PROP_KEY_MODE];
-            auto val0 = rm8(23617), val1 = rm8(23658), val2 = rm8(23611);
-//            info("%i %i %i", val0, val1, val2);
-            switch (val0) {
-                case 0:
-                    if (val2 & 8) { nmode = (val1 & 8) ? MODE_C : MODE_L; }
-                    else if (val1 & 16) nmode = MODE_K;
-                    if ((nmode == MODE_L || nmode == MODE_C) && (kmode & ZX_CMD_KEY_MODE_CAPS)) nmode = MODE_CL;
-                    else { if (kmode & ZX_CMD_KEY_MODE_SYMBOL) nmode = MODE_E1; else if (kmode & ZX_CMD_KEY_MODE_CAPS) nmode = MODE_CK; }
-                    break;
-                case 1:
-                    nmode = (kmode & ZX_CMD_KEY_MODE_SYMBOL) ? MODE_E2 : MODE_E;
-                    break;
-                case 2:
-                    nmode = (kmode & ZX_CMD_KEY_MODE_CAPS) ? MODE_G : MODE_G1;
-                    break;
-            }
-            if (opts[ZX_PROP_KEY_CURSOR_MODE] != nmode) {
-                opts[ZX_PROP_KEY_CURSOR_MODE] = nmode;
-                return 1;
+            static int delay = 0;
+            delay++;
+            if(!(delay & 7)) {
+                // проверить режим клавиатуры
+                uint8_t nmode = MODE_K;
+                auto kmode = opts[ZX_PROP_KEY_MODE];
+                auto omode = opts[ZX_PROP_KEY_CURSOR_MODE];
+                auto val0 = rm8(23617), val1 = rm8(23658), val2 = rm8(23611);
+                switch (val0) {
+                    case 0:
+                        // если старый режим был [SE/CE], то сбрасывать CAPS/SYMBOL
+                        if (val2 & 8) { nmode = (val1 & 8) ? MODE_C : MODE_L; }
+                        else if (val1 & 16) nmode = MODE_K;
+                        if (omode == MODE_CE) {
+                            opts[ZX_PROP_VALUES_SEMI_ROW] |= 1;
+                            kmode &= ~ZX_CMD_KEY_MODE_CAPS;
+                            opts[ZX_PROP_KEY_MODE] = kmode;
+                        }
+                        else if (omode == MODE_SE) {
+                            opts[ZX_PROP_VALUES_SEMI_ROW + 7] |= 2;
+                            kmode &= ~ZX_CMD_KEY_MODE_SYMBOL;
+                            opts[ZX_PROP_KEY_MODE] = kmode;
+                        }
+                        if ((nmode == MODE_L || nmode == MODE_C) && (kmode & ZX_CMD_KEY_MODE_CAPS)) nmode = MODE_CL;
+                        else { if (kmode & ZX_CMD_KEY_MODE_SYMBOL) nmode = MODE_SK; else if (kmode & ZX_CMD_KEY_MODE_CAPS) nmode = MODE_CK; }
+                        break;
+                    case 1:
+                        nmode = (kmode & ZX_CMD_KEY_MODE_SYMBOL) ? MODE_SE : ((kmode & ZX_CMD_KEY_MODE_CAPS) ? MODE_CE : MODE_E);
+                        break;
+                    case 2:
+                        nmode = (kmode & ZX_CMD_KEY_MODE_CAPS) ? MODE_G : MODE_G1;
+                        break;
+                }
+                if (opts[ZX_PROP_KEY_CURSOR_MODE] != nmode) {
+                    opts[ZX_PROP_KEY_CURSOR_MODE] = nmode;
+                    memcpy(&opts[ZX_PROP_VALUES_BUTTON], &buttons[nmode * 84], 84);
+                    return 1;
+                }
             }
         }
         // joystick
@@ -535,21 +561,24 @@ void zxALU::signalRESET(bool resetTape) {
     // очищаем ОЗУ
     ssh_memzero(RAMs, ZX_TOTAL_RAM);
     // очищаем регистры/порты
-    ssh_memzero(opts, MODEL);
+    ssh_memzero(opts, STATE);
     // сбрасываем клавиатуру
     ssh_memset(&opts[ZX_PROP_VALUES_SEMI_ROW], 255, 8);
-    opts[ZX_PROP_KEY_MODE] = 0; opts[ZX_PROP_KEY_CURSOR_MODE] = MODE_K;
+    opts[ZX_PROP_KEY_MODE] = 0; opts[ZX_PROP_KEY_CURSOR_MODE] = 255;
     // сбрасываем джойстики
     opts[ZX_PROP_JOY_ACTION_VALUE] = 0; opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
     joyOldButtons = 0;
     // инициализаруем переменные
     *cpu->_SP = 65534; *_FE = 0b11100111; *_VID = 5;
+    // сброс состояния с сохранением статуса отладчика
+    modifySTATE(0, ~ZX_DEBUG);
     // устанавливаем программу по умолчанию
     presets("BASIC", ZX_CMD_PRESETS_SET);
     setPages();
 }
 
 void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
+    if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_WPORT)) return;
     if(*_STATE & ZX_TRDOS) {
 /*
         switch(A0A7) {
@@ -622,6 +651,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
 }
 
 uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
+    if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_RPORT)) return _FF;
     switch(A0A7) {
         // звук AY
 //        case 0xFD: if(A8A15 == 0xff) return snd->ayRegs[*zxSND::_AY_REG]; break;
@@ -656,14 +686,27 @@ void zxALU::execute() {
     }
 }
 
+int zxALU::stepDebug() {
+    int ticks = 0;
+    // перехват системных процедур
+//    auto ticks = tape->trap(*cpu->_PC);
+    // выполнение операции
+    ticks += cpu->step();
+    *_TICK += ticks;
+    return ticks;
+}
+
 int zxALU::step(bool allow_int) {
+    if(!opts[ZX_PROP_EXECUTE]) return 0;
+    // проверить на точку останова для кода
+    if(*_STATE & ZX_DEBUG) { if(checkBPs(*cpu->_PC, ZX_BP_EXEC)) return 0; }
     int ticks = 0;
     // установить возможность прерывания
     modifySTATE(allow_int * ZX_INT, 0);
     // перехват системных процедур
 //    auto ticks = tape->trap(*cpu->_PC);
     // выполнение операции
-    ticks += cpu->step(0, 0);
+    ticks += cpu->step();
     // проверка на прерывания
     if(*_STATE & ZX_NMI) ticks += cpu->signalNMI();
     else if(*_STATE & ZX_INT) ticks += cpu->signalINT();
@@ -672,29 +715,29 @@ int zxALU::step(bool allow_int) {
 }
 
 void zxALU::updateCPU(int todo, bool interrupt) {
-    if(opts[ZX_PROP_EXECUTE]) {
-        int ticks;
-        todo += periodGPU;
-        if (interrupt) {
-            if (periodGPU > 0) {
-                ticks = step(false);
-                todo -= ticks;
-//                tape->control(ticks);
-            }
-            ticks = step(true);
-//            ticks = step(false);
-            todo -= ticks;
-//            tape->control(ticks);
-        }
-        while (todo > 3) {
+    if(*_STATE & ZX_BP) return;
+    if(!opts[ZX_PROP_EXECUTE]) return;
+    int ticks;
+    todo += periodGPU;
+    if (interrupt) {
+        if (periodGPU > 0) {
             ticks = step(false);
-            // если сработала точка останова - возвращает 0
-            if(!ticks) { todo &= 3; break; }
             todo -= ticks;
-//            tape->control(ticks);
+//                tape->control(ticks);
         }
-        periodGPU = todo;
+        ticks = step(true);
+//            ticks = step(false);
+        todo -= ticks;
+//            tape->control(ticks);
     }
+    while (todo > 3) {
+        ticks = step(false);
+        // если сработала точка останова - возвращает 0
+        if(!ticks) break;
+        todo -= ticks;
+//            tape->control(ticks);
+    }
+    periodGPU = todo;
 }
 
 void zxALU::updateFrame() {
@@ -777,6 +820,76 @@ void zxALU::updateFrame() {
     }
     updateCPU(stateDP, false);
     blink++;
+}
+
+void zxALU::startTracer() {
+    ftracer.close();
+    auto name = std::string(progName) + ".log";
+    ftracer.open(zxFile::makePath(name.c_str(), false).c_str(), zxFile::create_write);
+}
+
+void zxALU::quickBP(uint16_t address) {
+    BREAK_POINT* bpe = nullptr;
+    for(int i = 0; i < 8; i++) {
+        auto bp = &bps[i];
+        auto flag = bp->flg;
+        if(flag == ZX_BP_NONE) {
+            if(bpe == nullptr) bpe = bp;
+        } else if(address >= bp->address1 && address <= bp->address2 && flag == ZX_BP_EXEC) {
+            bpe = nullptr;
+            bp->flg = ZX_BP_NONE;
+            break;
+        }
+    }
+    if(bpe != nullptr) {
+        bpe->address1 = address; bpe->address2 = address;
+        bpe->val = 0; bpe->msk = 0; bpe->ops = 0; bpe->flg = ZX_BP_EXEC;
+    }
+}
+
+bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
+    bool res = false;
+    for(int i = 0 ; i < 8 ; i++) {
+        auto bp = &bps[i];
+        auto flag = bp->flg;
+        if(flag & 32) continue;
+        flag &= 31;
+        if(flag != flg) continue;
+        if(address >= bp->address1 && address <= bp->address2) {
+            res = true;
+            if(flag == ZX_BP_WMEM) {
+                auto v1 = rm8(address) & bp->msk;
+                auto v2 = bp->val;
+                res = false;
+                switch(bp->ops) {
+                    case ZX_BP_OPS_EQ:  res = v1 == v2; break;
+                    case ZX_BP_OPS_NQ:  res = v1 != v2; break;
+                    case ZX_BP_OPS_GT:  res = v1 >  v2; break;
+                    case ZX_BP_OPS_LS:  res = v1 <  v2; break;
+                    case ZX_BP_OPS_GTE: res = v1 >= v2; break;
+                    case ZX_BP_OPS_LSE: res = v1 <= v2; break;
+                }
+            }
+        }
+        if(res) {
+            // установить глобальную остановку системы
+            opts[ZX_PROP_EXECUTE] = 0;
+            // сообщение для выхода - обновить отладчик
+            modifySTATE(ZX_BP, 0);
+            // вернуть адрес декодирования на начало инструкции
+            *cpu->_PC = zxCPU::PC;
+            break;
+        }
+    }
+    return res;
+}
+
+int zxALU::traceIn() {
+    return 0;
+}
+
+int zxALU::traceOut() {
+    return 0;
 }
 
 #pragma clang diagnostic pop

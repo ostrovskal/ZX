@@ -1,7 +1,8 @@
+@file:Suppress("DEPRECATION")
+
 package ru.ostrovskal.zx.forms
 
 import android.graphics.Color
-import android.os.Message
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,9 +35,17 @@ class ZxFormSettings : Form() {
 
     private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
 
-    private val keyButtons      = listOf("N/A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "N/A", "Q", "W", "E", "R", "T", "Y", "U",
-                                        "I", "O", "P", "ENTER", "CAPS", "A", "S", "D", "F", "G", "H", "J", "K", "L", "SYMBOL", "N/A", "Z",
-                                        "X", "C", "SPACE", "V", "B", "N", "M", "←", "→", "↑", "↓", "K←", "K→", "K↑", "K↓", "K*")
+    private val keyButtons      = listOf("N/A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+                                                     // 11
+                                                     "N/A", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
+                                                     // 22
+                                                     "ENTER", "CAPS", "A", "S", "D", "F", "G", "H", "J", "K", "L",
+                                                     // 33
+                                                     "SYMBOL", "N/A", "Z", "X", "C", "SPACE", "V", "B", "N", "M",
+                                                     // 43
+                                                     "←", "→", "↑", "↓",
+                                                     // 47
+                                                     "K←", "K→", "K↑", "K↓", "K*")
 
     private val idNulls         = listOf(R.id.buttonNull1, R.id.buttonNull2, R.id.buttonNull3, R.id.buttonNull4, R.id.buttonNull5, R.id.buttonNull6,
                                             R.id.buttonNull7, R.id.buttonNull8)
@@ -50,7 +59,6 @@ class ZxFormSettings : Form() {
     override fun getTheme() = R.style.dialog_progress
 
     private val commonPage: TabLayout.Content.() -> View = {
-        val ts = Theme.dimen(context, if(config.portrait) 8 else 10).toFloat()
         cellLayout(16, 21) {
             val textsCommon = wnd.loadResource("settingsCommonTexts", "array", IntArray(0))
             val rangeCommon = arrayOf(3..16, 1..6, 1..6, 0..4, 3..9)
@@ -58,9 +66,7 @@ class ZxFormSettings : Form() {
                 repeat(2) { x ->
                     val pos = y * 2 + x
                     if (pos < 5) {
-                        text(textsCommon[pos], style_text_settings) {
-                            textSize = Theme.dimen(context, if(config.portrait) 6 else 8).toFloat()
-                        }.lps(1 + x * 8, 1 + y * 6, 8, 3)
+                        text(textsCommon[pos], style_text_settings).lps(1 + x * 8, 1 + y * 6, 8, 3)
                         seek(idSeeks[pos], rangeCommon[pos], true) {
                             setOnClickListener {
                                 ZxWnd.props[settingsCommon[pos]] = progress.toByte()
@@ -75,14 +81,12 @@ class ZxFormSettings : Form() {
                 }
             }
             check(R.id.buttonNull1, R.string.settingsFPS) {
-                textSize = ts + 2f
                 isChecked = ZxWnd.props[ZX_PROP_SHOW_FPS] != 0.toByte()
                 setOnClickListener {
                     ZxWnd.props[ZX_PROP_SHOW_FPS] = if(isChecked) 1 else 0
                 }
             }.lps(9, 15, 3, 3)
             check(R.id.buttonNull2, R.string.settingsFrames) {
-                textSize = ts + 2f
                 isChecked = ZxWnd.props[ZX_PROP_SKIP_FRAMES].toBoolean
                 setOnClickListener {
                     ZxWnd.props[ZX_PROP_SKIP_FRAMES] = if(isChecked) 1 else 0
@@ -93,10 +97,9 @@ class ZxFormSettings : Form() {
 
     private val joyPage: TabLayout.Content.() -> View = {
         val textsJoy = wnd.loadResource("settingsJoyTexts", "array", IntArray(0))
-        val ts = Theme.dimen(context, if(config.portrait) 8 else 10).toFloat()
         var inner = false
         cellLayout(20, 20) {
-            text(R.string.settingsJoyType, style_text_settings) { textSize = ts }.lps(0, 0, 3, 4)
+            text(R.string.settingsJoyType, style_text_settings).lps(0, 0, 3, 4)
             spinner(R.id.settingsJoyType) {
                 adapter = ArrayListAdapter(context, Popup(), Item(), settingsJoyTypes)
                 itemClickListener = { _, _, p, _ ->
@@ -116,7 +119,7 @@ class ZxFormSettings : Form() {
                     }
                 }
             }.lps(2, 0, 7, 4)
-            text(R.string.settingsJoyPreset, style_text_settings) { textSize = ts }.lps(10, 0, 10, 4)
+            text(R.string.settingsJoyPreset, style_text_settings).lps(10, 0, 10, 4)
             spinner(R.id.settingsJoyPreset) {
                 adapter = ArrayListAdapter(context, Popup(), Item(), ZxWnd.zxPresets(ZX_CMD_PRESETS_LIST).split(','))
                 mIsSelection = false
@@ -137,7 +140,7 @@ class ZxFormSettings : Form() {
             repeat(2) { y ->
                 repeat(4) { x ->
                     val pos = y * 4 + x
-                    text(textsJoy[pos], style_text_settings) { textSize = ts }.lps(x * 5 + 1, 4 + y * 7, 3, 3)
+                    text(textsJoy[pos], style_text_settings).lps(x * 5 + 1, 4 + y * 7, 3, 3)
                     spinner(idSpinners[pos]) {
                         adapter = ArrayListAdapter(context, Popup(), Item(), keyButtons)
                         selection = ZxWnd.props[ZX_PROP_JOY_KEYS + pos].toInt()
@@ -152,14 +155,13 @@ class ZxFormSettings : Form() {
 
     private val soundPage: TabLayout.Content.() -> View = {
         val textsSnd = context.loadResource("settingsSndTexts", "array", IntArray(0))
-        val ts = Theme.dimen(context, if(config.portrait) 8 else 10).toFloat()
         var volBp: Seek? = null
         var volAy: Seek? = null
         cellLayout(10, 21) {
             repeat(2) { y ->
                 repeat(2) { x ->
                     val pos = y * 2 + x
-                    text(textsSnd[pos], style_text_settings) { textSize = ts }.lps(1 + x * 5, y * 9, 4, 3)
+                    text(textsSnd[pos], style_text_settings).lps(1 + x * 5, y * 9, 4, 3)
                     if(y == 0) {
                         spinner(if(x == 0) R.id.settingsTypeAY else R.id.settingsFreq) {
                             adapter = ArrayListAdapter(context, Popup(), Item(), if(x == 0) settingsAY else settingsFreq)
@@ -179,7 +181,6 @@ class ZxFormSettings : Form() {
             }
             repeat(4) { x ->
                 check(idNulls[x + 2], textsSnd[x + 4]) {
-                    textSize = ts + 2f
                     setOnClickListener {
                         ZxWnd.props[settingsCheckSnd[x]] = if(isChecked) 1 else 0
                         if(x == 0) volBp?.apply { isEnabled = this@check.isChecked }
@@ -196,13 +197,11 @@ class ZxFormSettings : Form() {
 
     private val screenPage: TabLayout.Content.() -> View = {
         val nameColors = context.loadResource("settingsColorNames", "array", IntArray(0))
-        val ts = Theme.dimen(context, if(config.portrait) 6 else 8).toFloat()
         cellLayout(32, 20, 1) {
             repeat(2) {y ->
                 repeat(8) { x ->
                     val pos = y * 8 + x
                     text(nameColors[pos], style_color_text_settings) {
-                        textSize = ts
                         backgroundSet {
                             selectorColor = Color.WHITE
                             selectorWidth = 3f
@@ -273,7 +272,7 @@ class ZxFormSettings : Form() {
             }
             else -> {
                 super.footer(btn, param)
-                copyProps.copyInto(ZxWnd.props)
+                copyProps.copyInto(ZxWnd.props, ZX_PROP_FIRST_LAUNCH, ZX_PROP_FIRST_LAUNCH, ZX_PROPS_COUNT)
             }
         }
     }
@@ -289,11 +288,13 @@ class ZxFormSettings : Form() {
             linearLayout {
                 cellLayout(10, 16) {
                     formHeader(R.string.settingsHead)
-                    backgroundSet { alpha =  255; solid = Color.WHITE }
+                    backgroundSet(style_form) { alpha = 192 }
                     root = tabLayout(sizeCaption = 18, style = style_tab_settings) {
+                        caption.apply {
+                            backgroundSet { alpha = 192; gradient = xyInt; xyInt[0] = Color.BLACK; xyInt[1] = Color.BLUE }
+                        }
                         content.apply {
                             padding = 2.dp
-                            backgroundSet(style_form) { alpha = 128 }
                         }
                         page(R.id.pageCommon, nIcon = R.integer.I_TOOL, init = commonPage)
                         page(R.id.pageSound, nIcon = R.integer.I_SOUND, init = soundPage)
@@ -310,7 +311,7 @@ class ZxFormSettings : Form() {
     private fun setTabValues(tab: Int, reset: Boolean) {
         (root as? TabLayout)?.content?.apply {
             val c = getChildAt(tab)
-            val s = wnd.loadResource("settings", "array_str", arrayOf(""))
+            val s = (wnd as ZxWnd).settings
             when(tab) {
                 0 -> defaultCommon(c, s, reset)
                 1 -> defaultSound(c, s, reset)
@@ -332,8 +333,7 @@ class ZxFormSettings : Form() {
                     val b = (color and 0x00ff0000) shr 16
                     val g = color and 0x0000ff00
                     val r = (color and 0x000000ff) shl 16
-                    val a = color and 0xff000000.toInt()
-                    solid = r or g or b or a
+                    solid = r or g or b or 0xff000000.toInt()
                     if(curView == idx) {
                         content.byIdx<Seek>(16).progress = b
                         content.byIdx<Seek>(17).progress = g shr 8
@@ -386,21 +386,13 @@ class ZxFormSettings : Form() {
     class Item : UiComponent() {
         override fun createView(ui: UiCtx) = with(ui) {
             text(R.string.null_text, style_spinner_item_settings) {
-                textSize = Theme.dimen(ctx, if(config.portrait) 10 else 14).toFloat()
                 backgroundSet(style_spinner_item) }
         }
     }
 
     class Popup : UiComponent() {
         override fun createView(ui: UiCtx) = with(ui) {
-            text(R.string.null_text, style_spinner_title_settings) {
-                textSize = Theme.dimen(ctx, if(config.portrait) 10 else 14).toFloat()
-            }
+            text(R.string.null_text, style_spinner_title_settings)
         }
-    }
-
-    override fun handleMessage(msg: Message): Boolean {
-        wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
-        return super.handleMessage(msg)
     }
 }

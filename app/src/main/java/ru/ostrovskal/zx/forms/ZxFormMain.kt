@@ -5,6 +5,7 @@ package ru.ostrovskal.zx.forms
 import android.annotation.SuppressLint
 import android.app.ActionBar
 import android.os.Message
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewManager
@@ -12,11 +13,11 @@ import android.widget.TextView
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
 import ru.ostrovskal.sshstd.Surface
 import ru.ostrovskal.sshstd.forms.Form
-import ru.ostrovskal.sshstd.forms.FormMessage
 import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.cellLayout
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.*
+import ru.ostrovskal.zx.ZxCommon.ZX_ALL
 
 @Suppress("unused")
 class ZxFormMain: Form() {
@@ -24,6 +25,8 @@ class ZxFormMain: Form() {
     override val surface: Surface? get()= zxview
 
     private inline fun ViewManager.zxView(init: ZxView.() -> Unit) = uiView({ ZxView(it) }, init)
+
+    private val sizeButtonText= listOf(10f, 10f, 10f, 10f, 11f, 11.5f, 12f, 12.5f, 13f, 13.5f)
 
     // Клавиатура
     private val keyboard                = ZxKeyboard()
@@ -53,9 +56,9 @@ class ZxFormMain: Form() {
                 visibility = show; debLyt?.visibility = View.GONE
                 layoutParams = CellLayout.LayoutParams(0, 15 - heightKeyboard, 11, heightKeyboard.toInt())
                 if (show == View.VISIBLE) {
-                    var szTextButton = heightKeyboard * 2.5f
-                    if (szTextButton > 14f) szTextButton = 14f
-                    loopChildren { (it as? TextView)?.textSize = szTextButton }
+                    val szTextButton = sizeButtonText[heightKeyboard.toInt()].sp
+                    "sz: $szTextButton hk: $heightKeyboard".info()
+                    loopChildren { (it as? TextView)?.setTextSize(TypedValue.COMPLEX_UNIT_PX, szTextButton) }
                 }
             }
         }
@@ -71,6 +74,7 @@ class ZxFormMain: Form() {
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
+        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = ZX_ALL)
     }
 
     @SuppressLint("SetTextI18n")
@@ -80,7 +84,7 @@ class ZxFormMain: Form() {
             ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1)
             ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
             ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal           -> {
-                FormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 0, 0))
+                ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 0, 0))
             }
             ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal   -> {
                 wnd.actionBar?.apply {

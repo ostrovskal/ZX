@@ -65,4 +65,8 @@
     <string name="settingsSndTypeAY">Стерео AY</string>
     <string name="ioLoadError">Не удалось выполнить загрузку. Файл поврежден!</string>
     <string name="ioSaveError">Не удалось выполнить запись. Неизвестный формат файла!</string>
+    <string name="menuAddress">Адрес</string>
+    <string name="menuCode">Код</string>
+    <string name="menuValue">Содержимое</string>
+    <string name="menuTrace">Трассировка</string>
 </resources>

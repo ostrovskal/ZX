@@ -8,4 +8,9 @@
     <dimen name="pokeHeight">150dp</dimen>
     <dimen name="settingsWidth">320dp</dimen>
     <dimen name="settingsHeight">320dp</dimen>
+    <dimen name="debuggerTextFlags">8sp</dimen>
+    <dimen name="debuggerTextDef">10sp</dimen>
+    <dimen name="textSettings">12sp</dimen>
+    <dimen name="settingsTextColor">10sp</dimen>
+    <dimen name="actionBar">25dp</dimen>
 </resources>

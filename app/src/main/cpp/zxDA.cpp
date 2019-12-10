@@ -3,9 +3,8 @@
 //
 
 #include "zxCommon.h"
-#include "zxDA.h"
-#include "zxMnemonic.h"
 #include "stkMnemonic.h"
+#include "zxDA.h"
 
 #define DA(token)   codes[pos++] = token
 
@@ -40,17 +39,17 @@ static const char* namesCode[] = { "C", "B", "E", "D", "L", "H", "R", "A",
                                    "HALT", "NEG", "IN ", "OUT ", "*IX*", "*IY*", "*ED*",
                                    ", ", "0", "(C)"};
 
-int zxDA::getDaOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16, uint8_t* v8, uint16_t *pc, int* ticks, uint8_t* offset) {
+int zxDA::getOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16, uint16_t *pc, int* ticks, uint8_t* offset) {
     switch(o) {
         case _C8:
-            *v8 = rm8((*pc)++);
+            *v16 = rm8((*pc)++);
             break;
         case _C16:
             *v16 = rm16(*pc);
             *pc += 2;
             break;
         case _RPHL:
-            if(pc) {
+            if(pc && offset) {
                 *offset = 0;
                 if (prefix) { *ticks += 8; *offset = rm8((*pc)++); }
                 // виртуальный адрес [HL/IX/IY + D]
@@ -62,55 +61,93 @@ int zxDA::getDaOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16, uint8_t
     return cnvRegs[(prefix << 1) + o];
 }
 
-char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int ticks) {
-    uint8_t v8Src(0), v8Dst(0), offsSrc(0), offsDst(0);
-    uint16_t vSrc(0), vDst(0);
-    uint8_t pos = 0;
-    int n(0), o(0), a(0);
-    int pref = 0;
-
-    static uint16_t codes[64];
-
-    char* daResult = (char*)&TMP_BUF[65536];
-    auto result = daResult;
-
-    static int _pc;
-    // определение первого захода в функцию
-    if(!ticks) {
-        _pc = *pc;
-        ssh_memzero(daResult, 512);
+zxCPU::MNEMONIC* zxDA::skipPrefix(uint16_t* pc, uint16_t* code, int* pref, int* prefix, int* ticks, uint16_t* v, uint8_t* offs) {
+    int offset(0), pr(0), cod(0);
+    zxCPU::MNEMONIC* m(nullptr);
+    while(true) {
+        if(offset == 256 && pr) {
+            getOperand(_RPHL, _N_, pr, v, pc, ticks, offs);
+            *pref = pr; pr = 0;
+        }
+        cod = rm8((*pc)++) + offset;
+        *code = (uint16_t)cod;
+        m = &mnemonics[cod];
+        if(m->ops != O_PREF) break;
+        switch(cod) {
+            case PREF_CB: offset = 256; break;
+            case PREF_ED: pr = 0; offset = 512; break;
+            case PREF_DD: case PREF_FD: {
+                if(pr) { (*pc)--; return &mnemonics[512]; }
+                pr = ((cod == PREF_DD) ? 12 : 24);
+                offset = 0;
+                break;
+            }
+        }
     }
+    *prefix = pr;
+    return m;
+}
 
-    if(offset == 256 && prefix) {
-        getDaOperand(_RPHL, _N_, prefix, &vSrc, &v8Src, pc, &ticks, &offsSrc);
-        pref = prefix; prefix = 0;
-    }
+size_t zxDA::cmdParser(uint16_t* pc, uint16_t* buffer, bool regSave) {
+    uint8_t offsSrc(0), offsDst(0);
+    uint16_t vSrc(0), vDst(0), code;
+    int ticks(0), pref(0), prefix(0), n;
 
-    auto code = rm8((*pc)++);
+    auto _pc = *pc;
+    auto buf = buffer;
 
-    auto m = &mnemonics[code + offset];
+    *buffer++ = _pc;
+
+    auto m = skipPrefix(pc, &code, &pref, &prefix, &ticks, &vSrc, &offsSrc);
+
     auto regDst = m->regDst;
     auto regSrc = m->regSrc;
 
-    getDaOperand(regDst, regSrc, prefix, &vDst, &v8Dst, pc, &ticks, &offsDst);
-    getDaOperand(regSrc, regDst, prefix, &vSrc, &v8Src, pc, &ticks, &offsSrc);
-    ticks += m->tiks;
-
-    if(m->ops == O_PREF) {
-        auto prefIX = code == PREF_DD;
-        if(prefix && code != PREF_CB) {
-            (*pc)--;
-            return (char*)namesCode[prefIX ? C_IX_NONI : C_IY_NONI];
-        }
-        switch(code) {
-            case PREF_CB: return daMake(pc, flags, bp, prefix, 256, ticks);
-            case PREF_ED: return daMake(pc, flags, bp, 0, 512, ticks);
-            case PREF_DD: case PREF_FD: return daMake(pc, flags, bp, prefIX ? 12 : 24, 0, ticks);
-        }
+    getOperand(regDst, regSrc, prefix, &vDst, pc, &ticks, &offsDst);
+    getOperand(regSrc, regDst, prefix, &vSrc, pc, &ticks, &offsSrc);
+    // кэшированные значения
+    *buffer++ = (uint16_t)pref; *buffer++ = (uint16_t)prefix;
+    *buffer++ = vDst; *buffer++ = vSrc;
+    *buffer++ = offsDst; *buffer++ = offsSrc;
+    if(pref || regSrc == _C16 || regSrc == _RPHL) {
+        n = rm16(vSrc);
+    } else if(regDst == _C16 || regDst == _RPHL) {
+        n = rm16(vDst);
+    } else n = 0;
+    *buffer++ = (uint16_t)n; *buffer++ = code;
+    // длина кодов и они сами
+    auto codeLength = (uint16_t)(*pc - _pc);
+    *buffer++ = codeLength;
+    while(codeLength-- > 0) *buffer++ = rm8(_pc++);
+    // значения регистров(если надо)
+    *buffer++ = (uint16_t)regSave;
+    if(regSave) {
+        auto cpu = ALU->cpu;
+        *buffer++ = *cpu->_AF; *buffer++ = *cpu->_BC; *buffer++ = *cpu->_DE; *buffer++ = *cpu->_HL;
+        *buffer++ = *cpu->_IX; *buffer++ = *cpu->_IY; *buffer++ = *cpu->_SP;
     }
+    return (size_t)(buffer - buf);
+}
 
+const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags, int bp) {
+    auto result = daResult;
+    ssh_memzero(daResult, 512);
+
+    int pos(0), n(0), a(0), o(0);
+    uint16_t codes[64];
+
+    auto _pc = *buffer++;
+    auto pref = *buffer++; auto prefix = *buffer++;
+    auto vDst = *buffer++; auto vSrc = *buffer++;
+    auto offsDst = *buffer++; auto offsSrc = *buffer++;
+    auto val16 = *buffer++; auto code = *buffer++;
+    auto m = &mnemonics[code];
     auto cmd = m->name;
     auto fl = m->flags;
+    auto regDst = m->regDst;
+    auto regSrc = m->regSrc;
+
+    code &= 255;
 
     DA(cmd);
 
@@ -137,14 +174,14 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
         case C_CALL: case C_DJNZ: case C_JR:
             // cmd [flag,] NN
             if(fl) { DA(C_FNZ + fl - 1); DA(C_COMMA); }
-            if(cmd <= C_JR) vSrc = *pc + (int8_t)v8Src;
+            if(cmd <= C_JR) vSrc = (uint16_t)(_pc + 2) + (int8_t)vSrc;
             DA(C_NN); DA(vSrc);
             break;
         case C_ADD: case C_ADC: case C_SUB: case C_SBC:
         case C_AND: case C_OR: case C_XOR: case C_CP:
             // cmd reg DST,SRC/N
             DA(C_DST); DA(C_COMMA);
-            if(regSrc == _C8) { DA(C_N); DA(v8Src); } else DA(C_SRC);
+            if(regSrc == _C8) { DA(C_N); DA(vSrc); } else DA(C_SRC);
             break;
         case C_RST:
             DA(C_NUM); DA(code & 56);
@@ -155,10 +192,10 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
             break;
         case C_IN:
             DA(C_DST); DA(C_COMMA);
-            if(regSrc == _C8) { DA(C_N); DA(v8Src); } else DA(C_PC);
+            if(regSrc == _C8) { DA(C_N); DA(vSrc); } else DA(C_PC);
             break;
         case C_OUT:
-            if(regSrc == _C8) { DA(C_N); DA(v8Src); } else DA(C_PC);
+            if(regSrc == _C8) { DA(C_N); DA(vSrc); } else DA(C_PC);
             DA(C_COMMA); DA(C_DST);
             break;
         case C_LD:
@@ -166,7 +203,7 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
                 case O_ASSIGN:
                     // cmd reg, reg/N/NN
                     DA(C_DST); DA(C_COMMA);
-                    if(regSrc == _C8) { DA(C_N); DA(v8Src); }
+                    if(regSrc == _C8) { DA(C_N); DA(vSrc); }
                     else if(regSrc == _C16) { DA(C_NN); DA(vSrc); }
                     else DA(C_SRC);
                     break;
@@ -183,20 +220,21 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
                     else if(regDst & _R16) DA(C_PBC + (code >> 4));
                     else DA(C_DST); // (HL/IX/IY + D)
                     DA(C_COMMA);
-                    if(regSrc == _C8) { DA(C_N); DA(v8Src); }
+                    if(regSrc == _C8) { DA(C_N); DA(vSrc); }
                     else DA(C_SRC);
                     break;
             }
             break;
     }
     // проверка на метку
-    auto label = searchLabel(_pc);
-    if(label) {
-        ssh_strcpy(&daResult, label);
-        ssh_strcpy(&daResult, ":\r\n");
+    if(flags & DA_LABEL) {
+        auto label = searchLabel(_pc);
+        if (label) {
+            ssh_strcpy(&daResult, label);
+            ssh_strcpy(&daResult, ":\r\n");
+        }
     }
     // заголовок
-    auto hex = opts[ZX_PROP_SHOW_HEX];
     if(flags & DA_PC) {
         static const char* bpTypes[] = { "\t", "*\t", "+\t", "*+\t"};
         ssh_strcpy(&daResult, ssh_fmtValue(_pc, ZX_FV_NUM16, true));
@@ -204,8 +242,8 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
     }
     if(flags & DA_CODE) {
         char* daCode = (char*)&TMP_BUF[65536 + 256]; auto cod = daCode;
-        int length = *pc - _pc;
-        for(int i = 0; i < length; i++) ssh_strcpy(&daCode, ssh_fmtValue(rm8((uint16_t)(_pc + i)), (i != (length - 1)) * 2, true));
+        int length = *buffer++;
+        for(int i = 0; i < length; i++) ssh_strcpy(&daCode, ssh_fmtValue(*buffer++, (i != (length - 1)) * 2, true));
         auto l = strlen(cod);
         ssh_strcpy(&daResult, cod);
         ssh_strcpy(&daResult, l >= 8 ? "\t" : "\t\t");
@@ -215,7 +253,7 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
         while(n-- > 0 ) *daCode++ = '\t';
 */
     }
-    auto posMnemonic = daResult;
+//    auto posMnemonic = daResult;
     // сама инструкция
     int idx = 0;
     char* lex(nullptr);
@@ -227,30 +265,32 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
             n = codes[idx++];
             lex = ssh_fmtValue(n, fmtTypes[token - C_N] , true);
             if(token == C_PNN) {
-                label = searchLabel(n);
-                ssh_strcpy(&daResult, label);
+                if(flags & DA_LABEL) {
+                    auto label = searchLabel(n);
+                    ssh_strcpy(&daResult, label);
+                }
                 if(flags & DA_PN) {
                     ssh_strcpy(&daResult, lex);
                     bool is16 = regDst & _R16 || regSrc & _R16;
-                    if(is16) n = rm16((uint16_t)n); else n = rm8((uint16_t)n);
-                    lex = ssh_fmtValue(n, is16 ? ZX_FV_PVAL16 : ZX_FV_PADDR8, true);
+                    if(!is16) val16 = (uint8_t)val16;
+                    lex = ssh_fmtValue(val16, is16 ? ZX_FV_PVAL16 : ZX_FV_PVAL8, true);
                 }
             }
         } else switch(token) {
                 case C_CB_PHL: // DDCB
-                    n = getDaOperand(_RPHL, _N_, pref);
+                    n = getOperand(_RPHL, _N_, pref);
                     o = (int8_t) offsSrc;
                     a = vSrc;
                     offs = true;
                     break;
                 case C_SRC:
-                    n = getDaOperand(regSrc, regDst, prefix);
+                    n = getOperand(regSrc, regDst, prefix);
                     o = (int8_t) offsSrc;
                     a = vSrc;
                     offs = prefix && regSrc == _RPHL;
                     break;
                 case C_DST:
-                    n = getDaOperand(regDst, regSrc, prefix);
+                    n = getOperand(regDst, regSrc, prefix);
                     o = (int8_t) offsDst;
                     a = vDst;
                     offs = prefix && regDst == _RPHL;
@@ -262,27 +302,51 @@ char* zxDA::daMake(uint16_t* pc, int flags, int bp, int prefix, int offset, int 
             ssh_strcpy(&daResult, namesCode[n]);
             if(offs) {
                 lex = ssh_fmtValue(o, ZX_FV_OFFS, true);
-                if(flags & DA_PNN) {
+                if (flags & DA_PNN) {
                     ssh_strcpy(&daResult, lex);
                     lex = ssh_fmtValue(a, ZX_FV_CVAL, true);
                 }
-                if(flags & DA_PN) {
-                    ssh_strcpy(&daResult, lex);
-                    lex = ssh_fmtValue(rm8((uint16_t)a), ZX_FV_PVAL8, true);
-                }
             } else lex = nullptr;
+            if((token == C_DST && regDst == _RPHL) || token == C_CB_PHL || (token == C_SRC && regSrc == _RPHL)) {
+                if (flags & DA_PN) {
+                    ssh_strcpy(&daResult, lex);
+                    lex = ssh_fmtValue((uint8_t) val16, ZX_FV_PVAL8, true);
+                }
+            }
         }
         ssh_strcpy(&daResult, lex);
     }
-    // эпилог (TICKS)
-    if(flags & DA_TICKS) {
-        auto length = strlen(posMnemonic) / 4;
+    // эпилог (REGS)
+    if(flags & DA_REGS) {
+        auto flag = *buffer++;
+        if(flag != 0) {
 /*
+            auto length = strlen(posMnemonic) / 4;
         n = hex ? 5 : 6; n -= length;
         while(n-- > 0) *daResult++ = '\t';
 */
-        ssh_strcpy(&daResult, ";");
-        //ssh_strcpy(&daResult, ssh_fmtValue(ticks, ZX_FV_NUMBER, false));
+            // AF
+            ssh_strcpy(&daResult, "; AF = ");
+            ssh_strcpy(&daResult, ssh_fmtValue(*buffer++, ZX_FV_CVAL, true));
+            // BC
+            ssh_strcpy(&daResult, " BC = ");
+            ssh_strcpy(&daResult, ssh_fmtValue(*buffer++, ZX_FV_CVAL, true));
+            // DE
+            ssh_strcpy(&daResult, " DE = ");
+            ssh_strcpy(&daResult, ssh_fmtValue(*buffer++, ZX_FV_CVAL, true));
+            // HL
+            ssh_strcpy(&daResult, " HL = ");
+            ssh_strcpy(&daResult, ssh_fmtValue(*buffer++, ZX_FV_CVAL, true));
+            // IX
+            ssh_strcpy(&daResult, " IX = ");
+            ssh_strcpy(&daResult, ssh_fmtValue(*buffer++, ZX_FV_CVAL, true));
+            // IY
+            ssh_strcpy(&daResult, " IY = ");
+            ssh_strcpy(&daResult, ssh_fmtValue(*buffer++, ZX_FV_CVAL, true));
+            // SP
+            ssh_strcpy(&daResult, " SP = ");
+            ssh_strcpy(&daResult, ssh_fmtValue(*buffer, ZX_FV_CVAL, true));
+        }
     }
     return result;
 }
