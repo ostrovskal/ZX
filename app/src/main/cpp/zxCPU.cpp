@@ -12,8 +12,6 @@
 
 static uint8_t tbl_parity[256];
 
-uint16_t zxCPU::PC = 0;
-
 uint8_t*  zxCPU::regs[36];
 uint8_t flags_cond[8] = {FZ, FZ, FC, FC, FPV, FPV, FS, FS};
 
@@ -145,9 +143,7 @@ int zxCPU::step() {
 
     incrementR();
 
-    auto PC = *_PC;
-
-    if(PC == 0) {
+    if(zxALU::PC == 0) {
         if(strcmp(ALU->presets(nullptr, ZX_CMD_PRESETS_NAME), "BASIC") != 0) {
             // несанкционированный сброс(ошибка в программе)
             ALU->signalRESET(true);
@@ -454,7 +450,7 @@ int zxCPU::step() {
                 res = *_B; flags = FH | FC | FPV;
                 if(fpv && rep) { *_PC -= 2; ticks = 21; }
                 break;
-            default: debug("found NONI(%i) from PC: %i", m->name, PC);
+            default: debug("found NONI(%i) from PC: %i", m->name, zxALU::PC);
         }
     }
     if(mskFlags) {
@@ -470,6 +466,13 @@ int zxCPU::step() {
         *_F &= ~mskFlags;
         *_F |= (f & mskFlags);
     }
+    if (opts[ZX_PROP_TRACER]) {
+        if (!prefix && !offset) {
+            auto length = zxDA::cmdParser(&zxALU::PC, (uint16_t *) &TMP_BUF[0], true);
+            ALU->ftracer.write(&length, 1);
+            ALU->ftracer.write(TMP_BUF, (size_t)length);
+        }
+    }
 /*
     static bool debug = false;
     if(PC == 4743) debug = true;
@@ -480,13 +483,6 @@ int zxCPU::step() {
             static char res[512];
             zxDA::cmdToString(buf, res, DA_PC | DA_CODE | DA_REGS | DA_PN | DA_PNN, 0);
             info(res);
-            if (opts[ZX_PROP_TRACER]) {
-                if (!prefix && !offset) {
-                    auto length = zxDA::cmdParser(&PC, (uint16_t *) &TMP_BUF, true);
-                    ALU->ftracer.write(&length, 1);
-                    ALU->ftracer.write(TMP_BUF, (size_t)length);
-                }
-            }
         }
     }
 */

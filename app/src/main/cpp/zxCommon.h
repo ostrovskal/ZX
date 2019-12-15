@@ -25,17 +25,16 @@ extern uint8_t* 			            labels;
 extern uint8_t* 			            TMP_BUF;
 extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
-extern BREAK_POINT 			            bps[8];
+extern BREAK_POINT*			            bps;
 
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
 #define ZX_TOTAL_RAM                    262144
 
 constexpr int ZX_BP_NONE                = 0; // не учитывается
-constexpr int ZX_BP_EXEC                = 1; // исполнение
+constexpr int ZX_BP_EXEC                = 0; // исполнение
 constexpr int ZX_BP_WMEM                = 2; // запись в память
 constexpr int ZX_BP_RPORT               = 3; // чтение из порта
 constexpr int ZX_BP_WPORT               = 4; // запись в порт
-constexpr int ZX_BP_PAUSE               = 32;// неактивная точка
 
 constexpr int ZX_BP_OPS_EQ              = 0; // ==
 constexpr int ZX_BP_OPS_NQ              = 1; // !=
@@ -72,6 +71,7 @@ constexpr int ZX_PROP_KEY_CURSOR_MODE = 79; // Режим курсора (E, G, 
 constexpr int ZX_PROP_KEY_MODE        = 80; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
 constexpr int ZX_PROP_VALUES_SEMI_ROW = 81; // Значения в полурядах клавиатуры (8) 93 - 100
 constexpr int ZX_PROP_VALUES_KEMPSTON = 89; // Значение для кемпстон-джойстика
+constexpr int ZX_PROP_JNI_RETURN_VALUE= 90; // Значение передаваемое из JNI
 constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 
 // 1. Булевы значения
@@ -160,19 +160,23 @@ constexpr int ZX_CMD_UPDATE_KEY         = 3; // Обковление кнопо�
 constexpr int ZX_CMD_PRESETS            = 4; // Установка/получение пресетов джойстика
 constexpr int ZX_CMD_POKE               = 5; // Установка POKE
 constexpr int ZX_CMD_DIAG               = 6; // Диагностика
-constexpr int ZX_CMD_PRESETS_SAVE       = 7; // Сохранить параметры джойстика
-constexpr int ZX_CMD_PRESETS_LOAD       = 8; // Загрузить параметры джойстика
-constexpr int ZX_CMD_PRESETS_LIST       = 9; // Получить список пресетов
-constexpr int ZX_CMD_PRESETS_NAME       = 10;// Получить имя программы
-constexpr int ZX_CMD_PRESETS_SET        = 11;// Установить имя программы
-constexpr int ZX_CMD_TRACER             = 12;// Запуск трасировщика
-constexpr int ZX_CMD_QUICK_BP           = 13;// Быстрая установка точки останова
-constexpr int ZX_CMD_TRACE_IN           = 14;// Трассировка с заходом
-constexpr int ZX_CMD_TRACE_OUT          = 15;// Трассировка без захода
-
+constexpr int ZX_CMD_TRACER             = 7; // Запуск трасировщика
+constexpr int ZX_CMD_QUICK_BP           = 8; // Быстрая установка точки останова
+constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
+constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
+
+constexpr int ZX_CMD_PRESETS_SAVE       = 0; // Сохранить параметры джойстика
+constexpr int ZX_CMD_PRESETS_LOAD       = 1; // Загрузить параметры джойстика
+constexpr int ZX_CMD_PRESETS_LIST       = 2; // Получить список пресетов
+constexpr int ZX_CMD_PRESETS_NAME       = 3;// Получить имя программы
+constexpr int ZX_CMD_PRESETS_SET        = 4;// Установить имя программы
+
+constexpr int ZX_CMD_TRACE_IN           = 0; // Трассировка с заходом
+constexpr int ZX_CMD_TRACE_OUT          = 1; // Трассировка с обходом
+constexpr int ZX_CMD_TRACE_OVER         = 2; // Трассировка с выходом
 
 // Комманды ввода/вывода
 constexpr int ZX_CMD_IO_STATE           = 0; // Загрузить/сохранить состояние

@@ -40,6 +40,7 @@ extern "C" {
     int zxExecute(JNIEnv*, jclass) {
         ALU->execute();
         if(*ALU->_STATE & ZX_BP) {
+            debug("zx_bp %i", zxALU::PC);
             modifySTATE(0, ZX_BP);
             return 2;
         }
@@ -142,8 +143,9 @@ extern "C" {
             abort();
         }
         opts = (uint8_t*) env->GetPrimitiveArrayCritical(props, nullptr);
-        ssh_memzero(opts, ZX_PROPS_COUNT);
+        bps = (BREAK_POINT*)&opts[258];
         env->ReleasePrimitiveArrayCritical((jarray)props, opts, JNI_ABORT);
+        ssh_memzero(opts, ZX_PROPS_COUNT);
         debug("zxProps finish");
     }
 
@@ -200,14 +202,15 @@ extern "C" {
         }
     }
 
-    long zxInt(JNIEnv*, jclass, jint idx, jboolean read, jint value) {
+    long zxInt(JNIEnv*, jclass, jint idx, jint mask, jboolean read, jint value) {
+        auto ret = (long)(*(uint32_t*)(opts + idx));
         if(!read) {
             debug("zxIntSave idx: %i value: %i", idx, value);
-            *(uint32_t*)(opts + idx) = (uint32_t)value;
+            ret &= ~mask; ret |= (value & mask);
+            *(uint32_t*)(opts + idx) = (uint32_t)ret;
         }
-        auto ret = (long)(*(uint32_t*)(opts + idx));
         debug("zxIntRead idx: %i value: %i", idx, ret);
-        return ret;
+        return (ret & mask);
     }
 
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
@@ -224,8 +227,8 @@ extern "C" {
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
             case ZX_CMD_TRACER:     ALU->startTracer(); break;
             case ZX_CMD_QUICK_BP:   ALU->quickBP((uint16_t)arg1); break;
-            case ZX_CMD_TRACE_IN:   ret = ALU->traceIn(); break;
-            case ZX_CMD_TRACE_OUT:  ret = ALU->traceOut(); break;
+            case ZX_CMD_TRACE_X:    ret = ALU->trace(arg1); break;
+            case ZX_CMD_STEP_DEBUG: ALU->stepDebug(); break;
         }
         debug("zxCmd finish");
         return ret;
@@ -233,6 +236,11 @@ extern "C" {
 
     jint zxStringToNumber(JNIEnv* env, jclass, jstring value, jint radix) {
         return *(jint*)ssh_ston(env->GetStringUTFChars(value, nullptr), (int)radix);
+    }
+
+    jstring zxDebuggerString(JNIEnv* env, jclass, jint cmd, jint data, jint flags) {
+        auto ret = ALU->debugger(cmd, data, flags);
+        return env->NewStringUTF(ret);
     }
 
     jstring zxFormatNumber(JNIEnv* env, jclass, jint value, jint radix, jboolean force) {
@@ -258,11 +266,12 @@ extern "C" {
             { "zxCmd", "(IIILjava/lang/String;)I", (void*)&zxCmd },
             { "zxIO", "(Ljava/lang/String;Z)Z", (void*)&zxIO },
             { "zxPresets", "(I)Ljava/lang/String;", (void*)&zxPresets },
-            { "zxInt", "(IZI)J", (void*)&zxInt },
+            { "zxInt", "(IIZI)J", (void*)&zxInt },
             { "zxFormatNumber", "(IIZ)Ljava/lang/String;", (void*)&zxFormatNumber },
+            { "zxDebuggerString", "(III)Ljava/lang/String;", (void*)&zxDebuggerString },
+            { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },
             { "zxSaveState", "()[B", (void*)&zxSaveState },
             { "zxLoadState", "([B)V", (void*)&zxLoadState },
-            { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },
             { "zxNumberToString", "(II)Ljava/lang/String;", (void*)&zxNumberToString }
     };
 
@@ -273,7 +282,7 @@ extern "C" {
             abort();
         }
         auto wnd = env->FindClass("ru/ostrovskal/zx/ZxWnd");
-        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)) - 4);
+        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)) - 3);
 
         return JNI_VERSION_1_6;
     }

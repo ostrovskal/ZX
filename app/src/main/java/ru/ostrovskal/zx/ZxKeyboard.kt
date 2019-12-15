@@ -26,7 +26,7 @@ class ZxKeyboard {
         "ATTR", "LN", "BEEP", "INK", "PAPER", "FLUSH", "BRIGHT", "OVER", "INVERSE", "CONT", "CLS", "BORDER", "NEXT", "PAUSE", "POINT",
         "*", "=", "<>", "<", ">", ">=", "<=", ",", "/", "?", ".", ":", ";", "&", "%", "+", "-", "_", "'", "\"", "EXP", "LPRINT", "LLIST",
         "BIN", "", "!", "#", "$", "(", ")", "@", "[", "]", "{", "}", "DEF FN", "OPEN", "CLOSE", "FORMAT", "LINE", "ERASE", "MOVE", "CAT",
-        "[C]", "[G]", "true", "invert", "SQP", "PI", "[L]", "[E]", "~", "|", "IN", "TILE"
+        "[C]", "[G]", "true", "invert", "SQP", "PI", "[L]", "[E]", "~", "|", "IN", "TILE", "BREAK"
     )
 
     fun update() {

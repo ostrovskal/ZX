@@ -26,6 +26,9 @@ import ru.ostrovskal.sshstd.ui.menuIcon
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.ZxCommon.*
 import java.io.FileNotFoundException
+import kotlin.experimental.and
+import kotlin.experimental.inv
+import kotlin.experimental.or
 
 class ZxWnd : Wnd() {
 
@@ -80,9 +83,14 @@ class ZxWnd : Wnd() {
     companion object {
         init { System.loadLibrary("zx-lib") }
 
+        fun modifyState(add: Byte, del: Byte) {
+            val state = props[ZX_CPU_STATE] and del.inv()
+            props[ZX_CPU_STATE] = state or add
+        }
+
         val menuProps               = listOf(  ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0,
                                                         ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER, ZX_PROP_TRACER,
-                                                        ZX_PROP_SHOW_HEX, ZX_PROP_SHOW_ADDRESS, ZX_PROP_SHOW_CODE, ZX_PROP_SHOW_CODE_VALUE)
+                                                        ZX_PROP_SHOW_ADDRESS, ZX_PROP_SHOW_CODE, ZX_PROP_SHOW_CODE_VALUE)
 
         val modelNames              = listOf(R.string.menu48kk, R.string.menu48k, R.string.menu128k, R.string.menuPentagon, R.string.menuScorpion)
 
@@ -92,7 +100,7 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_IO, R.integer.I_OPEN, R.integer.MENU_SETTINGS, R.integer.I_SETTINGS, R.integer.MENU_PROPS, R.integer.I_PROPS, R.integer.MENU_DISKS, R.integer.I_DISK,
                                                 R.integer.MENU_MODEL, R.integer.I_MODEL, R.integer.MENU_RESET, R.integer.I_RESET, R.integer.MENU_RESTORE, R.integer.I_RESTORE, R.integer.MENU_EXIT, R.integer.I_EXIT,
                                                 R.integer.MENU_PROPS_SOUND, R.integer.I_SOUND, R.integer.MENU_PROPS_TAPE, R.integer.I_CASSETE, R.integer.MENU_PROPS_FILTER, R.integer.I_FILTER, R.integer.MENU_PROPS_TURBO, R.integer.I_TURBO,
-                                                R.integer.MENU_PROPS_EXECUTE, R.integer.I_COMPUTER, R.integer.MENU_PROPS_DEBUGGER, R.integer.I_DEBUGGER, R.integer.MENU_DEBUGGER1, R.integer.I_DEBUGGER, R.integer.MENU_DEBUGGER_HEX_DEC, R.integer.I_HEX,
+                                                R.integer.MENU_PROPS_EXECUTE, R.integer.I_COMPUTER, R.integer.MENU_PROPS_DEBUGGER, R.integer.I_DEBUGGER, R.integer.MENU_DEBUGGER1, R.integer.I_DEBUGGER,
                                                 R.integer.MENU_PROPS_TRACER, R.integer.I_TRACER, R.integer.MENU_MRU, R.integer.I_MRU, R.integer.MENU_POKES, R.integer.I_POKES,
                                                 R.integer.MENU_DEBUGGER_ADDRESS, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
                                                 R.integer.MENU_DEBUGGER_VALUE, R.integer.I_VALUE)
@@ -124,13 +132,19 @@ class ZxWnd : Wnd() {
         external fun zxSurface(bmp: Bitmap)
 
         @JvmStatic
-        external fun zxInt(idx: Int, read: Boolean, value: Int): Long
+        external fun zxInt(idx: Int, mask: Int, read: Boolean, value: Int): Long
 
         @JvmStatic
         external fun zxPresets(cmd: Int): String
 
         @JvmStatic
         external fun zxFormatNumber(value: Int, fmt: Int, force: Boolean): String
+
+        @JvmStatic
+        external fun zxStringToNumber(value: String, radix: Int): Int
+
+        @JvmStatic
+        external fun zxDebuggerString(cmd: Int, data: Int, flags: Int): String
 /*
         @JvmStatic
         external fun zxNumberToString(value: Int, fmt: Int): String
@@ -141,8 +155,6 @@ class ZxWnd : Wnd() {
         @JvmStatic
         external fun zxLoadState(mem: ByteArray)
 
-        @JvmStatic
-        external fun zxStringToNumber(value: String, radix: Int): Int
 
 */
     }
@@ -211,7 +223,7 @@ class ZxWnd : Wnd() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         // установить иконки на элементы меню
-        for(idx in 0 until 48 step 2) {
+        for(idx in 0 until 46 step 2) {
             menu.findItem(menuItems[idx])?.let {
                 menuIcon(it, style_zx_toolbar) {
                     tile = resources.getInteger(menuItems[idx + 1])
@@ -224,8 +236,6 @@ class ZxWnd : Wnd() {
         menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = isDebugger
         menu.findItem(R.integer.MENU_KEYBOARD)?.apply { (icon as? TileDrawable)?.tile =
             resources.getInteger(if(props[ZX_PROP_SHOW_KEY].toBoolean) R.integer.I_KEY else R.integer.I_JOY); isVisible = !isDebugger }
-        menu.findItem(R.integer.MENU_DEBUGGER_HEX_DEC)?.apply { (icon as? TileDrawable)?.tile =
-            resources.getInteger(if(props[ZX_PROP_SHOW_HEX].toBoolean) R.integer.I_HEX else R.integer.I_DEC) }
         menu.findItem(R.integer.MENU_IO)?.setShowAsAction(if(config.portrait) SHOW_AS_ACTION_NEVER else SHOW_AS_ACTION_ALWAYS)
         this.menu = menu
         return true
@@ -238,7 +248,7 @@ class ZxWnd : Wnd() {
                 MENU_DISKS      -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
                 MENU_PROPS      -> repeat(7) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
                 MENU_MRU        -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
-                MENU_DEBUGGER1  -> repeat(4) { getItem(it).isChecked = props[menuProps[it + 9]].toBoolean }
+                MENU_DEBUGGER1  -> repeat(3) { getItem(it).isChecked = props[menuProps[it + 9]].toBoolean }
             }
         }
         return super.onMenuItemSelected(featureId, item)
@@ -263,7 +273,7 @@ class ZxWnd : Wnd() {
             MENU_DEBUGGER_ADDRESS, MENU_PROPS_TRACER,
             MENU_DEBUGGER_CODE, MENU_DEBUGGER_VALUE,
             MENU_PROPS_KEYBOARD, MENU_PROPS_SOUND,
-            MENU_PROPS_TURBO, MENU_DEBUGGER_HEX_DEC,
+            MENU_PROPS_TURBO,
             MENU_PROPS_TAPE, MENU_PROPS_EXECUTE     -> updatePropsMenuItem(item)
             MENU_DISK_A, MENU_DISK_B,
             MENU_DISK_C, MENU_DISK_D                -> {
@@ -300,9 +310,6 @@ class ZxWnd : Wnd() {
         val prop = menuProps[id - MENU_PROPS_KEYBOARD]
         val isChecked = !props[prop].toBoolean
 
-        if(id == MENU_DEBUGGER_HEX_DEC) {
-            drawable?.tile = if(isChecked) 53 else 54
-        }
         if(id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
             props[ZX_PROP_SHOW_KEY] = 0.toByte()
             props[ZX_PROP_SHOW_JOY] = 0.toByte()
@@ -311,9 +318,11 @@ class ZxWnd : Wnd() {
         }
         props[prop] = isChecked.toByte
         zxCmd(ZX_CMD_PROPS, 0, 0, "")
-        if(id == MENU_PROPS_DEBUGGER || id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK)
+        if(id == MENU_PROPS_DEBUGGER || id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
+            if(id == MENU_PROPS_DEBUGGER) modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
-        if((id == MENU_PROPS_DEBUGGER && isChecked) || id >= MENU_DEBUGGER_HEX_DEC)
+        }
+        if(id == MENU_PROPS_DEBUGGER || id == MENU_DEBUGGER_ADDRESS || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = ZX_ALL)
         if(id == MENU_PROPS_TRACER)
             zxCmd(ZX_CMD_TRACER, 0, 0, "")

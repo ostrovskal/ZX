@@ -109,12 +109,15 @@ public:
     // выполнение при трассировке
     int stepDebug();
 
-    int traceIn();
-
-    int traceOut();
+    int trace(int mode);
 
     // процессор
     zxCPU* cpu;
+
+    // начало инструкции
+    static uint16_t PC;
+
+    const char *debugger(int cmd, int data, int flags);
 
 protected:
 

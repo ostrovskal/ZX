@@ -15,18 +15,39 @@ public final class ZxCommon {
 
     public static final String ZX_AUTO_SAVE         = "auto_save.zx";
     public static final String ZX_TMP_SAVE          = "tmp_save.zx";
+    public final static byte ZX_DEBUGGER            = 0x20;
+
+    public final static int DA_PC                  = 1;
+    public final static int DA_CODE                = 2;
+    public final static int DA_REGS                = 4;
+    public final static int DA_PN                  = 8;
+    public final static int DA_PNN                 = 16;
+    public final static int DA_LABEL               = 32;
+
+    public final static byte ZX_BP_NONE                = 0; // не учитывается
+    public final static byte ZX_BP_EXEC                = 1; // исполнение
+    public final static byte ZX_BP_WMEM                = 2; // запись в память
+    public final static byte ZX_BP_RPORT               = 3; // чтение из порта
+    public final static byte ZX_BP_WPORT               = 4; // запись в порт
+
+    public final static int ZX_BP_OPS_EQ              = 0; // ==
+    public final static int ZX_BP_OPS_NQ              = 1; // !=
+    public final static int ZX_BP_OPS_GT              = 2; // >
+    public final static int ZX_BP_OPS_LS              = 3; // <
+    public final static int ZX_BP_OPS_GTE             = 4; // >=
+    public final static int ZX_BP_OPS_LSE             = 5; // <=
 
     // DEBUGGER ACTION
-    public final static int DEBUGGER_ACT_UNDO       = 0;
+    public final static int DEBUGGER_ACT_PREV       = 0;
     public final static int DEBUGGER_ACT_BP         = 1;
-    public final static int DEBUGGER_ACT_REDO       = 2;
+    public final static int DEBUGGER_ACT_NEXT       = 2;
     public final static int DEBUGGER_ACT_BP_LIST    = 3;
     public final static int DEBUGGER_ACT_ACTION     = 4;
-    public final static int DEBUGGER_ACT_PREV       = 5;
+    public final static int DEBUGGER_ACT_HEX_DEC    = 5;
     public final static int DEBUGGER_ACT_MODE       = 6;
-    public final static int DEBUGGER_ACT_NEXT       = 7;
-    public final static int DEBUGGER_ACT_TRACE_IN   = 8;
-    public final static int DEBUGGER_ACT_TRACE_OUT  = 9;
+    public final static int DEBUGGER_ACT_TRACE_IN   = 7;
+    public final static int DEBUGGER_ACT_TRACE_OUT  = 8;
+    public final static int DEBUGGER_ACT_TRACE_OVER = 9;
     public final static int DEBUGGER_ACT_SET_PC     = 10;
     public final static int DEBUGGER_ACT_SET_SP     = 11;
     public final static int DEBUGGER_ACT_SET_ASM    = 12;
@@ -36,15 +57,18 @@ public final class ZxCommon {
     public final static int ZX_REG                  = 2;
     public final static int ZX_SP                   = 4;
     public final static int ZX_SEL                  = 8;
-    public final static int ZX_ALL                  = ZX_PC | ZX_REG | ZX_SP | ZX_SEL;
+    public final static int ZX_LIST                 = 16;
+    public final static int ZX_ALL                  = ZX_PC | ZX_REG | ZX_SP | ZX_SEL | ZX_LIST;
 
     // REGISTERS
     public final static int ZX_CPU_F                = 6;
-    public final static int ZX_CPU_RAM              = 35;
-    public final static int ZX_CPU_ROM              = 36;
-    public final static int ZX_CPU_VID              = 37;
-    public final static int ZX_CPU_AY               = 42;
+    public final static int ZX_CPU_RAM              = 34;
+    public final static int ZX_CPU_ROM              = 35;
+    public final static int ZX_CPU_VID              = 36;
+    public final static int ZX_CPU_AY               = 41;
+    public final static int ZX_CPU_STATE            = 64;
     public final static int ZX_CPU_RR               = 25;
+    public final static int ZX_CPU_RI               = 24;
     public final static int ZX_CPU_AF1              = 6;
     public final static int ZX_CPU_AF2              = 14;
     public final static int ZX_CPU_HL1              = 4;
@@ -57,7 +81,6 @@ public final class ZxCommon {
     public final static int ZX_CPU_IY               = 18;
     public final static int ZX_CPU_PC               = 22;
     public final static int ZX_CPU_SP               = 20;
-    public final static int ZX_CPU_STATE            = 29;
 
     public final static int MENU_CLOUD              = 1000;
     public final static int MENU_IO                 = 1001;
@@ -78,13 +101,12 @@ public final class ZxCommon {
     public final static int MENU_PROPS_EXECUTE      = 1015;
     public final static int MENU_PROPS_DEBUGGER     = 1016;
     public final static int MENU_PROPS_TRACER       = 1017;
-    public final static int MENU_DEBUGGER_HEX_DEC   = 1018;
-    public final static int MENU_DEBUGGER_ADDRESS   = 1019;
-    public final static int MENU_DEBUGGER_CODE      = 1020;
-    public final static int MENU_DEBUGGER_VALUE     = 1021;
-    public final static int MENU_MRU                = 1022;
-    public final static int MENU_POKES              = 1023;
-    public final static int MENU_DEBUGGER1          = 1024;
+    public final static int MENU_DEBUGGER_ADDRESS   = 1018;
+    public final static int MENU_DEBUGGER_CODE      = 1019;
+    public final static int MENU_DEBUGGER_VALUE     = 1020;
+    public final static int MENU_MRU                = 1021;
+    public final static int MENU_POKES              = 1022;
+    public final static int MENU_DEBUGGER1          = 1023;
 
     public final static int MENU_DISK_A             = 1200;
     public final static int MENU_DISK_B             = 1201;
@@ -114,6 +136,7 @@ public final class ZxCommon {
     public final static int FORM_IO                 = 2;
     public final static int FORM_POKES              = 3;
     public final static int FORM_LOADING            = 4;
+    public final static int FORM_BREAK_POINTS       = 5;
 
     // Разделяемые свойства
 
@@ -122,10 +145,11 @@ public final class ZxCommon {
     public static final int ZX_PROP_JOY_KEYS        = 69; // Привазанные к джойстику коды кнопок клавиатуры (8) 69 - 76
     public static final int ZX_PROP_JOY_CROSS_VALUE = 77; // Нажатые кнопки джойстика-крестовины
     public static final int ZX_PROP_JOY_ACTION_VALUE= 78; // Нажатые кнопки джойстика-управления
-    public static final int ZX_PROP_KEY_CURSOR_MODE = 79; // Режим курсора (E, G, L, K т.п.)
+//    public static final int ZX_PROP_KEY_CURSOR_MODE = 79; // Режим курсора (E, G, L, K т.п.)
 //    public static final int ZX_PROP_KEY_MODE        = 80; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
 //    public static final int ZX_PROP_VALUES_SEMI_ROW = 81; // Значения в полурядах клавиатуры (8) 81 - 88
 //    public static final int ZX_PROP_VALUES_KEMPSTON = 89; // Значение для кемпстон-джойстика
+    public static final int ZX_PROP_JNI_RETURN_VALUE  = 90; // Значение передаваемое из JNI
     public static final int ZX_PROP_VALUES_BUTTON     = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 
     // 1. Булевы значения
@@ -140,7 +164,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_SND_AY          = 136; // Признак трехканального AY
     public static final int ZX_PROP_SND_8BIT        = 137; // Признак 8 битного звука
     public static final int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
-    public static final int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображений
+    public static final int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображении
     public static final int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
     public static final int ZX_PROP_SHOW_DEBUGGER   = 141; // Признак режима отладчика
     public static final int ZX_PROP_TRACER          = 142; // Признак записи трассировки
@@ -196,36 +220,28 @@ public final class ZxCommon {
     public static final int ZX_FV_NUMBER			= 22;// "0X", "0X"
     public static final int ZX_FV_SIMPLE			= 24;// "0X", "0X"
 
-    // Режимы курсора
-    public static final byte MODE_K                 = 0;
-    public static final byte MODE_L                 = 1;
-    public static final byte MODE_C                 = 2;
-    public static final byte MODE_E                 = 3;
-    public static final byte MODE_SK                = 4;
-    public static final byte MODE_SE                = 5;
-    public static final byte MODE_CL                = 6;
-    public static final byte MODE_CK                = 7;
-    public static final byte MODE_G                 = 8;
-    public static final byte MODE_G1                = 9;
-    public static final byte MODE_CE                = 10;
-
     // Команды
     public static final int ZX_CMD_MODEL            = 0;  // Установка модели памяти
     public static final int ZX_CMD_PROPS            = 1;  // Установка свойств
     public static final int ZX_CMD_RESET            = 2;  // Сброс
-    public static final int ZX_CMD_UPDATE_KEY       = 3;  // Обковление кнопок
+    public static final int ZX_CMD_UPDATE_KEY       = 3;  // Обновление кнопок
     public static final int ZX_CMD_PRESETS          = 4;  // Установка/получение пресетов джойстика
     public static final int ZX_CMD_POKE             = 5;  // Установка POKE
 //    public static final int ZX_CMD_DIAG             = 6;// Диагностика
-    public static final int ZX_CMD_PRESETS_SAVE     = 7;  // Сохранить параметры джойстика
-    public static final int ZX_CMD_PRESETS_LOAD     = 8;  // Загрузить параметры джойстика
-    public static final int ZX_CMD_PRESETS_LIST     = 9;  // Получить список пресетов
-    public static final int ZX_CMD_PRESETS_NAME     = 10; // Получить имя программы
-//    public static final int ZX_CMD_PRESETS_SET    = 11; // Установить имя программы
-public static final int ZX_CMD_TRACER               = 12; // Запуск трасировщика
-    public static final int ZX_CMD_QUICK_BP         = 13; // Быстрая установка точки останова
-    public static final int ZX_CMD_TRACE_IN         = 14; // Трассировка с заходом
-    public static final int ZX_CMD_TRACE_OUT        = 15; // Трассировка без захода
+public static final int ZX_CMD_TRACER               = 7;  // Запуск трасировщика
+    public static final int ZX_CMD_QUICK_BP         = 8;  // Быстрая установка точки останова
+    public static final int ZX_CMD_TRACE_X          = 9;  // Трассировка
+    public static final int ZX_CMD_STEP_DEBUG       = 10; // Выполнение в отладчике
+
+    public static final int ZX_CMD_PRESETS_SAVE     = 0; // Сохранить параметры джойстика
+    public static final int ZX_CMD_PRESETS_LOAD     = 1; // Загрузить параметры джойстика
+    public static final int ZX_CMD_PRESETS_LIST     = 2; // Получить список пресетов
+    public static final int ZX_CMD_PRESETS_NAME     = 3; // Получить имя программы
+//    public static final int ZX_CMD_PRESETS_SET    = 4; // Установить имя программы
+
+    public static final int ZX_CMD_TRACE_IN         = 0; // Трассировка с заходом
+    public static final int ZX_CMD_TRACE_OUT        = 1; // Трассировка с обходом
+    public static final int ZX_CMD_TRACE_OVER       = 2; // Трассировка с выходом
 
     // Тема по умолчанию
     public static final int[] themeDef = {
@@ -267,10 +283,7 @@ public static final int ZX_CMD_TRACER               = 12; // Запуск тра
             ATTR_COLOR_DEFAULT, 0xf77499 | COLOR,
             ATTR_CLICKABLE, 1,
             ATTR_PADDING, 0,
-            ATTR_MIN_HEIGHT, R.dimen.heightButton,
             ATTR_SSH_PRESSED_OFFS, 0,
-            ATTR_SSH_WIDTH_SELECTOR, 0,
-            ATTR_SSH_COLOR_SELECTOR, 0,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_SSH_HORZ, 2,
             ATTR_SSH_TILE, 1,
@@ -467,18 +480,21 @@ public static final int ZX_CMD_TRACER               = 12; // Запуск тра
     };
 
     public static final int[] style_debugger_ribbon = {
-            ATTR_SELECTOR, ATTR_SSH_COLOR_SELECTOR | THEME,
+            ATTR_SELECTOR, 0x007f00 | COLOR,
             ATTR_LONG_CLICKABLE, 1,
             ATTR_PADDING, 2
     };
 
     public static final int[] style_debugger_item = {
-            ATTR_SHADOW_TEXT, R.string.shadow_null,
-            ATTR_PADDING, 3,
+            //ATTR_SHADOW_TEXT, R.string.shadow_null,
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.START,
-            ATTR_SIZE, R.dimen.debuggerTextDef
+            ATTR_LONG_CLICKABLE, 1,
+            ATTR_FOCUSABLE, 1,
+            ATTR_CLICKABLE, 1,
+            ATTR_MAX_LINES, 1,
+            ATTR_SIZE, R.dimen.debuggerTextList
     };
 
     public static final int[] style_debugger_action = {

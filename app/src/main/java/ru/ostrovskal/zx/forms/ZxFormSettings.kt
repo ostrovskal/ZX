@@ -47,14 +47,11 @@ class ZxFormSettings : Form() {
                                                      // 47
                                                      "K←", "K→", "K↑", "K↓", "K*")
 
-    private val idNulls         = listOf(R.id.buttonNull1, R.id.buttonNull2, R.id.buttonNull3, R.id.buttonNull4, R.id.buttonNull5, R.id.buttonNull6,
-                                            R.id.buttonNull7, R.id.buttonNull8)
+    private val idNulls         = listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5, R.id.button6, R.id.button7, R.id.button8)
 
-    private val idSpinners      = listOf(R.id.spinnerKey1, R.id.spinnerKey2, R.id.spinnerKey3, R.id.spinnerKey4, R.id.spinnerKey5, R.id.spinnerKey6,
-                                            R.id.spinnerKey7, R.id.spinnerKey8)
+    private val idSpinners      = listOf(R.id.spinner5, R.id.spinner6, R.id.spinner7, R.id.spinner8, R.id.spinner9, R.id.spinner10, R.id.spinner11, R.id.spinner12)
 
-    private val idSeeks      = listOf(R.id.seekCommon1, R.id.seekCommon2, R.id.seekCommon3, R.id.seekCommon4, R.id.seekCommon5,
-                                            R.id.seekSnd1, R.id.seekSnd2)
+    private val idSeeks         = listOf(R.id.seek1, R.id.seek2, R.id.seek3, R.id.seek4, R.id.seek5, R.id.seek6, R.id.seek7, R.id.seek8, R.id.seek9, R.id.seek10)
 
     override fun getTheme() = R.style.dialog_progress
 
@@ -67,7 +64,7 @@ class ZxFormSettings : Form() {
                     val pos = y * 2 + x
                     if (pos < 5) {
                         text(textsCommon[pos], style_text_settings).lps(1 + x * 8, 1 + y * 6, 8, 3)
-                        seek(idSeeks[pos], rangeCommon[pos], true) {
+                        seek(idSeeks[pos + 5], rangeCommon[pos], true) {
                             setOnClickListener {
                                 ZxWnd.props[settingsCommon[pos]] = progress.toByte()
                                 when (pos) {
@@ -80,13 +77,13 @@ class ZxFormSettings : Form() {
                     }
                 }
             }
-            check(R.id.buttonNull1, R.string.settingsFPS) {
+            check(R.id.button1, R.string.settingsFPS) {
                 isChecked = ZxWnd.props[ZX_PROP_SHOW_FPS] != 0.toByte()
                 setOnClickListener {
                     ZxWnd.props[ZX_PROP_SHOW_FPS] = if(isChecked) 1 else 0
                 }
             }.lps(9, 15, 3, 3)
-            check(R.id.buttonNull2, R.string.settingsFrames) {
+            check(R.id.button2, R.string.settingsFrames) {
                 isChecked = ZxWnd.props[ZX_PROP_SKIP_FRAMES].toBoolean
                 setOnClickListener {
                     ZxWnd.props[ZX_PROP_SKIP_FRAMES] = if(isChecked) 1 else 0
@@ -100,7 +97,7 @@ class ZxFormSettings : Form() {
         var inner = false
         cellLayout(20, 20) {
             text(R.string.settingsJoyType, style_text_settings).lps(0, 0, 3, 4)
-            spinner(R.id.settingsJoyType) {
+            spinner(R.id.spinner1) {
                 adapter = ArrayListAdapter(context, Popup(), Item(), settingsJoyTypes)
                 itemClickListener = { _, _, p, _ ->
                     if(!inner) {
@@ -120,7 +117,7 @@ class ZxFormSettings : Form() {
                 }
             }.lps(2, 0, 7, 4)
             text(R.string.settingsJoyPreset, style_text_settings).lps(10, 0, 10, 4)
-            spinner(R.id.settingsJoyPreset) {
+            spinner(R.id.spinner2) {
                 adapter = ArrayListAdapter(context, Popup(), Item(), ZxWnd.zxPresets(ZX_CMD_PRESETS_LIST).split(','))
                 mIsSelection = false
                 itemClickListener = { _, v, _, _ ->
@@ -163,14 +160,14 @@ class ZxFormSettings : Form() {
                     val pos = y * 2 + x
                     text(textsSnd[pos], style_text_settings).lps(1 + x * 5, y * 9, 4, 3)
                     if(y == 0) {
-                        spinner(if(x == 0) R.id.settingsTypeAY else R.id.settingsFreq) {
+                        spinner(if(x == 0) R.id.spinner3 else R.id.spinner4) {
                             adapter = ArrayListAdapter(context, Popup(), Item(), if(x == 0) settingsAY else settingsFreq)
                             itemClickListener = { _, _, p, _ ->
                                 ZxWnd.props[settingsSnd[pos]] = p.toByte()
                             }
                         }.lps(x * 5, 3, 4, 4)
                     } else {
-                        val sk = seek(idSeeks[( pos and 1 ) + 5], if(x == 0) 0..15 else 0..100, true) {
+                        val sk = seek(idSeeks[pos and 1], if(x == 0) 0..15 else 0..100, true) {
                             setOnClickListener {
                                 ZxWnd.props[settingsSnd[pos]] = progress.toByte()
                             }
@@ -233,7 +230,7 @@ class ZxFormSettings : Form() {
                 }
             }
             repeat(3) {
-                seek(0, 0..255, true) {
+                seek(idSeeks[it + 2], 0..255, true) {
                     setOnClickListener { seek ->
                         val mask = arrayOf(0xffffff00, 0xffff00ff, 0xff00ffff)
                         (root as? TabLayout)?.apply {
@@ -329,7 +326,7 @@ class ZxFormSettings : Form() {
             }
             content.byIdx<Text>(idx).apply {
                 (background as? TileDrawable)?.apply {
-                    val color = ZxWnd.zxInt(ZX_PROP_COLORS + idx * 4, true, 0).toInt()
+                    val color = ZxWnd.zxInt(ZX_PROP_COLORS + idx * 4, 0xffffffff.toInt(), true, 0).toInt()
                     val b = (color and 0x00ff0000) shr 16
                     val g = color and 0x0000ff00
                     val r = (color and 0x000000ff) shl 16

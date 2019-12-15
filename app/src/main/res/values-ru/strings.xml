@@ -24,12 +24,16 @@
     <string name="menuScorpion">Скорпион 256K</string>
     <string name="menuKeyJoy">Клавиатура/Джойстик</string>
     <string name="hintName">имя</string>
+    <string name="headBps">Точки останова</string>
     <string name="headerIO">Операции</string>
     <string name="downloadCloud">Скачивание…</string>
     <string name="headerCloud">Загрузка из облака</string>
     <string name="connectCloud">Загрузка…</string>
     <string name="connectError">Не удалось подключиться к серверу. Проверьте свое интернет соединение!</string>
     <string name="hintAddress">адрес</string>
+    <string name="hintAddress1">начальный адрес</string>
+    <string name="hintAddress2">конечный адрес</string>
+    <string name="hintMask">маска</string>
     <string name="hintValue">значение</string>
     <string name="settingsHead">Установки</string>
     <string name="settingsFrames">Без кадров</string>

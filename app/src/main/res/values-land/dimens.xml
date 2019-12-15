@@ -13,4 +13,7 @@
     <dimen name="textSettings">14sp</dimen>
     <dimen name="settingsTextColor">14sp</dimen>
     <dimen name="actionBar">25dp</dimen>
+    <dimen name="widthBps">300dp</dimen>
+    <dimen name="heightBps">305dp</dimen>
+    <dimen name="debuggerTextList">9sp</dimen>
 </resources>

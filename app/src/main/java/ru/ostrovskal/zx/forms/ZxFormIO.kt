@@ -38,7 +38,7 @@ class ZxFormIO: Form() {
                 root = cellLayout(15, 15, 1.dp) {
                     formHeader(R.string.headerIO)
                     backgroundSet(style_form)
-                    editEx(R.id.editName, R.string.hintName, style_edit_zx) {
+                    editEx(R.id.edit1, R.string.hintName, style_edit_zx) {
                         maxLength = 27
                         inputType = InputType.TYPE_CLASS_TEXT
                         changeTextLintener = {
@@ -62,11 +62,10 @@ class ZxFormIO: Form() {
                         iconResource = R.integer.I_SAVE
                         setOnClickListener {
                             footer(BTN_OK, 0)
-                            wnd.hand?.send(RECEPIENT_SURFACE_BG, ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal, o = root.byId<Edit>(R.id.editName)?.text)
+                            wnd.hand?.send(RECEPIENT_SURFACE_BG, ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal, o = root.byId<Edit>(R.id.edit1)?.text)
                         }
                     }.lps(10, 4, 5, 3)
                     button {
-                        id = R.id.buttonNull3
                         isEnabled = false
                         iconResource = R.integer.I_DELETE
                         setOnClickListener {

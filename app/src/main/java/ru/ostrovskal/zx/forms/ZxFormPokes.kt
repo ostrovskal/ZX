@@ -28,16 +28,15 @@ class ZxFormPokes : Form() {
                 root = cellLayout(12, 6, 1.dp) {
                     formHeader(R.string.pokeHead)
                     backgroundSet(style_form)
-                    edit(R.id.editName, R.string.hintAddress, style_edit_zx) {
+                    edit(R.id.edit1, R.string.hintAddress, style_edit_zx) {
                         maxLength = 5
                         changeTextLintener = { enabledSet() }
                     }.lps(0, 0, 7, 2)
-                    edit(R.id.editValue, R.string.hintValue, style_edit_zx) {
+                    edit(R.id.edit2, R.string.hintValue, style_edit_zx) {
                         changeTextLintener = { enabledSet() }
                         maxLength = 3
                     }.lps(7, 0, 5, 2)
                     button {
-                        id = R.id.buttonNull1
                         iconResource = R.integer.I_SET
                         isEnabled = false
                         setOnClickListener {
@@ -47,7 +46,6 @@ class ZxFormPokes : Form() {
                         }
                     }.lps(0, 2, 6, 2)
                     button {
-                        id = R.id.buttonNull2
                         iconResource = R.integer.I_CLOSE
                         setOnClickListener {
                             footer(BTN_OK, 0)

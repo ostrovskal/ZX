@@ -11,10 +11,6 @@
         <menu>
             <group android:checkableBehavior="all">
                 <item
-                    android:id="@integer/MENU_DEBUGGER_HEX_DEC"
-                    android:title="@string/menuHexDec"
-                    android:showAsAction="never" />
-                <item
                     android:id="@integer/MENU_DEBUGGER_ADDRESS"
                     android:title="@string/menuAddress"
                     android:showAsAction="never" />

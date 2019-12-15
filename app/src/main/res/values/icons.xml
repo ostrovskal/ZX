@@ -84,6 +84,7 @@
     <integer name="I_G13">75</integer>
     <integer name="I_G14">76</integer>
     <integer name="I_E_INK_MAGENTA">78</integer>
+    <integer name="I_TRACE_OVER">79</integer>
 
     <integer name="I_CASSETE">80</integer>
     <integer name="I_DISPLAY">81</integer>

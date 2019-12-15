@@ -57,7 +57,6 @@ class ZxFormMain: Form() {
                 layoutParams = CellLayout.LayoutParams(0, 15 - heightKeyboard, 11, heightKeyboard.toInt())
                 if (show == View.VISIBLE) {
                     val szTextButton = sizeButtonText[heightKeyboard.toInt()].sp
-                    "sz: $szTextButton hk: $heightKeyboard".info()
                     loopChildren { (it as? TextView)?.setTextSize(TypedValue.COMPLEX_UNIT_PX, szTextButton) }
                 }
             }
@@ -69,7 +68,7 @@ class ZxFormMain: Form() {
     override fun inflateContent(container: LayoutInflater) = ui {
         root = cellLayout(11, 15) {
             zxview = zxView { id = R.id.zxView; }
-            debLyt = debugger.layout(this).lps(0, 10, 11, 9)
+            debLyt = debugger.layout(wnd, this).lps(0, 10, 11, 9)
             keyLyt = keyboard.layout(this).lps(0, 10, 11, 4)
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)

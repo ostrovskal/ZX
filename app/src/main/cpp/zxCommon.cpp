@@ -9,9 +9,9 @@ uint8_t*    TMP_BUF     = nullptr;
 zxALU*      ALU         = nullptr;
 uint8_t*    opts        = nullptr;
 uint8_t*    labels      = nullptr;
+BREAK_POINT* bps        = nullptr;
 
 // массив точек останова
-BREAK_POINT bps[8];
 
 std::string FOLDER_FILES= "data/data/ru.ostrovskal.zx/files/";
 std::string FOLDER_CACHE= "data/data/ru.ostrovskal.zx/cache/";
@@ -170,7 +170,7 @@ static int stoi(const char** s, uint8_t order, uint8_t msk) {
     char ch;
     while((ch = *++end)) {
         if(ch >='a') ch -= 32;
-        if(ch < '0' && ch > 'F') break;
+        if(ch < '0' || ch > 'F') break;
         if (!(tbl[ch & 31] & msk)) break;
     }
     *s = end;

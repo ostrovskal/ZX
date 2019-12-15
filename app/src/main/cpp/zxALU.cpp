@@ -5,12 +5,15 @@
 #include "zxCommon.h"
 #include "zxALU.h"
 #include "stkMnemonic.h"
+#include "zxDA.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "missing_default_case"
 
 // текущий счетчик инструкций
 uint32_t* zxALU::_TICK(nullptr);
+
+uint16_t zxALU::PC(0);
 
 // актуальные страницы
 uint8_t* zxALU::pageTRDOS(nullptr);
@@ -75,8 +78,6 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surfa
     RAMs = new uint8_t[ZX_TOTAL_RAM];
 
     for (int i = 0; i < 16; i++) PAGE_RAM[i] = (RAMs + i * 16384);
-
-    ssh_memzero(&bps, sizeof(bps));
 
     // инициализация системы
     _MODEL     		= &opts[MODEL];
@@ -578,7 +579,7 @@ void zxALU::signalRESET(bool resetTape) {
 }
 
 void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
-    if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_WPORT)) return;
+    if(*_STATE & ZX_DEBUG) { if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_WPORT)) return; }
     if(*_STATE & ZX_TRDOS) {
 /*
         switch(A0A7) {
@@ -651,7 +652,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
 }
 
 uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
-    if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_RPORT)) return _FF;
+    if(*_STATE & ZX_DEBUG) { if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_RPORT)) return _FF; }
     switch(A0A7) {
         // звук AY
 //        case 0xFD: if(A8A15 == 0xff) return snd->ayRegs[*zxSND::_AY_REG]; break;
@@ -691,6 +692,7 @@ int zxALU::stepDebug() {
     // перехват системных процедур
 //    auto ticks = tape->trap(*cpu->_PC);
     // выполнение операции
+    PC = *cpu->_PC;
     ticks += cpu->step();
     *_TICK += ticks;
     return ticks;
@@ -699,6 +701,7 @@ int zxALU::stepDebug() {
 int zxALU::step(bool allow_int) {
     if(!opts[ZX_PROP_EXECUTE]) return 0;
     // проверить на точку останова для кода
+    PC = *cpu->_PC;
     if(*_STATE & ZX_DEBUG) { if(checkBPs(*cpu->_PC, ZX_BP_EXEC)) return 0; }
     int ticks = 0;
     // установить возможность прерывания
@@ -852,8 +855,6 @@ bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
     for(int i = 0 ; i < 8 ; i++) {
         auto bp = &bps[i];
         auto flag = bp->flg;
-        if(flag & 32) continue;
-        flag &= 31;
         if(flag != flg) continue;
         if(address >= bp->address1 && address <= bp->address2) {
             res = true;
@@ -872,24 +873,42 @@ bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
             }
         }
         if(res) {
+            debug("checkBPs %i", address);
             // установить глобальную остановку системы
             opts[ZX_PROP_EXECUTE] = 0;
             // сообщение для выхода - обновить отладчик
             modifySTATE(ZX_BP, 0);
-            // вернуть адрес декодирования на начало инструкции
-            *cpu->_PC = zxCPU::PC;
+            // вернуть на начало инструкции (в случае доступа к портам или памяти)
+            *cpu->_PC = PC;
             break;
         }
     }
     return res;
 }
 
-int zxALU::traceIn() {
+int zxALU::trace(int mode) {
     return 0;
 }
 
-int zxALU::traceOut() {
-    return 0;
+const char *zxALU::debugger(int cmd, int data, int flags) {
+    auto buf = (uint16_t *) &TMP_BUF[0];
+    auto res = (char*) &TMP_BUF[512];
+    auto tmp = data;
+    switch(cmd) {
+        case 0:
+            // disassembler
+            zxDA::cmdParser((uint16_t*)&tmp, buf, false);
+            zxDA::cmdToString(buf, res, flags, 0);
+            opts[ZX_PROP_JNI_RETURN_VALUE] = (uint8_t)(tmp - data);
+            break;
+        case 1:
+            // stack
+            break;
+        case 2:
+            // data
+            break;
+    }
+    return res;
 }
 
 #pragma clang diagnostic pop

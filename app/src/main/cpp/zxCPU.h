@@ -47,7 +47,7 @@ enum CPU_REGS {
     RTMP,
     STATE,
     MODEL,
-    // 67
+    // 66
     COUNT_REGS
 };
 
@@ -108,9 +108,6 @@ public:
 
     // адреса регистров
     static uint8_t*  regs[36];
-
-    // ПС при старте декодирования инструкции
-    static uint16_t PC;
 
 protected:
 

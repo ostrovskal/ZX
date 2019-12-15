@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <array name="idsBp">
+        <item>@id/edit1</item>
+        <item>@id/edit2</item>
+        <item>@id/edit3</item>
+        <item>@id/edit4</item>
+        <item>@id/spinner1</item>
+        <item>@id/spinner2</item>
+    </array>
+    <array name="hintsBp">
+        <item>@string/hintAddress1</item>
+        <item>@string/hintAddress2</item>
+        <item>@string/hintValue</item>
+        <item>@string/hintMask</item>
+    </array>
+
     <array name="settingsCommonTexts">
         <item>@string/settingsCPU</item>
         <item>@string/settingsBLINK</item>
@@ -165,6 +180,11 @@
         <item>@string/clazz_cloud</item>
         <item>0</item>
         <item>@string/tag_cloud</item>
+        <item>0</item>
+
+        <item>@string/clazz_bps</item>
+        <item>0</item>
+        <item>@string/tag_bps</item>
         <item>0</item>
     </array>
 </resources>
