@@ -17,6 +17,7 @@ import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.cellLayout
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.*
+import ru.ostrovskal.zx.ZxCommon.ZX_LIST
 
 @Suppress("unused")
 class ZxFormMain: Form() {
@@ -80,6 +81,7 @@ class ZxFormMain: Form() {
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
+        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_LIST, delay = 100)
     }
 
     @SuppressLint("SetTextI18n")

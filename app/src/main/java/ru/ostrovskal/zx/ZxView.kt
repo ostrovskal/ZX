@@ -45,7 +45,7 @@ class ZxView(context: Context) : Surface(context) {
     // Кисть для отрисовки сообщения
     private var sys 				= Paint().apply {
         color = Color.GREEN
-        textSize = 32f.dp
+        textSize = 24f.dp
         textAlign = Paint.Align.CENTER
         typeface = context.makeFont("large")
         setShadowLayer(2f.dp, 4f.dp, 4f.dp, 0x0.color)

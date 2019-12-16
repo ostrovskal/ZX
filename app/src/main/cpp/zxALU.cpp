@@ -904,16 +904,25 @@ const char *zxALU::debugger(int cmd, int data, int flags) {
         case ZX_DEBUGGER_MODE_SP: {
                 // stack addr       >content<     chars
                 auto isSP = tmp == *cpu->_SP;
-                auto val = rm16(tmp);
-                ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
+                int val;
+                auto length = 5 - opts[ZX_PROP_SHOW_HEX];
+                if(data < 65535 && data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
+                else ssh_char(&rtmp, '?', length);
                 auto count = 8 - isSP;
                 ssh_char(&rtmp, ' ', count);
                 if(isSP) *rtmp++ = '>';
-                ssh_strcpy(&rtmp, ssh_fmtValue((int)(val), ZX_FV_OPS16, true));
+                if(data < 65535 && data >= 0) {
+                    val = rm16((uint16_t)data);
+                    ssh_strcpy(&rtmp, ssh_fmtValue(val, ZX_FV_OPS16, true));
+                } else {
+                    ssh_char(&rtmp, '?', length);
+                    val = -1;
+                }
                 if(isSP) *rtmp++ = '<';
                 ssh_char(&rtmp, ' ', count);
-                for (int i = 0; i < 8; i++) {
-                    auto v = rm8((uint16_t) (val + i));
+                uint8_t v;
+                for (int i = 0; i < 16; i++) {
+                    if(val < 0) v = 0; else v = rm8((uint16_t) (val + i));
                     if (v < 32) v = '.';
                     else if(v > 127) v = '.';
                     *rtmp++ = v;
@@ -928,7 +937,7 @@ const char *zxALU::debugger(int cmd, int data, int flags) {
                 auto tres = rtmp + 256;
                 // flags значений
                 // address
-                if(data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue((int)tmp, ZX_FV_OPS16, true));
+                if(data < 65536 && data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
                 else ssh_char(&rtmp, '?', 5 - opts[ZX_PROP_SHOW_HEX]);
                 ssh_char(&rtmp, ' ', 3);
                 for (int i = 0; i < flags; i++) {
@@ -966,7 +975,7 @@ int zxALU::debuggerTrace(int mode) {
 }
 
 int zxALU::debuggerJump(int address, int mode) {
-    uint16_t ret;
+    uint16_t ret(0);
     switch(mode) {
         case ZX_DEBUGGER_MODE_PC:
             // взять инструкцию по адресу
@@ -980,7 +989,7 @@ int zxALU::debuggerJump(int address, int mode) {
             mode = -1;
             break;
     }
-    opts[ZX_PROP_JNI_RETURN_VALUE] = ret;
+    *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE) = ret;
     return mode;
 }
 

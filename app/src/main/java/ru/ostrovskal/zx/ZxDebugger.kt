@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
+import android.text.InputType
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -182,7 +183,7 @@ class ZxDebugger {
         fun notify(item: ItemView, long: Boolean) {
             val data = itemAddr[indexOfChild(item)]
             if(long) fromItem(data)
-            else update(data, ZX_LIST or ZX_SEL)
+            else update(data, ZX_SL)
         }
     }
 
@@ -220,52 +221,12 @@ class ZxDebugger {
         ZxRegister(ZX_FV_OPS16, R.id.edit26, R.string.rsp,    ZX_CPU_SP)
     )
 
-    private val coordsLand = intArrayOf(
-        33,
-        18, 0, 3, 2,   21, 0, 3, 2,   24, 0, 3, 2,  27, 0, 3, 2,  30, 0, 3, 2,
-        18, 2, 3, 2,   21, 2, 3, 2,   24, 2, 3, 2,  27, 2, 3, 2,
-        24, 13, 2, 1,  31, 13, 2, 1,  31, 14, 2, 1,
-        0, 0, 18, 15,
-        18, 4, 2, 1,   18, 5, 2, 1,   20, 4, 2, 1,  20, 5, 2, 1,  22, 4, 2, 1, 22, 5, 2, 1,
-        24, 4, 2, 1,   24, 5, 2, 1,   26, 4, 2, 1,  26, 5, 2, 1,  28, 4, 2, 1, 28, 5, 2, 1,
-        30, 4, 2, 1,   30, 5, 2, 1,   32, 4, 2, 1,  32, 5, 2, 1,
-        18, 6, 2, 1,   20, 6, 3, 1,   23, 6, 2, 1,  25, 6, 3, 1,  28, 6, 2, 1, 30, 6, 3, 1,
-        18, 7, 2, 1,   20, 7, 3, 1,   23, 7, 2, 1,  25, 7, 3, 1,  28, 7, 2, 1, 30, 7, 3, 1,
-        18, 8, 2, 1,   20, 8, 6, 1,   26, 8, 2, 1,  28, 8, 6, 1,
-        18, 9, 2, 1,   20, 9, 6, 1,   26, 9, 2, 1,  28, 9, 6, 1,
-        18, 10, 2, 1,  20, 10, 6, 1,  26, 10, 2, 1, 28, 10, 6, 1,
-        18, 11, 2, 1,  20, 11, 6, 1,  26, 11, 2, 1, 28, 11, 6, 1,
-        18, 12, 2, 1,  20, 12, 6, 1,  26, 12, 2, 1, 28, 12, 6, 1,
-        18, 13, 2, 1,  20, 13, 4, 1,  26, 13, 2, 1, 28, 13, 3, 1,
-        18, 14, 13, 2)
-
-    private val coordsPort = intArrayOf(
-        32,
-        0, 0, 3, 2,    3, 0, 3, 2,    6, 0, 4, 2,   10, 0, 3, 2,  13, 0, 3, 2,
-        16, 0, 4, 2,   20, 0, 4, 2,   24, 0, 4, 2,  28, 0, 4, 2,
-        22, 6, 2, 1,   30, 6, 2, 1,   29, 7, 3, 1,
-        0, 8, 34, 7,
-        0, 2, 2, 1,    2, 2, 2, 1,    4, 2, 2, 1,   6, 2, 2, 1,   8, 2, 2, 1,   10, 2, 2, 1,
-        12, 2, 2, 1,   14, 2, 2, 1,   16, 2, 2, 1,  18, 2, 2, 1,  20, 2, 2, 1,  22, 2, 2, 1,
-        24, 2, 2, 1,   26, 2, 2, 1,   28, 2, 2, 1,  30, 2, 2, 1,
-
-        1, 3, 2, 1,    3, 3, 3, 1,    6, 3, 2, 1,   8, 3, 3, 1,   11, 3, 2, 1,  13, 3, 3, 1,
-        16, 3, 2, 1,   18, 3, 3, 1,   21, 3, 2, 1,  23, 3, 3, 1,  26, 3, 2, 1,  28, 3, 3, 1,
-
-        0, 4, 2, 1,    2, 4, 6, 1,    8, 4, 2, 1,   10, 4, 6, 1,
-        16, 4, 2, 1,   18, 4, 6, 1,   24, 4, 2, 1,  26, 4, 6, 1,
-        0, 5, 2, 1,    2, 5, 6, 1,    8, 5, 2, 1,   10, 5, 6, 1,
-        16, 5, 2, 1,   18, 5, 6, 1,   24, 5, 2, 1,  26, 5, 6, 1,
-        0, 6, 2, 1,    2, 6, 6, 1,    8, 6, 2, 1,   10, 6, 6, 1,
-        16, 6, 2, 1,   18, 6, 4, 1,   24, 6, 2, 1,  26, 6, 4, 1,
-        0, 7, 29, 1)
-
     fun layout(wnd: Wnd, ui: CellLayout) = with(ui) {
         val iconAction = listOf(R.integer.I_HEX, R.integer.I_PREV, R.integer.I_BP, R.integer.I_NEXT, R.integer.I_LIST_BP,
                                 R.integer.I_PLAY, R.integer.I_TRACE_IN, R.integer.I_TRACE_OUT, R.integer.I_TRACE_OVER,
                                 R.integer.I_PLAY, R.integer.I_PLAY, R.integer.I_PLAY)
         this@ZxDebugger.wnd = wnd
-        val coord = if(config.portrait) coordsPort else coordsLand
+        val coord = if(config.portrait) debuggerPort else debuggerLand
         var pos = 0; var idx = 0
         cellLayout(coord[pos++], 15) {
             backgroundSet(style_form)
@@ -289,7 +250,7 @@ class ZxDebugger {
             repeat(8) {
                 registers[it].text = text(registers[it].nm, style_debugger_text).
                     lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
-                registers[it].edit = edit(registers[it].id, R.string.null_text, style_debugger_edit) { maxLength = 1 }.
+                registers[it].edit = edit(registers[it].id, R.string.null_text, style_debugger_edit) { inputType = InputType.TYPE_NULL }.
                     lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
                 pos += 8
             }
@@ -298,7 +259,7 @@ class ZxDebugger {
             repeat(6) {
                 registers[idx].text = text(registers[idx].nm, style_debugger_text).
                     lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
-                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) { maxLength = 4 }.
+                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) { inputType = InputType.TYPE_NULL }.
                     lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
                 pos += 8
                 idx++
@@ -320,6 +281,7 @@ class ZxDebugger {
     }
 
     fun update(data: Int, flags: Int) {
+        "update $data $flags".info()
         // обновление регистров
         if(flags test ZX_REG) {
             registers.forEach {reg ->
@@ -335,8 +297,7 @@ class ZxDebugger {
                 else if(reg.id == R.id.edit26) nSP = nval
             }
             entrySP = nSP
-            entrySP -= ((countItems + 1) and -2)
-            correctSP()
+            entrySP -= (countItems and -2)
         }
         if(flags test ZX_PC) {
             // читаем текущий PC
@@ -346,7 +307,6 @@ class ZxDebugger {
         }
         if(flags test ZX_DT) {
             entryData = data
-            correctDT()
         }
         if(flags test ZX_SEL) {
             selItem = data
@@ -366,9 +326,9 @@ class ZxDebugger {
                         entryPC
                     }
                     // 2. стек - СП - новый СП
-                    ZX_DEBUGGER_MODE_SP     -> { entrySP }
+                    ZX_DEBUGGER_MODE_SP     -> { correctSP(); entrySP }
                     // 3. данные - адрес
-                    ZX_DEBUGGER_MODE_DT    -> { flg = countData; entryData }
+                    ZX_DEBUGGER_MODE_DT    -> { flg = countData; correctDT(); entryData }
                     else                   -> error("Wrong debugger mode!")
                 }
                 repeat(count) { item ->
@@ -388,7 +348,7 @@ class ZxDebugger {
     private fun correctSP(): Boolean {
         val entry = entrySP
         val delta = entry % 2
-        if(entrySP < 0) entrySP = 0 + delta
+        if(entrySP < 0) entrySP = -delta
         else if((entrySP + countItems * 2) > 65535)
             entrySP = (65536 - countItems * 2) + delta
         return entry != entrySP
@@ -434,7 +394,7 @@ class ZxDebugger {
             DEBUGGER_ACT_PREV      -> {
                 posPC += if(cmd == DEBUGGER_ACT_PREV) -1 else 1
                 data = storyPC[posPC]
-                flags = ZX_PC or ZX_SEL or ZX_LIST
+                flags = ZX_PSL
             }
             DEBUGGER_ACT_BP        -> {
                 ZxWnd.zxCmd(ZX_CMD_QUICK_BP, selItem, 0, "")
@@ -448,7 +408,7 @@ class ZxDebugger {
                 ZxWnd.props[ZX_PROP_EXECUTE] = if(isExecute) 0 else 1
                 if(!isExecute) ZxWnd.zxCmd(ZX_CMD_STEP_DEBUG, 0, 0, "")
                 if(isExecute) {
-                    data = nPC//ZxWnd.read16(ZX_CPU_PC)
+                    data = ZxWnd.read16(ZX_CPU_PC)
                     flags = ZX_ALL
                 } else flags = ZX_STORY
             }
@@ -456,12 +416,12 @@ class ZxDebugger {
             DEBUGGER_ACT_TRACE_OUT,
             DEBUGGER_ACT_TRACE_OVER -> {
                 ZxWnd.zxCmd(ZX_CMD_TRACE_X, cmd - DEBUGGER_ACT_TRACE_IN, 0, "")
-                data = nPC//ZxWnd.read16(ZX_CPU_PC)
-                flags = ZX_LIST or ZX_REG or ZX_SEL
+                data = ZxWnd.read16(ZX_CPU_PC)
+                flags = ZX_RSL
             }
             DEBUGGER_ACT_HEX_DEC    -> {
                 ZxWnd.props[ZX_PROP_SHOW_HEX] = if(ZxWnd.props[ZX_PROP_SHOW_HEX].toBoolean) 0 else 1
-                flags = ZX_LIST or ZX_REG
+                flags = ZX_RL
             }
             DEBUGGER_ACT_SET_PC    -> {
 
@@ -492,29 +452,27 @@ class ZxDebugger {
     }
 
     fun fromItem(data: Int) {
+        "fromItem $data".info()
         val ret = ZxWnd.zxCmd(ZX_CMD_JUMP, data, listMode, "")
         val dat = ZxWnd.read16(ZX_PROP_JNI_RETURN_VALUE)
         when(ret) {
             ZX_DEBUGGER_MODE_PC       -> {
                 listMode = ret
-                update(dat, ZX_PC or ZX_LIST or ZX_SEL)
+                update(dat, ZX_PYSL)
             }
             ZX_DEBUGGER_MODE_DT       -> {
                 listMode = ret
-                update(dat, ZX_DT or ZX_LIST or ZX_SEL)
+                update(dat, ZX_DSL)
             }
         }
-        update(data, ZX_SEL or ZX_LIST)
     }
 
     fun save(state: Bundle) {
-        val s = this.marshall()
-        state.putByteArray("debugger", s)
+        state.putByteArray("debugger", marshall())
     }
 
     fun restore(state: Bundle) {
-        state.getByteArray("debugger")?.apply {
-            this.unmarshall(this)
-        }
+        state.getByteArray("debugger")?.let { unmarshall(it) }
+        "$list $listMode $selItem $entryPC $entryData $entrySP".info()
     }
 }

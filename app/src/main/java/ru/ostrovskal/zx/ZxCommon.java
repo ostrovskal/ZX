@@ -59,6 +59,12 @@ public final class ZxCommon {
     public final static int ZX_LIST                 = 16;
     public final static int ZX_STORY                = 32;
     public final static int ZX_ALL                  = ZX_PC | ZX_REG | ZX_SEL | ZX_LIST | ZX_STORY | ZX_DT;
+    public final static int ZX_SL                   = ZX_SEL | ZX_LIST;
+    public final static int ZX_PSL                  = ZX_PC | ZX_SEL | ZX_LIST;
+    public final static int ZX_DSL                  = ZX_DT | ZX_SEL | ZX_LIST;
+    public final static int ZX_RSL                  = ZX_REG | ZX_SEL | ZX_LIST;
+    public final static int ZX_RL                   = ZX_REG | ZX_LIST;
+    public final static int ZX_PYSL                 = ZX_PC | ZX_STORY | ZX_SEL | ZX_LIST;
 
     // REGISTERS
     public final static int ZX_CPU_F                = 6;
@@ -556,4 +562,49 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     public static final int[] settingsSnd       = { ZX_PROP_SND_TYPE_AY, ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
     public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_TYPE_AY, 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
                                                     ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_8BIT, ZX_PROP_SND_SAVE};
+
+    public static final int[] debuggerLand = {
+            30,
+            20, 0, 2, 2,   22, 0, 2, 2,   24, 0, 2, 2,  26, 0, 2, 2,  28, 0, 2, 2,
+            21, 2, 2, 2,   23, 2, 2, 2,   25, 2, 2, 2,  27, 2, 2, 2,
+            24, 13, 1, 1,  29, 13, 1, 1,  28, 14, 2, 1,
+            0, 0, 20, 15,
+            21, 4, 1, 1,   21, 5, 1, 1,   22, 4, 1, 1,  22, 5, 1, 1,  23, 4, 1, 1, 23, 5, 1, 1,
+            24, 4, 1, 1,   24, 5, 1, 1,   25, 4, 1, 1,  25, 5, 1, 1,  26, 4, 1, 1, 26, 5, 1, 1,
+            27, 4, 1, 1,   27, 5, 1, 1,   28, 4, 1, 1,  28, 5, 1, 1,
+
+            20, 6, 1, 1,   21, 6, 2, 1,   23, 6, 1, 1,  24, 6, 2, 1,  26, 6, 1, 1, 27, 6, 2, 1,
+            20, 7, 1, 1,   21, 7, 2, 1,   23, 7, 1, 1,  24, 7, 2, 1,  26, 7, 1, 1, 27, 7, 2, 1,
+
+            20, 8, 2, 1,   22, 8, 3, 1,   25, 8, 2, 1,  27, 8, 3, 1,
+            20, 9, 2, 1,   22, 9, 3, 1,   25, 9, 2, 1,  27, 9, 3, 1,
+            20, 10, 2, 1,  22, 10, 3, 1,  25, 10, 2, 1, 27, 10, 3, 1,
+            20, 11, 2, 1,  22, 11, 3, 1,  25, 11, 2, 1, 27, 11, 3, 1,
+            20, 12, 2, 1,  22, 12, 3, 1,  25, 12, 2, 1, 27, 12, 3, 1,
+            20, 13, 1, 1,  21, 13, 3, 1,  25, 13, 1, 1, 26, 13, 3, 1,
+            20, 14, 8, 1
+    };
+
+    public static final int[] debuggerPort = {
+            32,
+            0, 0, 3, 2,    3, 0, 3, 2,    6, 0, 4, 2,   10, 0, 3, 2,  13, 0, 3, 2,
+            16, 0, 4, 2,   20, 0, 4, 2,   24, 0, 4, 2,  28, 0, 4, 2,
+            22, 6, 2, 1,   30, 6, 2, 1,   29, 7, 3, 1,
+            0, 8, 34, 7,
+            0, 2, 2, 1,    2, 2, 2, 1,    4, 2, 2, 1,   6, 2, 2, 1,   8, 2, 2, 1,   10, 2, 2, 1,
+            12, 2, 2, 1,   14, 2, 2, 1,   16, 2, 2, 1,  18, 2, 2, 1,  20, 2, 2, 1,  22, 2, 2, 1,
+            24, 2, 2, 1,   26, 2, 2, 1,   28, 2, 2, 1,  30, 2, 2, 1,
+
+            1, 3, 2, 1,    3, 3, 3, 1,    6, 3, 2, 1,   8, 3, 3, 1,   11, 3, 2, 1,  13, 3, 3, 1,
+            16, 3, 2, 1,   18, 3, 3, 1,   21, 3, 2, 1,  23, 3, 3, 1,  26, 3, 2, 1,  28, 3, 3, 1,
+
+            0, 4, 2, 1,    2, 4, 6, 1,    8, 4, 2, 1,   10, 4, 6, 1,
+            16, 4, 2, 1,   18, 4, 6, 1,   24, 4, 2, 1,  26, 4, 6, 1,
+            0, 5, 2, 1,    2, 5, 6, 1,    8, 5, 2, 1,   10, 5, 6, 1,
+            16, 5, 2, 1,   18, 5, 6, 1,   24, 5, 2, 1,  26, 5, 6, 1,
+            0, 6, 2, 1,    2, 6, 6, 1,    8, 6, 2, 1,   10, 6, 6, 1,
+            16, 6, 2, 1,   18, 6, 4, 1,   24, 6, 2, 1,  26, 6, 4, 1,
+            0, 7, 29, 1
+    };
+
 }
