@@ -38,19 +38,18 @@ public final class ZxCommon {
     public final static int ZX_BP_OPS_LSE             = 5; // <=
 
     // DEBUGGER ACTION
-    public final static int DEBUGGER_ACT_PREV       = 0;
-    public final static int DEBUGGER_ACT_BP         = 1;
-    public final static int DEBUGGER_ACT_NEXT       = 2;
-    public final static int DEBUGGER_ACT_BP_LIST    = 3;
-    public final static int DEBUGGER_ACT_ACTION     = 4;
-    public final static int DEBUGGER_ACT_HEX_DEC    = 5;
-    public final static int DEBUGGER_ACT_MODE       = 6;
-    public final static int DEBUGGER_ACT_TRACE_IN   = 7;
-    public final static int DEBUGGER_ACT_TRACE_OUT  = 8;
-    public final static int DEBUGGER_ACT_TRACE_OVER = 9;
-    public final static int DEBUGGER_ACT_SET_PC     = 10;
-    public final static int DEBUGGER_ACT_SET_SP     = 11;
-    public final static int DEBUGGER_ACT_SET_ASM    = 12;
+    public final static int DEBUGGER_ACT_HEX_DEC    = 0;
+    public final static int DEBUGGER_ACT_PREV       = 1;
+    public final static int DEBUGGER_ACT_BP         = 2;
+    public final static int DEBUGGER_ACT_NEXT       = 3;
+    public final static int DEBUGGER_ACT_BP_LIST    = 4;
+    public final static int DEBUGGER_ACT_ACTION     = 5;
+    public final static int DEBUGGER_ACT_TRACE_IN   = 6;
+    public final static int DEBUGGER_ACT_TRACE_OUT  = 7;
+    public final static int DEBUGGER_ACT_TRACE_OVER = 8;
+    public final static int DEBUGGER_ACT_SET_PC     = 9;
+    public final static int DEBUGGER_ACT_SET_SP     = 10;
+    public final static int DEBUGGER_ACT_SET_ASM    = 11;
 
     // UPDATE DEBUGGER
     public final static int ZX_PC                   = 1;
@@ -480,7 +479,7 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     };
 
     public static final int[] style_debugger_ribbon = {
-            ATTR_SELECTOR, 0x007f00 | COLOR,
+            ATTR_SELECTOR, Color.BLUE,
             ATTR_LONG_CLICKABLE, 1,
             ATTR_PADDING, 2
     };
@@ -490,9 +489,6 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
             ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.START,
-            ATTR_LONG_CLICKABLE, 1,
-            ATTR_FOCUSABLE, 1,
-            ATTR_CLICKABLE, 1,
             ATTR_MAX_LINES, 1,
             ATTR_SIZE, R.dimen.debuggerTextList
     };

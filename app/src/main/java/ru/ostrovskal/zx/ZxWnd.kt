@@ -323,7 +323,7 @@ class ZxWnd : Wnd() {
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         }
         if(id == MENU_PROPS_DEBUGGER || id == MENU_DEBUGGER_ADDRESS || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
-            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = ZX_ALL)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_ALL)
         if(id == MENU_PROPS_TRACER)
             zxCmd(ZX_CMD_TRACER, 0, 0, "")
         return isChecked

@@ -73,14 +73,14 @@ class ZxFormMain: Form() {
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
-        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = ZX_ALL)
+        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_ALL)
     }
 
     @SuppressLint("SetTextI18n")
     override fun handleMessage(msg: Message): Boolean {
         when(msg.action) {
             ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
-            ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1)
+            ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1, msg.arg2)
             ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
             ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal           -> {
                 ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 0, 0))

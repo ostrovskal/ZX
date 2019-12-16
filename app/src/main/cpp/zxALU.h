@@ -117,7 +117,7 @@ public:
     // начало инструкции
     static uint16_t PC;
 
-    const char *debugger(int cmd, int data, int flags);
+    const char *debugger(int cmd, uint16_t data, int flags);
 
 protected:
 

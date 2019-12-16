@@ -31,7 +31,7 @@ constexpr int ZX_SIZE_TMP_BUF           = 524288;
 #define ZX_TOTAL_RAM                    262144
 
 constexpr int ZX_BP_NONE                = 0; // не учитывается
-constexpr int ZX_BP_EXEC                = 0; // исполнение
+constexpr int ZX_BP_EXEC                = 1; // исполнение
 constexpr int ZX_BP_WMEM                = 2; // запись в память
 constexpr int ZX_BP_RPORT               = 3; // чтение из порта
 constexpr int ZX_BP_WPORT               = 4; // запись в порт
@@ -274,6 +274,15 @@ inline uint8_t* ssh_memzero(void* ptr, size_t count) {
 inline uint8_t* ssh_memcpy(uint8_t ** dst, const void* src, size_t count) {
     if (dst && src) {
         *dst = (uint8_t*)(memcpy(*dst, src, count)) + count;
+    }
+    return dst ? *dst : nullptr;
+}
+
+inline char* ssh_char(char** dst, char ch, int count) {
+    if (dst && count) {
+        auto tmp = *dst;
+        while(count-- > 0) *tmp++ = ch;
+        *dst = tmp;
     }
     return dst ? *dst : nullptr;
 }

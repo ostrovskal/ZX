@@ -248,8 +248,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags, int b
         //auto l = strlen(cod);
         //ssh_strcpy(&daResult, l >= 8 ? "\t" : "\t\t");
         length = strlen(cod);
-        n = hex ? 12 : 16; n -= length;
-        while(n-- > 0 ) *daCode++ = ' ';
+        n = hex ? 12 : 16; ssh_char(&daCode, ' ', n - length);
         *daCode = 0;
         ssh_strcpy(&daResult, cod);
     }
@@ -321,8 +320,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags, int b
         auto flag = *buffer++;
         if(flag != 0) {
             auto length = strlen(posMnemonic);
-            n = hex ? 20 : 24; n -= length;
-            while(n-- > 0) *daResult++ = ' ';
+            n = hex ? 20 : 24; ssh_char(&daResult, ' ', n - length);
             // AF
             ssh_strcpy(&daResult, "; AF = ");
             ssh_strcpy(&daResult, ssh_fmtValue(*buffer++, ZX_FV_CVAL, true));

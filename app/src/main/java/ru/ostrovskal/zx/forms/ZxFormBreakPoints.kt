@@ -179,5 +179,7 @@ class ZxFormBreakPoints: Form() {
         }
 
         override fun getCount() = 8
+
+        override fun getItemId(position: Int) = -1L
     }
 }

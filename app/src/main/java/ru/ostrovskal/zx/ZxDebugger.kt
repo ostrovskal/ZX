@@ -4,22 +4,21 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
-import android.view.Gravity
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewManager
+import android.view.*
 import ru.ostrovskal.sshstd.Common
 import ru.ostrovskal.sshstd.Common.MATCH
 import ru.ostrovskal.sshstd.Common.WRAP
 import ru.ostrovskal.sshstd.Wnd
 import ru.ostrovskal.sshstd.layouts.CellLayout
-import ru.ostrovskal.sshstd.layouts.CommonLayout
 import ru.ostrovskal.sshstd.ui.*
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Edit
 import ru.ostrovskal.sshstd.widgets.Text
 import ru.ostrovskal.sshstd.widgets.Tile
+import ru.ostrovskal.sshstd.widgets.lists.CommonRibbon
 import ru.ostrovskal.zx.ZxCommon.*
+import kotlin.math.abs
+import kotlin.math.sign
 
 class ZxDebugger {
 
@@ -77,19 +76,67 @@ class ZxDebugger {
         }
     }
 
-    private inner class ListLayout(context: Context) : CommonLayout(context, true) {
+    private inner class ListLayout(context: Context) : CommonRibbon(context, true, style_debugger_ribbon) {
 
+        private var mDeltaX              = 0
+        private var mDeltaY              = 0
+
+        init {
+            setOnTouchListener { _, ev ->
+                mTracker.addMovement(ev)
+                touch.event(ev).drag(mDragSensitive) { offs, finish ->
+                    mDeltaX += offs.w
+                    mDeltaY += offs.h
+                    if (!finish) {
+                        val isVert = abs(mDeltaY) > abs(mDeltaX)
+                        var delta = if (isVert) mDeltaY else mDeltaX
+                        if (touch.isUnpressed) touch.flags = 0
+                        if (!isVert) {
+                            // меняем список
+                            delta = sign(delta.toFloat()).toInt()
+                            listMode += delta
+                            if (listMode < 0) listMode = 2
+                            else if (listMode > 2) listMode = 0
+                            "touch $delta".info()
+                            update(0, ZX_LIST)
+                        } else {
+                            // запускаем прокрутку
+                            val tm = touch.tmCurrent - touch.tmBegin
+                            mTouchId = touch.id
+                            mTracker.computeCurrentVelocity(1000, mMaxVelocity)
+                            delta = mTracker.getYVelocity(mTouchId).toInt()
+                            if(abs(delta) > mMinVelocity) mFling.start(-delta)
+                            "touch $tm $delta".info()
+                        }
+                        mDeltaX = 0
+                        mDeltaY = 0
+                    }
+                }
+                true
+            }
+        }
+        override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+            var delta = 0
+            touch.event(ev).drag(mDragSensitive) { offs, _ ->
+                delta = offs.w or offs.h
+            }
+            return delta != 0
+        }
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             // определить количество элементов
             val hItem = getChildAt(0).measuredHeight
             countItems = ((measuredHeight - verticalPadding) / hItem) + 1
-            "onMeasure $hItem $countItems".info()
+        }
+
+        override fun scrolling(delta: Int): Boolean {
+            "scrolling $delta".info()
+            return false
         }
 
         fun notify(item: ItemView, click: Boolean) {
-            val idx = indexOfChild(item)
-            update(ZX_SEL)
+            "notify $click".info()
+            update(indexOfChild(item), ZX_SEL)
         }
     }
 
@@ -127,88 +174,106 @@ class ZxDebugger {
         ZxRegister(ZX_FV_OPS16, R.id.edit26, R.string.rsp,    ZX_CPU_SP)
     )
 
-    private val coordsLand = byteArrayOf(  33, 0, 3, 2,    36, 0, 4, 2,     40, 0, 3, 2,     43, 0, 3, 2,     46, 0, 3, 2,
-                                                    33, 2, 3, 2,    36, 2, 4, 2,    40, 2, 3, 2,    43, 2, 3, 2,    46, 0, 3, 2,
-                                                    24, 13, 2, 1,   32, 13, 2, 1,   32, 14, 2, 1,
-                                                    0, 0, 18, 15,
-                                                    18, 4, 2, 1,   18, 5, 2, 1,   20, 4, 2, 1,   20, 5, 2, 1,   22, 4, 2, 1,   22, 5, 2, 1,
-                                                    24, 4, 2, 1,   24, 5, 2, 1,   26, 4, 2, 1,   26, 5, 2, 1,   28, 4, 2, 1,   28, 5, 2, 1,
-                                                    30, 4, 2, 1,   30, 5, 2, 1,   32, 4, 2, 1,   32, 5, 2, 1,   34, 4, 2, 1,   34, 5, 2, 1,
-                                                    18, 6, 2, 1,    20, 6, 3, 1,    23, 6, 2, 1,    25, 6, 3, 1,    28, 6, 2, 1,    30, 6, 3, 1,
-                                                    18, 7, 2, 1,    20, 7, 3, 1,    23, 7, 2, 1,    25, 7, 3, 1,    28, 7, 2, 1,    30, 7, 3, 1,
-                                                    18, 8, 2, 1,    20, 8, 6, 1,    26, 8, 2, 1,    28, 8, 6, 1,
-                                                    18, 9, 2, 1,    20, 9, 6, 1,    26, 9, 2, 1,    28, 9, 6, 1,
-                                                    18, 10, 2, 1,   20, 10, 6, 1,   26, 10, 2, 1,   28, 10, 6, 1,
-                                                    18, 11, 2, 1,   20, 11, 6, 1,   26, 11, 2, 1,   28, 11, 6, 1,
-                                                    18, 12, 2, 1,   20, 12, 6, 1,   26, 12, 2, 1,   28, 12, 6, 1,
-                                                    18, 13, 2, 1,   20, 13, 4, 1,   26, 13, 2, 1,   28, 13, 4, 1,
-                                                    18, 14, 14, 2)
-    private val coordsPort = byteArrayOf(0)
+    private val coordsLand = intArrayOf(
+        33,
+        18, 0, 3, 2,   21, 0, 3, 2,   24, 0, 3, 2,  27, 0, 3, 2,  30, 0, 3, 2,
+        18, 2, 3, 2,   21, 2, 3, 2,   24, 2, 3, 2,  27, 2, 3, 2,
+        24, 13, 2, 1,  31, 13, 2, 1,  31, 14, 2, 1,
+        0, 0, 18, 15,
+        18, 4, 2, 1,   18, 5, 2, 1,   20, 4, 2, 1,  20, 5, 2, 1,  22, 4, 2, 1, 22, 5, 2, 1,
+        24, 4, 2, 1,   24, 5, 2, 1,   26, 4, 2, 1,  26, 5, 2, 1,  28, 4, 2, 1, 28, 5, 2, 1,
+        30, 4, 2, 1,   30, 5, 2, 1,   32, 4, 2, 1,  32, 5, 2, 1,
+        18, 6, 2, 1,   20, 6, 3, 1,   23, 6, 2, 1,  25, 6, 3, 1,  28, 6, 2, 1, 30, 6, 3, 1,
+        18, 7, 2, 1,   20, 7, 3, 1,   23, 7, 2, 1,  25, 7, 3, 1,  28, 7, 2, 1, 30, 7, 3, 1,
+        18, 8, 2, 1,   20, 8, 6, 1,   26, 8, 2, 1,  28, 8, 6, 1,
+        18, 9, 2, 1,   20, 9, 6, 1,   26, 9, 2, 1,  28, 9, 6, 1,
+        18, 10, 2, 1,  20, 10, 6, 1,  26, 10, 2, 1, 28, 10, 6, 1,
+        18, 11, 2, 1,  20, 11, 6, 1,  26, 11, 2, 1, 28, 11, 6, 1,
+        18, 12, 2, 1,  20, 12, 6, 1,  26, 12, 2, 1, 28, 12, 6, 1,
+        18, 13, 2, 1,  20, 13, 4, 1,  26, 13, 2, 1, 28, 13, 3, 1,
+        18, 14, 13, 2)
+
+    private val coordsPort = intArrayOf(
+        32,
+        0, 0, 3, 2,    3, 0, 3, 2,    6, 0, 4, 2,   10, 0, 3, 2,  13, 0, 3, 2,
+        16, 0, 4, 2,   20, 0, 4, 2,   24, 0, 4, 2,  28, 0, 4, 2,
+        22, 6, 2, 1,   30, 6, 2, 1,   29, 7, 3, 1,
+        0, 8, 34, 7,
+        0, 2, 2, 1,    2, 2, 2, 1,    4, 2, 2, 1,   6, 2, 2, 1,   8, 2, 2, 1,   10, 2, 2, 1,
+        12, 2, 2, 1,   14, 2, 2, 1,   16, 2, 2, 1,  18, 2, 2, 1,  20, 2, 2, 1,  22, 2, 2, 1,
+        24, 2, 2, 1,   26, 2, 2, 1,   28, 2, 2, 1,  30, 2, 2, 1,
+
+        1, 3, 2, 1,    3, 3, 3, 1,    6, 3, 2, 1,   8, 3, 3, 1,   11, 3, 2, 1,  13, 3, 3, 1,
+        16, 3, 2, 1,   18, 3, 3, 1,   21, 3, 2, 1,  23, 3, 3, 1,  26, 3, 2, 1,  28, 3, 3, 1,
+
+        0, 4, 2, 1,    2, 4, 6, 1,    8, 4, 2, 1,   10, 4, 6, 1,
+        16, 4, 2, 1,   18, 4, 6, 1,   24, 4, 2, 1,  26, 4, 6, 1,
+        0, 5, 2, 1,    2, 5, 6, 1,    8, 5, 2, 1,   10, 5, 6, 1,
+        16, 5, 2, 1,   18, 5, 6, 1,   24, 5, 2, 1,  26, 5, 6, 1,
+        0, 6, 2, 1,    2, 6, 6, 1,    8, 6, 2, 1,   10, 6, 6, 1,
+        16, 6, 2, 1,   18, 6, 4, 1,   24, 6, 2, 1,  26, 6, 4, 1,
+        0, 7, 29, 1)
 
     fun layout(wnd: Wnd, ui: CellLayout) = with(ui) {
-        val iconAction = listOf(R.integer.I_PREV, R.integer.I_BP, R.integer.I_NEXT, R.integer.I_LIST_BP, R.integer.I_PLAY,
-                                R.integer.I_HEX, R.integer.I_DA, R.integer.I_TRACE_IN, R.integer.I_TRACE_OUT, R.integer.I_TRACE_OVER)
+        val iconAction = listOf(R.integer.I_HEX, R.integer.I_PREV, R.integer.I_BP, R.integer.I_NEXT, R.integer.I_LIST_BP,
+                                R.integer.I_PLAY, R.integer.I_TRACE_IN, R.integer.I_TRACE_OUT, R.integer.I_TRACE_OVER,
+                                R.integer.I_PLAY, R.integer.I_PLAY, R.integer.I_PLAY)
         this@ZxDebugger.wnd = wnd
-        cellLayout(34, 15) {
+        val coord = if(config.portrait) coordsPort else coordsLand
+        var pos = 0
+        var idx = 0
+        cellLayout(coord[pos++], 15) {
             backgroundSet(Common.style_form)
             root = this
-            val coord = if(config.portrait) coordsLand else coordsLand
             // button action
-            repeat(2) { y ->
-                var dx = 0
-                repeat(5) { x ->
-                    if(x == 2) dx = 1
-                    button(style_debugger_action) {
-                        setOnClickListener { clickAction(it)  }
-                        iconResource = iconAction[y * 5 + x]
-                    }.lps(18 + dx + x * 3, y * 2, if(x == 1) 4 else 3, 2)
-                }
+            repeat(12) {
+                button(style_debugger_action) {
+                    setOnClickListener { clickAction(it)  }
+                    iconResource = iconAction[idx++]
+                }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                pos += 4
             }
-            button(style_debugger_action) {
-                setOnClickListener { clickAction(it)  }
-                iconResource = R.integer.I_PLAY }.lps(24, 13, 2, 1)
-            button(style_debugger_action) {
-                setOnClickListener { clickAction(it)  }
-                iconResource = R.integer.I_PLAY }.lps(32, 13, 2, 1)
-            button(style_debugger_action) {
-                setOnClickListener { clickAction(it)  }
-                iconResource = R.integer.I_PLAY }.lps(32, 14, 2, 1)
             list = debuggerRibbon {
                 padding = 6.dp
                 backgroundSet(style_backgrnd_io)
-                repeat(25) { debuggerView().lps(MATCH, WRAP) }
-            }.lps(0, 0, 18, 15)
+                repeat(15) { debuggerView().lps(MATCH, WRAP) }
+            }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+            pos += 4
             // flags
             repeat(8) {
-                registers[it].text = text(registers[it].nm, style_debugger_text).lps(18 + it * 2, 4, 2, 1)
-                registers[it].edit = edit(registers[it].id, R.string.null_text, style_debugger_edit) { maxLength = 1 }.lps(18 + it * 2, 5, 2, 1)
+                registers[it].text = text(registers[it].nm, style_debugger_text).lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                registers[it].edit = edit(registers[it].id, R.string.null_text, style_debugger_edit) { maxLength = 1 }.lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
+                pos += 8
             }
-            // registers
-            // 8 bit
-            repeat(2) { y ->
-                repeat(3) { x ->
-                    // text // edit
-                    val pos = 8 + y * 3 + x
-                    registers[pos].text = text(registers[pos].nm, style_debugger_text).lps(18 + x * 5, 6 + y, 2, 1)
-                    registers[pos].edit = edit(registers[pos].id, R.string.null_text, style_debugger_edit) { maxLength = 4 }.lps(20 + x * 5, 6 + y, 3, 1)
-                }
+            // registers 8 bit
+            idx = 8
+            repeat(6) {
+                registers[idx].text = text(registers[idx].nm, style_debugger_text).lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) {
+                    maxLength = 4
+                }.lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
+                pos += 8
+                idx++
             }
-            // RAM ROM VID  | I IM R | AY q
-            // 16 bit
-            repeat(6) { y ->
-                repeat(2) { x ->
-                    // text // edit
-                    val pos = 14 + y * 2 + x
-                    registers[pos].text = text(registers[pos].nm, style_debugger_text).lps(18 + x * 8, 8 + y, 2, 1)
-                    registers[pos].edit = edit(registers[pos].id, R.string.null_text, style_debugger_edit) { maxLength = 5 }.lps(20 + x * 8, 8 + y, if(y == 5) 4 else 6, 1)
-                }
+            // registers 16 bit
+            idx = 14
+            repeat(12) {
+                registers[idx].text = text(registers[idx].nm, style_debugger_text).lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) {
+                    maxLength = 5
+                }.lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
+                pos += 8
+                idx++
             }
             // assembler
-            asm = edit(R.id.edit27, R.string.null_text, style_debugger_edit) { maxLength = 40; gravity = Gravity.CENTER_VERTICAL }.lps(18, 14, 14, 2)
+            asm = edit(R.id.edit27, R.string.null_text, style_debugger_edit) {
+                maxLength = 40
+                gravity = Gravity.CENTER_VERTICAL
+            }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
         }
     }
 
-    fun update(flags: Int) {
+    fun update(data: Int, flags: Int) {
         "debugger.update($flags)".info()
         // блокировка/разблокировка кнопок
         enabledButtons()
@@ -235,28 +300,52 @@ class ZxDebugger {
             entrySP = ZxWnd.zxInt(ZX_CPU_SP, 0xffff, true, 0).toInt()
         }
         if(flags test ZX_SEL) {
-//            curSel = SEL;
+            list?.apply {
+                if (currentItem != -1) (getChildAt(currentItem)?.background as? ColorDrawable)?.color = 0x0
+                currentItem = data
+                (getChildAt(data)?.background as? ColorDrawable)?.color = Color.BLUE
+            }
         }
         if(flags test ZX_LIST) {
-            var pc = entryPC
-            val count = list?.childCount ?: 0
-            repeat(count) { item ->
-                // возврат строки текста, в зависимости от назначения:
-                // 1. строка дизасма - ПС, флаги - новый ПС
-                // 2. стек - СП - новый СП
-                // 3. данные - адрес
-                val flags = (ZxWnd.props[ZX_PROP_SHOW_ADDRESS].toInt() * DA_PC) or
+            var entry = -1
+            list?.let {
+                val count = it.childCount
+                var flg =   (ZxWnd.props[ZX_PROP_SHOW_ADDRESS].toInt() * DA_PC) or
                             (ZxWnd.props[ZX_PROP_SHOW_CODE].toInt() * DA_CODE) or
                             (ZxWnd.props[ZX_PROP_SHOW_CODE_VALUE].toInt() * (DA_PNN or DA_PN))
-                val str = ZxWnd.zxDebuggerString(0, pc, flags)
-                pc += ZxWnd.props[ZX_PROP_JNI_RETURN_VALUE].toInt()
-                (list?.getChildAt(item) as? Text)?.text = str
+                repeat(count) { item ->
+                    when(listMode) {
+                        // 1. строка дизасма - ПС, флаги - новый ПС
+                        0       -> {
+                            if(entry == -1) entry = entryPC
+
+                        }
+                        // 2. стек - СП - новый СП
+                        1       -> {
+                            if(entry == -1) {
+                                entry = 65530//entrySP - ((countItems + 1) and -2)
+                                if(entry < 0) entry = 0
+                                else if((entry + countItems * 2) > 65535) entry = (65536 - countItems * 2) - (entrySP and 1)
+                            }
+                        }
+                        // 3. данные - адрес
+                        2       -> {
+                            if(entry == -1) entry = 65520//entryData
+                            flg = (((it.measuredWidth - it.horizontalPadding) / 8.sp) - 12) / 3
+                        }
+                    }
+                    val str = ZxWnd.zxDebuggerString(listMode, entry, flg)
+                    (it.getChildAt(item) as? Text)?.text = str
+                    entry += ZxWnd.props[ZX_PROP_JNI_RETURN_VALUE].toInt()
+                }
             }
         }
         list?.invalidate()
     }
 
     private fun clickAction(view: View) {
+        var flags = 0
+        var data = 0
         when(val cmd = root?.indexOfChild(view) ?: -1) {
             DEBUGGER_ACT_PREV      -> {
 
@@ -273,18 +362,17 @@ class ZxDebugger {
                 val isExecute = ZxWnd.props[ZX_PROP_EXECUTE].toBoolean
                 ZxWnd.props[ZX_PROP_EXECUTE] = if(isExecute) 0 else 1
                 if(!isExecute) ZxWnd.zxCmd(ZX_CMD_STEP_DEBUG, 0, 0, "")
-            }
-            DEBUGGER_ACT_MODE      -> {
-                listMode += 1
-                if(listMode >= 3) listMode = 0
+                flags = ZX_LIST or ZX_REG
             }
             DEBUGGER_ACT_TRACE_IN,
             DEBUGGER_ACT_TRACE_OUT,
             DEBUGGER_ACT_TRACE_OVER -> {
                 ZxWnd.zxCmd(ZX_CMD_TRACE_X, cmd - DEBUGGER_ACT_TRACE_IN, 0, "")
+                flags = ZX_LIST or ZX_REG
             }
             DEBUGGER_ACT_HEX_DEC    -> {
                 ZxWnd.props[ZX_PROP_SHOW_HEX] = if(ZxWnd.props[ZX_PROP_SHOW_HEX].toBoolean) 0 else 1
+                flags = ZX_LIST or ZX_REG
             }
             DEBUGGER_ACT_SET_PC    -> {
 
@@ -296,16 +384,14 @@ class ZxDebugger {
 
             }
         }
-        update(ZX_ALL)
+        if(flags != 0) update(data, flags)
     }
 
     private fun enabledButtons() {
         val isPlay = !ZxWnd.props[ZX_PROP_EXECUTE].toBoolean
         val isDA = listMode == 0
         root?.apply {
-            "debugger $isPlay".info()
             byIdx<Tile>(DEBUGGER_ACT_ACTION).iconResource = if(isPlay) R.integer.I_PLAY else R.integer.I_PAUSE
-            byIdx<Tile>(DEBUGGER_ACT_MODE).tileIcon = listMode + 50
             byIdx<Tile>(DEBUGGER_ACT_HEX_DEC).iconResource = if(ZxWnd.props[ZX_PROP_SHOW_HEX].toBoolean) R.integer.I_HEX else R.integer.I_DEC
             byIdx<Tile>(DEBUGGER_ACT_TRACE_IN).isEnabled = isPlay && isDA
             byIdx<Tile>(DEBUGGER_ACT_TRACE_OUT).isEnabled = isPlay && isDA

@@ -873,7 +873,7 @@ bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
             }
         }
         if(res) {
-            debug("checkBPs %i", address);
+//            info("checkBPs %i %i %i %i", bp->address1, bp->address2, bp->flg, flg);
             // установить глобальную остановку системы
             opts[ZX_PROP_EXECUTE] = 0;
             // сообщение для выхода - обновить отладчик
@@ -890,24 +890,67 @@ int zxALU::trace(int mode) {
     return 0;
 }
 
-const char *zxALU::debugger(int cmd, int data, int flags) {
+const char *zxALU::debugger(int cmd, uint16_t data, int flags) {
     auto buf = (uint16_t *) &TMP_BUF[0];
-    auto res = (char*) &TMP_BUF[512];
+    auto res = (char*) &TMP_BUF[512]; auto rtmp = res;
     auto tmp = data;
     switch(cmd) {
         case 0:
             // disassembler
-            zxDA::cmdParser((uint16_t*)&tmp, buf, false);
+            zxDA::cmdParser(&tmp, buf, false);
             zxDA::cmdToString(buf, res, flags, 0);
-            opts[ZX_PROP_JNI_RETURN_VALUE] = (uint8_t)(tmp - data);
             break;
-        case 1:
-            // stack
+        case 1: {
+                // stack addr       >content<     chars
+                auto isSP = tmp == *cpu->_SP;
+                auto val = rm16(tmp);
+                ssh_strcpy(&rtmp, ssh_fmtValue((int)(tmp), ZX_FV_OPS16, true));
+                auto count = 8 - isSP;
+                ssh_char(&rtmp, ' ', count);
+                if(isSP) *rtmp++ = '>';
+                ssh_strcpy(&rtmp, ssh_fmtValue((int)(val), ZX_FV_OPS16, true));
+                if(isSP) *rtmp++ = '<';
+                ssh_char(&rtmp, ' ', count);
+                for (int i = 0; i < 8; i++) {
+                    auto v = rm8((uint16_t) (val + i));
+                    if (v < 32) v = '.';
+                    else if(v > 127) v = '.';
+                    *rtmp++ = v;
+                }
+                tmp += 2;
+                *rtmp = 0;
+            }
             break;
-        case 2:
-            // data
+        case 2: {
+                // data
+                uint8_t v;
+                auto tres = rtmp + 256;
+                // flags значений
+                // address
+                ssh_strcpy(&rtmp, ssh_fmtValue((int) tmp, ZX_FV_OPS16, true));
+                ssh_char(&rtmp, ' ', 4);
+                for (int i = 0; i < flags; i++) {
+                    auto t = (tmp + i);
+                    if(t < 65536) {
+                        v = rm8((uint16_t) t);
+                        ssh_strcpy(&rtmp, ssh_fmtValue((int) v, ZX_FV_OPS8, true));
+                    } else {
+                        ssh_char(&rtmp, '?', 3);
+                    }
+                    *rtmp++ = ' ';
+                    if (v < 32) v = '.';
+                    else if (v > 127) v = '.';
+                    *tres++ = v;
+                }
+                *tres = 0;
+                ssh_char(&rtmp, ' ', 4);
+                ssh_strcpy(&rtmp, res + 256);
+                tmp += flags;
+                *rtmp = 0;
+            }
             break;
     }
+    opts[ZX_PROP_JNI_RETURN_VALUE] = (uint8_t)(tmp - data);
     return res;
 }
 
