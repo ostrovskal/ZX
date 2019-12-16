@@ -850,61 +850,62 @@ void zxALU::quickBP(uint16_t address) {
     }
 }
 
-bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
-    bool res = false;
+BREAK_POINT* zxALU::quickCheckBPs(uint16_t address, uint8_t flg) {
+    BREAK_POINT* bp;
     for(int i = 0 ; i < 8 ; i++) {
-        auto bp = &bps[i];
-        auto flag = bp->flg;
-        if(flag != flg) continue;
-        if(address >= bp->address1 && address <= bp->address2) {
-            res = true;
-            if(flag == ZX_BP_WMEM) {
-                auto v1 = rm8(address) & bp->msk;
-                auto v2 = bp->val;
-                res = false;
-                switch(bp->ops) {
-                    case ZX_BP_OPS_EQ:  res = v1 == v2; break;
-                    case ZX_BP_OPS_NQ:  res = v1 != v2; break;
-                    case ZX_BP_OPS_GT:  res = v1 >  v2; break;
-                    case ZX_BP_OPS_LS:  res = v1 <  v2; break;
-                    case ZX_BP_OPS_GTE: res = v1 >= v2; break;
-                    case ZX_BP_OPS_LSE: res = v1 <= v2; break;
-                }
-            }
+        bp = &bps[i];
+        if (bp->flg == flg) {
+            if (address >= bp->address1 && address <= bp->address2)
+                return bp;
         }
-        if(res) {
-//            info("checkBPs %i %i %i %i", bp->address1, bp->address2, bp->flg, flg);
-            // установить глобальную остановку системы
-            opts[ZX_PROP_EXECUTE] = 0;
-            // сообщение для выхода - обновить отладчик
-            modifySTATE(ZX_BP, 0);
-            // вернуть на начало инструкции (в случае доступа к портам или памяти)
-            *cpu->_PC = PC;
-            break;
+    }
+    return nullptr;
+}
+
+bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
+    auto bp = quickCheckBPs(address, flg);
+    if(!bp) return false;
+    bool res = true;
+    if(bp->flg == ZX_BP_WMEM) {
+        auto v1 = rm8(address) & bp->msk;
+        auto v2 = bp->val;
+        res = false;
+        switch(bp->ops) {
+            case ZX_BP_OPS_EQ:  res = v1 == v2; break;
+            case ZX_BP_OPS_NQ:  res = v1 != v2; break;
+            case ZX_BP_OPS_GT:  res = v1 >  v2; break;
+            case ZX_BP_OPS_LS:  res = v1 <  v2; break;
+            case ZX_BP_OPS_GTE: res = v1 >= v2; break;
+            case ZX_BP_OPS_LSE: res = v1 <= v2; break;
         }
+    }
+    if(res) {
+      info("checkBPs %i %i %i %i", bp->address1, bp->address2, bp->flg, flg);
+        // установить глобальную остановку системы
+        opts[ZX_PROP_EXECUTE] = 0;
+        // сообщение для выхода - обновить отладчик
+        modifySTATE(ZX_BP, 0);
+        // вернуть на начало инструкции (в случае доступа к портам или памяти)
+        *cpu->_PC = PC;
     }
     return res;
 }
 
-int zxALU::trace(int mode) {
-    return 0;
-}
-
-const char *zxALU::debugger(int cmd, uint16_t data, int flags) {
+const char *zxALU::debugger(int cmd, int data, int flags) {
     auto buf = (uint16_t *) &TMP_BUF[0];
     auto res = (char*) &TMP_BUF[512]; auto rtmp = res;
-    auto tmp = data;
+    auto tmp = (uint16_t)data;
     switch(cmd) {
-        case 0:
+        case ZX_DEBUGGER_MODE_PC:
             // disassembler
             zxDA::cmdParser(&tmp, buf, false);
-            zxDA::cmdToString(buf, res, flags, 0);
+            zxDA::cmdToString(buf, res, flags);
             break;
-        case 1: {
+        case ZX_DEBUGGER_MODE_SP: {
                 // stack addr       >content<     chars
                 auto isSP = tmp == *cpu->_SP;
                 auto val = rm16(tmp);
-                ssh_strcpy(&rtmp, ssh_fmtValue((int)(tmp), ZX_FV_OPS16, true));
+                ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
                 auto count = 8 - isSP;
                 ssh_char(&rtmp, ' ', count);
                 if(isSP) *rtmp++ = '>';
@@ -921,21 +922,23 @@ const char *zxALU::debugger(int cmd, uint16_t data, int flags) {
                 *rtmp = 0;
             }
             break;
-        case 2: {
+        case ZX_DEBUGGER_MODE_DT: {
                 // data
                 uint8_t v;
                 auto tres = rtmp + 256;
                 // flags значений
                 // address
-                ssh_strcpy(&rtmp, ssh_fmtValue((int) tmp, ZX_FV_OPS16, true));
-                ssh_char(&rtmp, ' ', 4);
+                if(data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue((int)tmp, ZX_FV_OPS16, true));
+                else ssh_char(&rtmp, '?', 5 - opts[ZX_PROP_SHOW_HEX]);
+                ssh_char(&rtmp, ' ', 3);
                 for (int i = 0; i < flags; i++) {
-                    auto t = (tmp + i);
-                    if(t < 65536) {
+                    auto t = (data + i);
+                    if(t < 65536 && t >= 0) {
                         v = rm8((uint16_t) t);
                         ssh_strcpy(&rtmp, ssh_fmtValue((int) v, ZX_FV_OPS8, true));
                     } else {
                         ssh_char(&rtmp, '?', 3);
+                        v = 0;
                     }
                     *rtmp++ = ' ';
                     if (v < 32) v = '.';
@@ -943,7 +946,7 @@ const char *zxALU::debugger(int cmd, uint16_t data, int flags) {
                     *tres++ = v;
                 }
                 *tres = 0;
-                ssh_char(&rtmp, ' ', 4);
+                ssh_char(&rtmp, ' ', 3);
                 ssh_strcpy(&rtmp, res + 256);
                 tmp += flags;
                 *rtmp = 0;
@@ -952,6 +955,33 @@ const char *zxALU::debugger(int cmd, uint16_t data, int flags) {
     }
     opts[ZX_PROP_JNI_RETURN_VALUE] = (uint8_t)(tmp - data);
     return res;
+}
+
+int zxALU::debuggerMove(int entry, int delta) {
+    return 0;
+}
+
+int zxALU::debuggerTrace(int mode) {
+    return 0;
+}
+
+int zxALU::debuggerJump(int address, int mode) {
+    uint16_t ret;
+    switch(mode) {
+        case ZX_DEBUGGER_MODE_PC:
+            // взять инструкцию по адресу
+            // определить ее тип - переход(JR JMP CALL RST DJNZ RET) / LD [PNN], REG / LD REG, [PNN]
+            break;
+        case ZX_DEBUGGER_MODE_SP:
+            ret = rm16(address);
+            mode = ZX_DEBUGGER_MODE_PC;
+            break;
+        case ZX_DEBUGGER_MODE_DT:
+            mode = -1;
+            break;
+    }
+    opts[ZX_PROP_JNI_RETURN_VALUE] = ret;
+    return mode;
 }
 
 #pragma clang diagnostic pop

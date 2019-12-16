@@ -80,7 +80,7 @@ class ZxView(context: Context) : Surface(context) {
         if(wnd.zxInitialize) {
             val result = ZxWnd.zxExecute()
             if(result != 0) {
-                wnd.hand?.send(RECEPIENT_FORM, result, a1 = ZX_ALL)
+                wnd.hand?.send(RECEPIENT_FORM, result, a1 = ZxWnd.read16(ZX_CPU_PC), a2 = ZX_ALL)
             }
         }
     }

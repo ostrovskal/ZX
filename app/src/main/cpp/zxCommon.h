@@ -164,6 +164,8 @@ constexpr int ZX_CMD_TRACER             = 7; // Запуск трасировщ�
 constexpr int ZX_CMD_QUICK_BP           = 8; // Быстрая установка точки останова
 constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
 constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
+constexpr int ZX_CMD_MOVE_PC            = 11; // Выполнение сдвига ПС
+constexpr int ZX_CMD_JUMP               = 12; // Получение адреса в памяти/адреса перехода в инструкции
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
@@ -177,6 +179,10 @@ constexpr int ZX_CMD_PRESETS_SET        = 4;// Установить имя пр�
 constexpr int ZX_CMD_TRACE_IN           = 0; // Трассировка с заходом
 constexpr int ZX_CMD_TRACE_OUT          = 1; // Трассировка с обходом
 constexpr int ZX_CMD_TRACE_OVER         = 2; // Трассировка с выходом
+
+constexpr int ZX_DEBUGGER_MODE_PC       = 0; // Список ДА
+constexpr int ZX_DEBUGGER_MODE_SP       = 1; // Список СП
+constexpr int ZX_DEBUGGER_MODE_DT       = 2; // Список данных
 
 // Комманды ввода/вывода
 constexpr int ZX_CMD_IO_STATE           = 0; // Загрузить/сохранить состояние

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Typeface
 import android.text.InputType
 import android.view.LayoutInflater
+import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
 import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
 import ru.ostrovskal.sshstd.forms.Form
 import ru.ostrovskal.sshstd.objects.Theme
@@ -24,6 +25,11 @@ class ZxFormBreakPoints: Form() {
 
     private val cond = listOf("==", "<>", ">", "<", ">=", "<=")
     private val type = listOf("None", "Exec", "WMem", "RPort", "WPort")
+
+    override fun footer(btn: Int, param: Int) {
+        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_LIST)
+        super.footer(btn, param)
+    }
 
     override fun inflateContent(container: LayoutInflater): UiCtx {
         val idsBp = wnd.loadResource("idsBp", "array", IntArray(0))
@@ -126,15 +132,11 @@ class ZxFormBreakPoints: Form() {
         var mask = ""
         var condition = 0
         if(flag != ZX_BP_NONE) {
-            var num = ZxWnd.zxInt(idx, 0xffff, true, 0).toInt()
-            addr1 = ZxWnd.zxFormatNumber(num, ZX_FV_OPS16, true)
-            num = ZxWnd.zxInt(idx + 2, 0xffff, true, 0).toInt()
-            addr2 = ZxWnd.zxFormatNumber(num, ZX_FV_OPS16, true)
+            addr1 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx), ZX_FV_OPS16, true)
+            addr2 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx + 2), ZX_FV_OPS16, true)
             if(flag != ZX_BP_EXEC) {
-                num = ZxWnd.zxInt(idx + 4, 0xff, true, 0).toInt()
-                value = ZxWnd.zxFormatNumber(num, ZX_FV_OPS8, true)
-                num = ZxWnd.zxInt(idx + 5, 0xff, true, 0).toInt()
-                mask = ZxWnd.zxFormatNumber(num, ZX_FV_OPS8, true)
+                value = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 4), ZX_FV_OPS8, true)
+                mask = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 5), ZX_FV_OPS8, true)
                 condition = ZxWnd.props[idx + 6].toInt()
             }
         }
@@ -160,17 +162,13 @@ class ZxFormBreakPoints: Form() {
             val flag = ZxWnd.props[idx + 7]
             if(flag != ZX_BP_NONE) {
                 val tp = type[flag.toInt()]
-                var num = ZxWnd.zxInt(idx, 0xffff, true, 0).toInt()
-                val addr1 = ZxWnd.zxFormatNumber(num, ZX_FV_OPS16, true)
-                num = ZxWnd.zxInt(idx + 2, 0xffff, true, 0).toInt()
-                val addr2 = ZxWnd.zxFormatNumber(num, ZX_FV_OPS16, true)
+                val addr1 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx), ZX_FV_OPS16, true)
+                val addr2 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx + 2), ZX_FV_OPS16, true)
                 return if(flag == ZX_BP_EXEC) {
                     "$pos\t\t$addr1\t-\t$addr2\t\t---\t\t---\t\t--\t\t$tp"
                 } else {
-                    num = ZxWnd.zxInt(idx + 4, 0xff, true, 0).toInt()
-                    val value = ZxWnd.zxFormatNumber(num, ZX_FV_OPS8, true)
-                    num = ZxWnd.zxInt(idx + 5, 0xff, true, 0).toInt()
-                    val mask = ZxWnd.zxFormatNumber(num, ZX_FV_OPS8, true)
+                    val value = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 4), ZX_FV_OPS8, true)
+                    val mask = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 5), ZX_FV_OPS8, true)
                     val cond = cond[ZxWnd.props[idx + 6].toInt()]
                     "$pos\t\t$addr1\t-\t$addr2\t\t$value\t\t$mask\t\t$cond\t\t$tp"
                 }

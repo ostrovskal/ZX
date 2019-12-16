@@ -129,7 +129,7 @@ size_t zxDA::cmdParser(uint16_t* pc, uint16_t* buffer, bool regSave) {
     return (size_t)(buffer - buf);
 }
 
-const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags, int bp) {
+const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
     auto result = daResult;
     ssh_memzero(daResult, 512);
 
@@ -238,8 +238,10 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags, int b
     // заголовок
     if(flags & DA_PC) {
         static const char* bpTypes[] = { "   ", " * ", " + ", " *+"};
+        auto isExec = ALU->quickCheckBPs(_pc, ZX_BP_EXEC) != nullptr;
+        auto isMem = ALU->quickCheckBPs(_pc, ZX_BP_WMEM) != nullptr;
         ssh_strcpy(&daResult, ssh_fmtValue(_pc, ZX_FV_NUM16, true));
-        ssh_strcpy(&daResult, bpTypes[bp]);
+        ssh_strcpy(&daResult, bpTypes[isExec | (isMem << 1)]);
     }
     if(flags & DA_CODE) {
         char* daCode = (char*)&TMP_BUF[65536 + 256]; auto cod = daCode;

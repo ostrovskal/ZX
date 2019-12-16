@@ -4,11 +4,11 @@ package ru.ostrovskal.zx.forms
 
 import android.annotation.SuppressLint
 import android.app.ActionBar
+import android.os.Bundle
 import android.os.Message
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewManager
 import android.widget.TextView
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
 import ru.ostrovskal.sshstd.Surface
@@ -17,14 +17,11 @@ import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.cellLayout
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.*
-import ru.ostrovskal.zx.ZxCommon.ZX_ALL
 
 @Suppress("unused")
 class ZxFormMain: Form() {
 
-    override val surface: Surface? get()= zxview
-
-    private inline fun ViewManager.zxView(init: ZxView.() -> Unit) = uiView({ ZxView(it) }, init)
+    override val surface: Surface? get() = zxview
 
     private val sizeButtonText= listOf(10f, 10f, 10f, 10f, 11f, 11.5f, 12f, 12.5f, 13f, 13.5f)
 
@@ -42,6 +39,16 @@ class ZxFormMain: Form() {
 
     // поверхность
     private var zxview: ZxView?         = null
+
+    override fun saveState(state: Bundle) {
+        super.saveState(state)
+        debugger.save(state)
+    }
+
+    override fun restoreState(state: Bundle) {
+        super.restoreState(state)
+        debugger.restore(state)
+    }
 
     private fun updateLayout() {
         if(ZxWnd.props[ZxCommon.ZX_PROP_SHOW_DEBUGGER].toBoolean) {
@@ -67,13 +74,12 @@ class ZxFormMain: Form() {
 
     override fun inflateContent(container: LayoutInflater) = ui {
         root = cellLayout(11, 15) {
-            zxview = zxView { id = R.id.zxView; }
+            addUiView( ZxView(ctx).apply { zxview = this; id = R.id.zxView } )
             debLyt = debugger.layout(wnd, this).lps(0, 10, 11, 9)
             keyLyt = keyboard.layout(this).lps(0, 10, 11, 4)
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
-        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_ALL)
     }
 
     @SuppressLint("SetTextI18n")
@@ -100,5 +106,4 @@ class ZxFormMain: Form() {
         }
         return true
     }
-
 }

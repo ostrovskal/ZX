@@ -3,11 +3,13 @@ package ru.ostrovskal.zx
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
-import android.view.*
-import ru.ostrovskal.sshstd.Common
-import ru.ostrovskal.sshstd.Common.MATCH
-import ru.ostrovskal.sshstd.Common.WRAP
+import android.os.Bundle
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import ru.ostrovskal.sshstd.Common.*
+import ru.ostrovskal.sshstd.STORAGE
 import ru.ostrovskal.sshstd.Wnd
 import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.*
@@ -18,6 +20,7 @@ import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.sshstd.widgets.lists.CommonRibbon
 import ru.ostrovskal.zx.ZxCommon.*
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.math.sign
 
 class ZxDebugger {
@@ -34,87 +37,108 @@ class ZxDebugger {
     // корень
     private var root: ViewGroup?    = null
 
+    // выделенное представление
+    private var selView: ItemView?  = null
+
+    // количество элементов на строку
+    private var countData           = 0
+
     // количество элементов в списке
     private var countItems          = 0
 
+    // ПС в поле ввода
+    @STORAGE
+    private var nPC                 = 0
+
+    // ПС в поле ввода
+    @STORAGE
+    private var nSP                 = 0
+
     // выделенный элемент списка
-    private var currentItem         = 0
+    @STORAGE
+    private var selItem             = 0
 
     // точка входа в дизасм
+    @STORAGE
     private var entryPC             = 0
 
     // точка входа в стек
+    @STORAGE
     private var entrySP             = 0
 
     // точка входа в данные
+    @STORAGE
     private var entryData           = 0
 
     // режим отображения в списке(0 - дизасм, 1 - стек, 2 - данные)
+    @STORAGE
     private var listMode            = 0
 
     // текущая позиция в навигации по истории ПС
-    private var posPC               = 0
+    @STORAGE
+    private var posPC               = -1
 
     // Количество элементов в истории ПС
-    private var countPC               = 0
+    @STORAGE
+    private var countPC             = 0
 
     // история ПС
-    private val storyPC             = mutableListOf(0)
+    @STORAGE
+    private val storyPC             = IntArray(32) { 0 }
 
-    private fun ViewManager.debuggerRibbon(init: ListLayout.() -> Unit) =
-        uiView({ ListLayout(it) }, init)
-
-    private fun ViewManager.debuggerView() = uiView({ ItemView(it) }, {} )
+    // ПС элементов
+    @STORAGE
+    private val itemAddr            = IntArray(32) { 0 }
 
     private class ItemView(context: Context): Text(context, style_debugger_item) {
         init {
             id = R.id.button1
             typeface = Typeface.MONOSPACE
-            background = ColorDrawable(0)
-            setOnClickListener { (parent as? ListLayout)?.notify(this, true) }
-            setOnLongClickListener {(parent as? ListLayout)?.notify(this, false); true }
+            setOnClickListener { notify(false) }
+            setOnLongClickListener { notify(true); true }
         }
+
+        fun notify(long: Boolean) { (parent as? ListLayout)?.notify(this, long) }
     }
 
     private inner class ListLayout(context: Context) : CommonRibbon(context, true, style_debugger_ribbon) {
 
         private var mDeltaX              = 0
-        private var mDeltaY              = 0
 
         init {
             setOnTouchListener { _, ev ->
                 mTracker.addMovement(ev)
                 touch.event(ev).drag(mDragSensitive) { offs, finish ->
                     mDeltaX += offs.w
-                    mDeltaY += offs.h
-                    if (!finish) {
-                        val isVert = abs(mDeltaY) > abs(mDeltaX)
-                        var delta = if (isVert) mDeltaY else mDeltaX
-                        if (touch.isUnpressed) touch.flags = 0
-                        if (!isVert) {
+                    val isVert = abs(offs.h) > abs(mDeltaX)
+                    if (touch.isUnpressed) touch.flags = 0
+                    if (!isVert) {
+                        if(!finish) {
                             // меняем список
-                            delta = sign(delta.toFloat()).toInt()
+                            val delta = sign(mDeltaX.toFloat()).toInt()
                             listMode += delta
                             if (listMode < 0) listMode = 2
                             else if (listMode > 2) listMode = 0
-                            "touch $delta".info()
                             update(0, ZX_LIST)
-                        } else {
+                            mDeltaX = 0
+                        }
+                    } else {
+                        if(!finish) {
                             // запускаем прокрутку
-                            val tm = touch.tmCurrent - touch.tmBegin
                             mTouchId = touch.id
                             mTracker.computeCurrentVelocity(1000, mMaxVelocity)
-                            delta = mTracker.getYVelocity(mTouchId).toInt()
-                            if(abs(delta) > mMinVelocity) mFling.start(-delta)
-                            "touch $tm $delta".info()
+                            val delta = mTracker.getYVelocity(mTouchId).toInt()
+                            if (abs(delta) > mMinVelocity) mFling.start(-delta)
+                        } else {
+                            scrolling(offs.h / mDragSensitive.h)
                         }
                         mDeltaX = 0
-                        mDeltaY = 0
                     }
                 }
                 true
             }
         }
+
         override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
             var delta = 0
             touch.event(ev).drag(mDragSensitive) { offs, _ ->
@@ -122,21 +146,43 @@ class ZxDebugger {
             }
             return delta != 0
         }
+
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             // определить количество элементов
-            val hItem = getChildAt(0).measuredHeight
-            countItems = ((measuredHeight - verticalPadding) / hItem) + 1
+            val hItem = getChildAt(0).measuredHeight.toFloat()
+            countItems = ((measuredHeight - verticalPadding) / hItem).roundToInt()
+            mCount = childCount
+            rectWithPadding(mRectList)
+            mEdgeStart = mRectList.top
+            mEdgeEnd = mRectList.bottom
+            countData = ((((measuredWidth - horizontalPadding) / hItem) - 8) / 2f).roundToInt()
         }
 
         override fun scrolling(delta: Int): Boolean {
-            "scrolling $delta".info()
-            return false
+            var finish = false
+            when(listMode) {
+                ZX_DEBUGGER_MODE_PC       -> {
+                    finish = ZxWnd.zxCmd(ZX_CMD_MOVE, entryPC, delta, "").toByte().toBoolean
+                    entryPC = ZxWnd.read16(ZX_PROP_JNI_RETURN_VALUE)
+                }
+                ZX_DEBUGGER_MODE_SP       -> {
+                    entrySP -= delta * 2
+                    finish = correctSP()
+                }
+                ZX_DEBUGGER_MODE_DT       -> {
+                    entryData -= delta * countData
+                    finish = correctDT()
+                }
+            }
+            update(0, ZX_LIST)
+            return finish
         }
 
-        fun notify(item: ItemView, click: Boolean) {
-            "notify $click".info()
-            update(indexOfChild(item), ZX_SEL)
+        fun notify(item: ItemView, long: Boolean) {
+            val data = itemAddr[indexOfChild(item)]
+            if(long) fromItem(data)
+            else update(data, ZX_LIST or ZX_SEL)
         }
     }
 
@@ -220,10 +266,9 @@ class ZxDebugger {
                                 R.integer.I_PLAY, R.integer.I_PLAY, R.integer.I_PLAY)
         this@ZxDebugger.wnd = wnd
         val coord = if(config.portrait) coordsPort else coordsLand
-        var pos = 0
-        var idx = 0
+        var pos = 0; var idx = 0
         cellLayout(coord[pos++], 15) {
-            backgroundSet(Common.style_form)
+            backgroundSet(style_form)
             root = this
             // button action
             repeat(12) {
@@ -233,50 +278,48 @@ class ZxDebugger {
                 }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
                 pos += 4
             }
-            list = debuggerRibbon {
+            addUiView(ListLayout(context).apply {
+                list = this
                 padding = 6.dp
                 backgroundSet(style_backgrnd_io)
-                repeat(15) { debuggerView().lps(MATCH, WRAP) }
-            }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                repeat(15) { addUiView(ItemView(context).lps(MATCH, WRAP) ) }
+            }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3]))
             pos += 4
             // flags
             repeat(8) {
-                registers[it].text = text(registers[it].nm, style_debugger_text).lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
-                registers[it].edit = edit(registers[it].id, R.string.null_text, style_debugger_edit) { maxLength = 1 }.lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
+                registers[it].text = text(registers[it].nm, style_debugger_text).
+                    lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                registers[it].edit = edit(registers[it].id, R.string.null_text, style_debugger_edit) { maxLength = 1 }.
+                    lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
                 pos += 8
             }
             // registers 8 bit
             idx = 8
             repeat(6) {
-                registers[idx].text = text(registers[idx].nm, style_debugger_text).lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
-                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) {
-                    maxLength = 4
-                }.lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
+                registers[idx].text = text(registers[idx].nm, style_debugger_text).
+                    lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) { maxLength = 4 }.
+                    lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
                 pos += 8
                 idx++
             }
             // registers 16 bit
             idx = 14
             repeat(12) {
-                registers[idx].text = text(registers[idx].nm, style_debugger_text).lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
-                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) {
-                    maxLength = 5
-                }.lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
+                registers[idx].text = text(registers[idx].nm, style_debugger_text).
+                    lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+                registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit) { maxLength = 5 }.
+                    lps(coord[pos + 4], coord[pos + 5], coord[pos + 6], coord[pos + 7])
                 pos += 8
                 idx++
             }
             // assembler
-            asm = edit(R.id.edit27, R.string.null_text, style_debugger_edit) {
-                maxLength = 40
-                gravity = Gravity.CENTER_VERTICAL
-            }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
+            asm = edit(R.id.edit27, R.string.null_text, style_debugger_edit) { maxLength = 40; gravity = Gravity.CENTER_VERTICAL }.
+                lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
         }
     }
 
     fun update(data: Int, flags: Int) {
-        "debugger.update($flags)".info()
-        // блокировка/разблокировка кнопок
-        enabledButtons()
         // обновление регистров
         if(flags test ZX_REG) {
             registers.forEach {reg ->
@@ -288,72 +331,114 @@ class ZxDebugger {
                 // устанавливаем значение регистра
                 val sval = ZxWnd.zxFormatNumber(nval, reg.fmt, true)
                 reg.edit?.setText(sval)
+                if(reg.id == R.id.edit25) nPC = nval
+                else if(reg.id == R.id.edit26) nSP = nval
             }
+            entrySP = nSP
+            entrySP -= ((countItems + 1) and -2)
+            correctSP()
         }
         if(flags test ZX_PC) {
             // читаем текущий PC
-            entryPC = ZxWnd.zxInt(ZX_CPU_PC, 0xffff, true, 0).toInt()
-            currentItem = 0
+            entryPC = data
             // добавляем в историю
+            if(flags test ZX_STORY) setStoryPC(data)
         }
-        if(flags test ZX_SP) {
-            entrySP = ZxWnd.zxInt(ZX_CPU_SP, 0xffff, true, 0).toInt()
+        if(flags test ZX_DT) {
+            entryData = data
+            correctDT()
         }
         if(flags test ZX_SEL) {
-            list?.apply {
-                if (currentItem != -1) (getChildAt(currentItem)?.background as? ColorDrawable)?.color = 0x0
-                currentItem = data
-                (getChildAt(data)?.background as? ColorDrawable)?.color = Color.BLUE
-            }
+            selItem = data
         }
         if(flags test ZX_LIST) {
-            var entry = -1
             list?.let {
                 val count = it.childCount
-                var flg =   (ZxWnd.props[ZX_PROP_SHOW_ADDRESS].toInt() * DA_PC) or
-                            (ZxWnd.props[ZX_PROP_SHOW_CODE].toInt() * DA_CODE) or
-                            (ZxWnd.props[ZX_PROP_SHOW_CODE_VALUE].toInt() * (DA_PNN or DA_PN))
-                repeat(count) { item ->
-                    when(listMode) {
-                        // 1. строка дизасма - ПС, флаги - новый ПС
-                        0       -> {
-                            if(entry == -1) entry = entryPC
-
-                        }
-                        // 2. стек - СП - новый СП
-                        1       -> {
-                            if(entry == -1) {
-                                entry = 65530//entrySP - ((countItems + 1) and -2)
-                                if(entry < 0) entry = 0
-                                else if((entry + countItems * 2) > 65535) entry = (65536 - countItems * 2) - (entrySP and 1)
-                            }
-                        }
-                        // 3. данные - адрес
-                        2       -> {
-                            if(entry == -1) entry = 65520//entryData
-                            flg = (((it.measuredWidth - it.horizontalPadding) / 8.sp) - 12) / 3
-                        }
+                var flg = 0
+                selView?.setBackgroundColor(0)
+                selView = null
+                var entry = when(listMode) {
+                    // 1. строка дизасма - ПС, флаги - новый ПС
+                    ZX_DEBUGGER_MODE_PC     -> {
+                        flg =   (ZxWnd.props[ZX_PROP_SHOW_ADDRESS].toInt() * DA_PC) or
+                                (ZxWnd.props[ZX_PROP_SHOW_CODE].toInt() * DA_CODE) or
+                                (ZxWnd.props[ZX_PROP_SHOW_CODE_VALUE].toInt() * (DA_PNN or DA_PN))
+                        entryPC
                     }
+                    // 2. стек - СП - новый СП
+                    ZX_DEBUGGER_MODE_SP     -> { entrySP }
+                    // 3. данные - адрес
+                    ZX_DEBUGGER_MODE_DT    -> { flg = countData; entryData }
+                    else                   -> error("Wrong debugger mode!")
+                }
+                repeat(count) { item ->
                     val str = ZxWnd.zxDebuggerString(listMode, entry, flg)
                     (it.getChildAt(item) as? Text)?.text = str
-                    entry += ZxWnd.props[ZX_PROP_JNI_RETURN_VALUE].toInt()
+                    itemAddr[item] = entry
+                    if(entry == selItem) selectItem(item)
+                    entry += ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE)
                 }
             }
         }
         list?.invalidate()
+        // блокировка/разблокировка кнопок
+        enabledButtons()
+    }
+
+    private fun correctSP(): Boolean {
+        val entry = entrySP
+        val delta = entry % 2
+        if(entrySP < 0) entrySP = 0 + delta
+        else if((entrySP + countItems * 2) > 65535)
+            entrySP = (65536 - countItems * 2) + delta
+        return entry != entrySP
+    }
+
+    private fun correctDT(): Boolean {
+        val entry = entryData
+        if(entryData < 0) entryData %= countData
+        else if((entryData + countItems * countData) > 65535)
+            entryData = (65536 - countItems * countData)
+        return entry != entryData
+    }
+
+    private fun selectItem(idx: Int) {
+/*        if(idx > (countItems / 2)) {
+            entryPC = itemAddr[1]
+            update(0, ZX_LIST)
+        } else */
+            selItem = itemAddr[idx]
+            selView = list?.getChildAt(idx) as? ItemView
+            selView?.setBackgroundColor(Color.BLUE)
+    }
+
+    private fun setStoryPC(data: Int) {
+        // сначала найти такой же
+        if(storyPC.any { it == data }) return
+        // добавить
+        val size = storyPC.size - 1
+        if(posPC > size) {
+            repeat(size) { storyPC[it] = storyPC[it + 1] }
+            posPC = size
+        }
+        storyPC[++posPC] = data
+        countPC = posPC
+        "setStoryPC data: $data pos: $posPC count: $countPC list: ${storyPC.display()}".info()
     }
 
     private fun clickAction(view: View) {
         var flags = 0
         var data = 0
         when(val cmd = root?.indexOfChild(view) ?: -1) {
+            DEBUGGER_ACT_NEXT,
             DEBUGGER_ACT_PREV      -> {
-
-            }
-            DEBUGGER_ACT_NEXT      -> {
-
+                posPC += if(cmd == DEBUGGER_ACT_PREV) -1 else 1
+                data = storyPC[posPC]
+                flags = ZX_PC or ZX_SEL or ZX_LIST
             }
             DEBUGGER_ACT_BP        -> {
+                ZxWnd.zxCmd(ZX_CMD_QUICK_BP, selItem, 0, "")
+                flags = ZX_LIST
             }
             DEBUGGER_ACT_BP_LIST   -> {
                 wnd.instanceForm(FORM_BREAK_POINTS)
@@ -362,13 +447,17 @@ class ZxDebugger {
                 val isExecute = ZxWnd.props[ZX_PROP_EXECUTE].toBoolean
                 ZxWnd.props[ZX_PROP_EXECUTE] = if(isExecute) 0 else 1
                 if(!isExecute) ZxWnd.zxCmd(ZX_CMD_STEP_DEBUG, 0, 0, "")
-                flags = ZX_LIST or ZX_REG
+                if(isExecute) {
+                    data = nPC//ZxWnd.read16(ZX_CPU_PC)
+                    flags = ZX_ALL
+                } else flags = ZX_STORY
             }
             DEBUGGER_ACT_TRACE_IN,
             DEBUGGER_ACT_TRACE_OUT,
             DEBUGGER_ACT_TRACE_OVER -> {
                 ZxWnd.zxCmd(ZX_CMD_TRACE_X, cmd - DEBUGGER_ACT_TRACE_IN, 0, "")
-                flags = ZX_LIST or ZX_REG
+                data = nPC//ZxWnd.read16(ZX_CPU_PC)
+                flags = ZX_LIST or ZX_REG or ZX_SEL
             }
             DEBUGGER_ACT_HEX_DEC    -> {
                 ZxWnd.props[ZX_PROP_SHOW_HEX] = if(ZxWnd.props[ZX_PROP_SHOW_HEX].toBoolean) 0 else 1
@@ -398,7 +487,34 @@ class ZxDebugger {
             byIdx<Tile>(DEBUGGER_ACT_TRACE_OVER).isEnabled = isPlay && isDA
             byIdx<Tile>(DEBUGGER_ACT_PREV).isEnabled = isDA && posPC > 0
             byIdx<Tile>(DEBUGGER_ACT_NEXT).isEnabled = isDA && posPC < countPC
-            byIdx<Tile>(DEBUGGER_ACT_BP).isEnabled = isDA
+            byIdx<Tile>(DEBUGGER_ACT_BP).isEnabled = isDA && selView != null
         }
-   }
+    }
+
+    fun fromItem(data: Int) {
+        val ret = ZxWnd.zxCmd(ZX_CMD_JUMP, data, listMode, "")
+        val dat = ZxWnd.read16(ZX_PROP_JNI_RETURN_VALUE)
+        when(ret) {
+            ZX_DEBUGGER_MODE_PC       -> {
+                listMode = ret
+                update(dat, ZX_PC or ZX_LIST or ZX_SEL)
+            }
+            ZX_DEBUGGER_MODE_DT       -> {
+                listMode = ret
+                update(dat, ZX_DT or ZX_LIST or ZX_SEL)
+            }
+        }
+        update(data, ZX_SEL or ZX_LIST)
+    }
+
+    fun save(state: Bundle) {
+        val s = this.marshall()
+        state.putByteArray("debugger", s)
+    }
+
+    fun restore(state: Bundle) {
+        state.getByteArray("debugger")?.apply {
+            this.unmarshall(this)
+        }
+    }
 }

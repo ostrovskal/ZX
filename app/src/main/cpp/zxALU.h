@@ -65,8 +65,35 @@ public:
     // установка актуальных страниц
     void setPages();
 
+    // запуск трассера
+    void startTracer();
+
+    // проверить на срабатывании точки останова
+    bool checkBPs(uint16_t address, uint8_t flg);
+
+    // быстрая установка в коде
+    void quickBP(uint16_t address);
+
+    // выполнение при трассировке
+    int stepDebug();
+
+    // трассировка в отладчике
+    int debuggerTrace(int mode);
+
+    // построение списков в отладчике
+    const char *debugger(int cmd, int data, int flags);
+
+    // сдвиг указателя на ПС в отладчике
+    int debuggerMove(int entry, int delta);
+
+    // получение адреса в памяти/адреса перехода в инструкции/адреса из стека
+    int debuggerJump(int address, int mode);
+
     // чтение из порта
     uint8_t readPort(uint8_t A0A7, uint8_t A8A15);
+
+    // быстрая проверка на точку останова
+    BREAK_POINT* quickCheckBPs(uint16_t address, uint8_t flg);
 
     // поверхность рендеринга
     uint32_t* surface;
@@ -95,29 +122,14 @@ public:
     // буфер ОЗУ
     uint8_t* RAMs;
 
-    void startTracer();
-
     // файл трассировщика
     zxFile ftracer;
-
-    // проверить на срабатывании точки останова
-    bool checkBPs(uint16_t address, uint8_t flg);
-
-    // быстрая установка в коде
-    void quickBP(uint16_t address);
-
-    // выполнение при трассировке
-    int stepDebug();
-
-    int trace(int mode);
 
     // процессор
     zxCPU* cpu;
 
     // начало инструкции
     static uint16_t PC;
-
-    const char *debugger(int cmd, uint16_t data, int flags);
 
 protected:
 

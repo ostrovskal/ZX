@@ -22,7 +22,7 @@ public:
     static size_t cmdParser(uint16_t* pc, uint16_t* buffer, bool regsSave);
 
     // формирование распарсенной дизассемблерной строки инструкции
-    static const char* cmdToString(uint16_t* buffer, char* daResult, int flags, int bp);
+    static const char* cmdToString(uint16_t* buffer, char* daResult, int flags);
 protected:
     // получение информации об операндах инструкции
     static int getOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16 = nullptr, uint16_t *pc = nullptr, int* ticks = nullptr, uint8_t* offset = nullptr);

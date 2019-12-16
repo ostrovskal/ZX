@@ -54,10 +54,11 @@ public final class ZxCommon {
     // UPDATE DEBUGGER
     public final static int ZX_PC                   = 1;
     public final static int ZX_REG                  = 2;
-    public final static int ZX_SP                   = 4;
+    public final static int ZX_DT                   = 4;
     public final static int ZX_SEL                  = 8;
     public final static int ZX_LIST                 = 16;
-    public final static int ZX_ALL                  = ZX_PC | ZX_REG | ZX_SP | ZX_SEL | ZX_LIST;
+    public final static int ZX_STORY                = 32;
+    public final static int ZX_ALL                  = ZX_PC | ZX_REG | ZX_SEL | ZX_LIST | ZX_STORY | ZX_DT;
 
     // REGISTERS
     public final static int ZX_CPU_F                = 6;
@@ -231,6 +232,8 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     public static final int ZX_CMD_QUICK_BP         = 8;  // Быстрая установка точки останова
     public static final int ZX_CMD_TRACE_X          = 9;  // Трассировка
     public static final int ZX_CMD_STEP_DEBUG       = 10; // Выполнение в отладчике
+    public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
+    public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
 
     public static final int ZX_CMD_PRESETS_SAVE     = 0; // Сохранить параметры джойстика
     public static final int ZX_CMD_PRESETS_LOAD     = 1; // Загрузить параметры джойстика
@@ -241,6 +244,10 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     public static final int ZX_CMD_TRACE_IN         = 0; // Трассировка с заходом
     public static final int ZX_CMD_TRACE_OUT        = 1; // Трассировка с обходом
     public static final int ZX_CMD_TRACE_OVER       = 2; // Трассировка с выходом
+
+    public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
+    public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
+    public static final int ZX_DEBUGGER_MODE_DT     = 2; // Список данных
 
     // Тема по умолчанию
     public static final int[] themeDef = {
