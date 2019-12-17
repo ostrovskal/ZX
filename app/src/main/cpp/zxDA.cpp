@@ -232,7 +232,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
         auto label = searchLabel(_pc);
         if (label) {
             ssh_strcpy(&daResult, label);
-            ssh_strcpy(&daResult, ":\r\n");
+            ssh_strcpy(&daResult, ":\n");
         }
     }
     // заголовок

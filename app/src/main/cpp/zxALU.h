@@ -77,7 +77,7 @@ public:
     void quickBP(uint16_t address);
 
     // выполнение при трассировке
-    int stepDebug();
+    void stepDebug();
 
     // чтение из порта
     uint8_t readPort(uint8_t A0A7, uint8_t A8A15);

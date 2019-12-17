@@ -694,15 +694,15 @@ void zxALU::execute() {
     }
 }
 
-int zxALU::stepDebug() {
+void zxALU::stepDebug() {
+    // убрать отладчик - чтобы не сработала точка останова
+    modifySTATE(0, ZX_DEBUG | ZX_HALT);
     int ticks = 0;
     // перехват системных процедур
 //    auto ticks = tape->trap(*cpu->_PC);
-    // выполнение операции
-    PC = *cpu->_PC;
-    ticks += cpu->step();
+    ticks = cpu->step();
     *_TICK += ticks;
-    return ticks;
+    modifySTATE(ZX_DEBUG, 0);
 }
 
 int zxALU::step(bool allow_int) {

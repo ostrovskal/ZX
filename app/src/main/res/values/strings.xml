@@ -97,23 +97,15 @@
     <string name="ram" translatable="false">RAM</string>
     <string name="rom" translatable="false">ROM</string>
     <string name="vid" translatable="false">VID</string>
-    <string name="im" translatable="false">IM</string>
-    <string name="ay" translatable="false">AY</string>
-    <string name="rr" translatable="false">R</string>
-    <string name="raf1" translatable="false">AF</string>
-    <string name="raf2" translatable="false">AF\'</string>
-    <string name="rhl1" translatable="false">HL</string>
-    <string name="rhl2" translatable="false">HL\'</string>
-    <string name="rde1" translatable="false">DE</string>
-    <string name="rde2" translatable="false">DE\'</string>
-    <string name="rbc1" translatable="false">BC</string>
-    <string name="rbc2" translatable="false">BC\'</string>
+    <string name="raf" translatable="false">AF</string>
+    <string name="rhl" translatable="false">HL</string>
+    <string name="rde" translatable="false">DE</string>
+    <string name="rbc" translatable="false">BC</string>
     <string name="rix" translatable="false">IX</string>
     <string name="riy" translatable="false">IY</string>
     <string name="rpc" translatable="false">PC</string>
     <string name="rsp" translatable="false">SP</string>
     <string name="shadow_null" translatable="false">0,0,0,#ff000000</string>
-    <string name="ri" translatable="false">I</string>
     <string name="radiiFormMessage" translatable="false">40,35,40,35,20,20,20,20</string>
     <string name="menuLabel">Label</string>
     <string name="menuCode">Code</string>

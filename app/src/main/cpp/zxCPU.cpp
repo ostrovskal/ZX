@@ -179,7 +179,7 @@ int zxCPU::step() {
     auto regDst = m->regDst;
     auto regSrc = m->regSrc;
 
-    ticks += m->tiks;
+    ticks += m->tiks & 31;
 
     auto dst = initOperand(regDst, regSrc, prefix, vDst, v8Dst);
     initOperand(regSrc, regDst, prefix, vSrc, v8Src);
@@ -292,6 +292,7 @@ int zxCPU::step() {
                 break;
             case O_JMP:
                 *_PC = vSrc;
+                CMD_CACHE(vSrc);
                 ticks = 14;
                 break;
             case O_JR:
@@ -301,6 +302,7 @@ int zxCPU::step() {
                 break;
             case O_CALL:
                 call(vSrc);
+                CMD_CACHE(vSrc);
                 ticks = 17;
                 break;
             case O_RETN:
@@ -308,6 +310,7 @@ int zxCPU::step() {
                 ticks = 8;
             case O_RET:
                 *_PC = rm16(*_SP);
+                CMD_CACHE(*_PC);
                 *_SP += 2;
                 ticks += 6;
                 break;
@@ -352,15 +355,6 @@ int zxCPU::step() {
             case O_RST:
                 call((uint16_t)(codeOps & 56));
                 break;
-/*
-        case O_PREF:
-            switch(codeOps) {
-                case PREF_CB: ticks += step(prefix, 256); break;
-                case PREF_ED: ticks += step(0, 512); break;
-                case PREF_DD: case PREF_FD: if(!prefix) ticks += step(codeOps == PREF_DD ? 12 : 24, 0); break;
-            }
-            break;
-*/
             case O_SPEC:
                 special(vDst, v8Dst, v8Src);
                 break;

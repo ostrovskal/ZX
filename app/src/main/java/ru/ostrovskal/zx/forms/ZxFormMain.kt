@@ -87,7 +87,6 @@ class ZxFormMain: Form() {
     @SuppressLint("SetTextI18n")
     override fun handleMessage(msg: Message): Boolean {
         when(msg.action) {
-            ZxWnd.ZxMessages.ACT_DEBUGGER_LONG_CLOCK.ordinal-> debugger.fromItem(msg.arg1)
             ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
             ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1, msg.arg2)
             ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
@@ -106,7 +105,6 @@ class ZxFormMain: Form() {
                     }
                 }
             }
-            ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal    -> debugger.asm.setText(msg.obj.toString())
         }
         return true
     }

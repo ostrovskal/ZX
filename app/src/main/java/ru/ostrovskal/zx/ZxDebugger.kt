@@ -1,8 +1,6 @@
 package ru.ostrovskal.zx
 
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.os.Bundle
 import android.text.InputType
 import android.util.TypedValue
@@ -11,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import ru.ostrovskal.sshstd.Common.*
 import ru.ostrovskal.sshstd.STORAGE
+import ru.ostrovskal.sshstd.TileDrawable
 import ru.ostrovskal.sshstd.Wnd
 import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.*
@@ -38,28 +37,31 @@ class ZxDebugger {
         ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagC,     ZX_CPU_F,    0x01, 0),
         ZxRegister(ZX_FV_OPS8, R.id.edit1,  R.string.ram,   ZX_CPU_RAM,  0xff),
         ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.rom,   ZX_CPU_ROM,  0xff),
-        ZxRegister(ZX_FV_OPS8, R.id.edit3,  R.string.vid,   ZX_CPU_VID,  0xff),
-        ZxRegister(ZX_FV_OPS8, R.id.edit4,  R.string.rr,     ZX_CPU_RR,   0xff),
-        ZxRegister(ZX_FV_OPS8, R.id.edit5,  R.string.ay,    ZX_CPU_AY,   0xff),
-        ZxRegister(ZX_FV_OPS8, R.id.edit6,  R.string.ri,     ZX_CPU_RI,   0xff),
-        ZxRegister(ZX_FV_OPS16, R.id.edit7, R.string.raf1,    ZX_CPU_AF1),
-        ZxRegister(ZX_FV_OPS16, R.id.edit8, R.string.rhl1,    ZX_CPU_HL1),
-        ZxRegister(ZX_FV_OPS16, R.id.edit9, R.string.rde1,    ZX_CPU_DE1),
-        ZxRegister(ZX_FV_OPS16, R.id.edit10, R.string.rbc1,    ZX_CPU_BC1),
-        ZxRegister(ZX_FV_OPS16, R.id.edit11, R.string.rix,    ZX_CPU_IX),
-        ZxRegister(ZX_FV_OPS16, R.id.edit12, R.string.riy,    ZX_CPU_IY),
-        ZxRegister(ZX_FV_OPS16, R.id.edit13, R.string.rpc,    ZX_CPU_PC),
-        ZxRegister(ZX_FV_OPS16, R.id.edit14, R.string.rsp,    ZX_CPU_SP)
+        ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.vid,   ZX_CPU_VID,  0xff),
+        ZxRegister(ZX_FV_OPS16, R.id.edit3, R.string.raf,   ZX_CPU_AF),
+        ZxRegister(ZX_FV_OPS16, R.id.edit4, R.string.rhl,   ZX_CPU_HL),
+        ZxRegister(ZX_FV_OPS16, R.id.edit5, R.string.rde,   ZX_CPU_DE),
+        ZxRegister(ZX_FV_OPS16, R.id.edit6, R.string.rbc,  ZX_CPU_BC),
+        ZxRegister(ZX_FV_OPS16, R.id.edit7, R.string.rix,  ZX_CPU_IX),
+        ZxRegister(ZX_FV_OPS16, R.id.edit8, R.string.riy,  ZX_CPU_IY),
+        ZxRegister(ZX_FV_OPS16, R.id.edit9, R.string.rpc,  ZX_CPU_PC),
+        ZxRegister(ZX_FV_OPS16, R.id.edit10, R.string.rsp,  ZX_CPU_SP)
     )
+
+    //
+    private lateinit var wnd: Wnd
 
     // корень
     private lateinit var root: ViewGroup
 
+    // селектор для флага
+    private var selector: TileDrawable?     = null
+
     // редактор асм комманды
-    val asm                           by lazy { root.byIdx<Edit>(47) }
+    private val asm                    by lazy { root.byIdx<Edit>(41) }
 
     // главный список
-    private val list              by lazy { root.byIdx<ListLayout>(10) }
+    private val list              by lazy { root.byIdx<ZxListView>(10) }
 
     // текущая позиция в навигации по истории ПС
     @STORAGE
@@ -74,9 +76,11 @@ class ZxDebugger {
     private val storyPC                     = IntArray(32) { 0 }
 
     fun layout(wnd: Wnd, ui: CellLayout) = with(ui) {
-        val iconAction = listOf(R.integer.I_HEX, R.integer.I_PREV, R.integer.I_BP, R.integer.I_NEXT, R.integer.I_LIST_BP,
-                                R.integer.I_PLAY, R.integer.I_TRACE_IN, R.integer.I_TRACE_OUT, R.integer.I_TRACE_OVER,
-                                R.integer.I_PLAY, R.integer.I_PLAY, R.integer.I_PLAY)
+        val iconAction = listOf(R.integer.I_HEX, R.integer.I_UNDO, R.integer.I_PLAY, R.integer.I_REDO, R.integer.I_TRACE_IN, R.integer.I_TRACE_OUT, R.integer.I_TRACE_OVER,
+                                R.integer.I_BP, R.integer.I_LIST_BP,
+                                R.integer.I_PLAY)
+        this@ZxDebugger.wnd = wnd
+        selector = TileDrawable(context, style_debugger_selector)
         val coord = if(config.portrait) debuggerPort else debuggerLand
         var pos = 0; var idx = 0
         cellLayout(coord[pos++], coord[pos++]) {
@@ -90,11 +94,17 @@ class ZxDebugger {
                 }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
                 pos += 4
             }
-            addUiView(ListLayout(context, true).apply {
+            addUiView(ZxListView(context, true).apply {
                 padding = 2.dp
-                this.wnd = wnd
+                onNotifyParent = { _, event, data, sdata ->
+                    when(event) {
+                        ZxWnd.ZxMessages.ACT_DEBUGGER_LONG_CLOCK.ordinal    -> fromItem(data)
+                        ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal        -> update(0, ZX_LIST)
+                        ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal-> asm.setText(sdata)
+                    }
+                }
                 backgroundSet(style_backgrnd_io)
-                repeat(1) { addUiView(ListLayout.ItemView(context).lps(MATCH, WRAP) ) }
+                repeat(1) { addUiView(ZxListView.ItemView(R.id.button1, context).lps(MATCH, WRAP) ) }
             }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3]))
             pos += 4
             // flags
@@ -105,7 +115,7 @@ class ZxDebugger {
             }
             // registers 8 bit
             idx = 8
-            repeat(6) {
+            repeat(3) {
                 registers[idx].text = text(registers[idx].nm, style_debugger_text).
                     lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
                 registers[idx].edit = edit(registers[idx].id, R.string.null_text, style_debugger_edit).
@@ -114,7 +124,6 @@ class ZxDebugger {
                 idx++
             }
             // registers 16 bit
-            idx = 14
             repeat(8) {
                 registers[idx].text = text(registers[idx].nm, style_debugger_text).
                     lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
@@ -124,7 +133,7 @@ class ZxDebugger {
                 idx++
             }
             // assembler
-            edit(R.id.edit15, R.string.null_text, style_debugger_edit) {
+            edit(R.id.edit11, R.string.null_text, style_debugger_edit) {
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
                 maxLength = 40
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, 14f.sp)
@@ -144,7 +153,7 @@ class ZxDebugger {
                 // устанавливаем значение регистра
                 if(reg.fmt == ZX_FV_SIMPLE) {
                     // flags
-                    reg.text?.background = if(nval == 1) list.selector else null
+                    reg.text?.background = if(nval == 1) selector else null
                 } else {
                     val sval = ZxWnd.zxFormatNumber(nval, reg.fmt, true)
                     reg.edit?.setText(sval)
@@ -162,9 +171,9 @@ class ZxDebugger {
         //if(storyPC.any { it == data }) return
         // добавить
         val size = storyPC.size - 1
-        if(posPC > size) {
+        if(posPC >= size) {
             repeat(size) { storyPC[it] = storyPC[it + 1] }
-            posPC = size
+            posPC = size - 1
         }
         storyPC[++posPC] = data
         countPC = posPC
@@ -186,7 +195,7 @@ class ZxDebugger {
                 flags = ZX_LIST
             }
             DEBUGGER_ACT_BP_LIST   -> {
-                list.wnd.instanceForm(FORM_BREAK_POINTS)
+                wnd.instanceForm(FORM_BREAK_POINTS)
             }
             DEBUGGER_ACT_ACTION    -> {
                 val isExecute = ZxWnd.props[ZX_PROP_EXECUTE].toBoolean
@@ -202,7 +211,7 @@ class ZxDebugger {
             DEBUGGER_ACT_TRACE_OVER -> {
                 ZxWnd.zxCmd(ZX_CMD_TRACE_X, cmd - DEBUGGER_ACT_TRACE_IN, 0, "")
                 data = ZxWnd.read16(ZX_CPU_PC)
-                flags = ZX_RSL
+                flags = ZX_RSL or ZX_TRACE
             }
             DEBUGGER_ACT_HEX_DEC    -> {
                 ZxWnd.props[ZX_PROP_SHOW_HEX] = if(ZxWnd.props[ZX_PROP_SHOW_HEX].toBoolean) 0 else 1
@@ -269,20 +278,30 @@ class ZxDebugger {
         state.getByteArray("debugger")?.let { unmarshall(it) }
         state.getByteArray("list_debugger")?.let { list.unmarshall(it) }
     }
+}
+
+/*
 
     fun showRegisters(canvas: Canvas, paint: Paint) {
         paint.textSize = 14f.sp
+        val xx = 70f.sp
+        val yy = 20f.sp
+        val x1 = 47f.sp
+        val x2 = 10f.sp
         repeat(2) { y ->
+            val dy = 20f.sp + y * yy
             repeat(4) { x ->
-                var idx = 14 + y * 4 + x
+                val idx = 11 + y * 4 + x
                 registers[idx].apply {
                     paint.color = text?.currentTextColor ?: Color.GREEN
-                    canvas.drawText(edit?.text.toString(), 57f + x * 90f, 20f + y * 40f, paint)
+                    val dx = x * xx
+                    canvas.drawText(edit?.text.toString(), x1 + dx, dy, paint)
                     paint.color = Color.GREEN
-                    canvas.drawText(text?.text.toString(), 10f + x * 90f, 20f + y * 40f, paint)
+                    canvas.drawText(text?.text.toString(), x2 + dx, dy, paint)
                 }
             }
         }
         paint.textSize = 24f.sp
     }
-}
+*/
+

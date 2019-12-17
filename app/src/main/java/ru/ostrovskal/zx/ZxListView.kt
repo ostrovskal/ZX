@@ -6,10 +6,8 @@ import android.graphics.Canvas
 import android.graphics.Typeface
 import android.view.MotionEvent
 import android.view.View
-import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
 import ru.ostrovskal.sshstd.STORAGE
 import ru.ostrovskal.sshstd.TileDrawable
-import ru.ostrovskal.sshstd.Wnd
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Text
 import ru.ostrovskal.sshstd.widgets.lists.CommonRibbon
@@ -18,68 +16,72 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
-class ListLayout(context: Context, private val turn: Boolean) : CommonRibbon(context, true, style_debugger_ribbon) {
+@SuppressLint("ViewConstructor")
+open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbon(context, true, style_debugger_ribbon) {
 
-    class ItemView(context: Context): Text(context, style_debugger_item) {
+    @SuppressLint("ViewConstructor")
+    class ItemView(id: Int, context: Context): Text(context, style_debugger_item) {
         init {
-            id = R.id.button1
+            this.id = id
             typeface = Typeface.MONOSPACE
             setOnClickListener { notify(false) }
             setOnLongClickListener { notify(true); true }
         }
 
-        private fun notify(long: Boolean) { (parent as? ListLayout)?.notify(this, long) }
+        private fun notify(long: Boolean) { (parent as? ZxListView)?.notify(this, long) }
     }
 
     //
-    lateinit var wnd: Wnd
+    private var mDeltaX                     = 0
 
     // селектор для выделенного элемента списка
-    @JvmField var selector: TileDrawable?     = null
+    private var selector: TileDrawable?     = null
 
     // выделенное представление
-    @JvmField var selView: ItemView?   = null
+    @JvmField var selView: ItemView?        = null
 
     // выделенный элемент списка
     @STORAGE
-    @JvmField var selItem            = 0
+    @JvmField var selItem                   = 0
 
     // точка входа в дизасм
     @STORAGE
-    @JvmField var entryPC            = 0
+    @JvmField var entryPC                   = 0
 
     // точка входа в стек
     @STORAGE
-    @JvmField var entrySP            = 0
+    @JvmField var entrySP                   = 0
 
     // точка входа в данные
     @STORAGE
-    private var entryData            = 0
+    private var entryData                   = 0
 
     //
-    private var mDeltaX              = 0
+    @JvmField var countItems                = 0
 
     //
-    @JvmField var countItems        = 0
-
-    //
-    @JvmField var countData         = 0
+    @JvmField var countData                 = 0
 
     //
     @STORAGE
-    @JvmField var mode          = ZX_DEBUGGER_MODE_PC
+    @JvmField var mode                  = ZX_DEBUGGER_MODE_PC
 
     // ПС элементов
     @STORAGE
-    private val itemAddr            = IntArray(32) { 0 }
+    private val itemAddr                    = IntArray(32) { 0 }
+
+    // уведомление родителя (обновление, длинный клик, установка инструкции)
+    @JvmField var onNotifyParent: ((list: ZxListView, event: Int, data: Int, sdata: String) -> Unit)? = null
 
     init {
         selector = TileDrawable(context, style_debugger_selector)
+        scrollBarFadeDuration = 0
+        isScrollbarFadingEnabled = false
 
         setOnTouchListener { _, ev ->
             mTracker.addMovement(ev)
             touch.event(ev).drag(mDragSensitive) { offs, finish ->
-                mDeltaX += offs.w
+                if(turn) mDeltaX += offs.w
                 val isVert = abs(offs.h) > abs(mDeltaX)
                 if (touch.isUnpressed) touch.flags = 0
                 if (!isVert) {
@@ -113,19 +115,22 @@ class ListLayout(context: Context, private val turn: Boolean) : CommonRibbon(con
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         var delta = 0
         touch.event(ev).drag(mDragSensitive) { offs, _ ->
-            delta = offs.w or offs.h
+            delta = offs.h or if(turn) offs.h else 0
         }
         return delta != 0
     }
 
+    private val ids = listOf(R.id.spinner1, R.id.spinner2, R.id.spinner3, R.id.spinner4, R.id.spinner5,
+                                      R.id.spinner6, R.id.spinner7, R.id.spinner8, R.id.spinner9, R.id.spinner10,
+                                      R.id.spinner11, R.id.spinner12)
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if(childCount < 2) {
             removeAllViews()
-            repeat(countItems) { addView(ItemView(context)) }
+            repeat(countItems) { addView(ItemView(ids[it], context)) }
             mCount = childCount
-            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_LIST)
+            onNotifyParent?.invoke(this, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, 0, "")
         }
     }
 
@@ -142,6 +147,7 @@ class ListLayout(context: Context, private val turn: Boolean) : CommonRibbon(con
 
     override fun scrolling(delta: Int): Boolean {
         var finish = false
+        awakenScrollBars()
         when(mode) {
             ZX_DEBUGGER_MODE_PC -> {
                 finish = ZxWnd.zxCmd(ZX_CMD_MOVE, entryPC, delta, "").toByte().toBoolean
@@ -160,9 +166,19 @@ class ListLayout(context: Context, private val turn: Boolean) : CommonRibbon(con
         return finish
     }
 
+    override fun computeVerticalScrollOffset() = when(mode) {
+        ZX_DEBUGGER_MODE_PC -> entryPC
+        ZX_DEBUGGER_MODE_SP -> entrySP
+        else                -> entryData
+    }
+
+    override fun computeVerticalScrollRange() = 65535
+
+    override fun computeVerticalScrollExtent() = countItems
+
     fun notify(item: View, long: Boolean) {
-        val data = itemAddr[indexOfChild(item)]
-        if(long) wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_DEBUGGER_LONG_CLOCK.ordinal, a1 = data)
+        val data = indexToAddr(indexOfChild(item))
+        if(long) onNotifyParent?.invoke(this, ZxWnd.ZxMessages.ACT_DEBUGGER_LONG_CLOCK.ordinal, data, "")
         else update(data, ZX_SL)
     }
 
@@ -192,7 +208,6 @@ class ListLayout(context: Context, private val turn: Boolean) : CommonRibbon(con
             entrySP -= (countItems and -2)
         }
         if(flags test ZX_PC) {
-            // читаем текущий PC
             entryPC = data
         }
         if(flags test ZX_DT) {
@@ -223,29 +238,56 @@ class ListLayout(context: Context, private val turn: Boolean) : CommonRibbon(con
             ZX_DEBUGGER_MODE_DT    -> { flg = countData; correctDT(); entryData }
             else                   -> error("Wrong debugger mode!")
         }
-        repeat(countItems) { item ->
+        var item = 0
+        var change = 0
+        while(item < countItems) {
             val str = ZxWnd.zxDebuggerString(mode, entry, flg)
-            (getChildAt(item) as? Text)?.text = str
+            if(mode == ZX_DEBUGGER_MODE_PC && flg test DA_LABEL) {
+                // проверить на метку
+                val label = str.substringBefore('\n', "")
+                if (label.isNotBlank()) {
+                    "label $item $label".info()
+                    (getChildAt(item) as? Text)?.text = label
+                    itemAddr[item] = -1
+                    item++
+                }
+            }
+            (getChildAt(item) as? Text)?.text = str.substringAfter('\n')
             itemAddr[item] = entry
             if(entry == selItem) {
                 if(mode == ZX_DEBUGGER_MODE_PC && flags test ZX_SEL) {
                     val posMnemonic = ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE + 1)
-                    wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal, o = str.substring(posMnemonic))
+                    onNotifyParent?.invoke(this, ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal, 0, str.substring(posMnemonic))
                 }
-                selectItem(item)
+                change = selectItem(item, flags)
+                if(change != 0) break
             }
             entry += ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE)
+            item++
+        }
+        if(change != 0) {
+            entryPC = indexToAddr(change)
+            update(0, ZX_LIST)
+        } else {
+            itemAddr.fill(0, item, itemAddr.size)
         }
     }
 
-    private fun selectItem(idx: Int) {
-/*        if(idx > (countItems / 2)) {
-            entryPC = itemAddr[1]
-            update(0, ZX_LIST)
-        } else */
-        selItem = itemAddr[idx]
-        selView = getChildAt(idx) as? ItemView
-        selView?.background = selector
+    private fun selectItem(idx: Int, flags: Int): Int {
+        if(flags test ZX_TRACE) {
+            val count = idx - ((countItems / 2) - 1)
+            if(count > 0) return count
+        }
+        selView = (getChildAt(idx) as? ItemView)?.apply {
+            background = selector
+            selItem = indexToAddr(idx)
+        }
+        return 0
     }
 
+    private fun indexToAddr(idx: Int): Int {
+        var addr = itemAddr[idx]
+        if(addr == -1) addr = itemAddr[idx + 1]
+        return addr
+    }
 }

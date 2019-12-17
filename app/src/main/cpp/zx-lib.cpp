@@ -229,7 +229,7 @@ extern "C" {
             case ZX_CMD_QUICK_BP:   ALU->quickBP((uint16_t)arg1); break;
             case ZX_CMD_TRACE_X:    ALU->debugger->trace(arg1); break;
             case ZX_CMD_STEP_DEBUG: ALU->stepDebug(); break;
-            case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2); break;
+            case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2, 10); break;
             case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
         }

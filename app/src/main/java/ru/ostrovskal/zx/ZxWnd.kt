@@ -329,9 +329,11 @@ class ZxWnd : Wnd() {
             if(id == MENU_PROPS_DEBUGGER) modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         }
-        if(id == MENU_PROPS_DEBUGGER || id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
-            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal,
-                a1 = read16(ZX_CPU_PC), a2 = ZX_ALL)
+        if(id == MENU_PROPS_DEBUGGER)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = read16(ZX_CPU_PC), a2 = ZX_ALL)
+
+        if(id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL)
         if(id == MENU_PROPS_TRACER)
             hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal)
         return isChecked

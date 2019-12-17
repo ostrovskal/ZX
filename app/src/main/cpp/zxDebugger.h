@@ -15,10 +15,10 @@ public:
     const char* itemList(int cmd, int data, int flags);
 
     // сдвиг указателя на ПС
-    int move(int entry, int delta);
+    int move(int entry, int delta, int count);
 
     // получение адреса в памяти/адреса перехода в инструкции/адреса из стека
     int jump(int address, int mode, bool isCall);
 
-
+    bool findBackAddress(int entry, int address, int* addr);
 };

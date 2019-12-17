@@ -26,9 +26,12 @@ extern uint8_t* 			            TMP_BUF;
 extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
 extern BREAK_POINT*			            bps;
+extern uint16_t                         cmdCache[512];
+extern int                              currentCmdPos;
 
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
 #define ZX_TOTAL_RAM                    262144
+#define CMD_CACHE(v)                    cmdCache[currentCmdPos] = v; currentCmdPos++; currentCmdPos &= 511;
 
 constexpr int ZX_BP_NONE                = 0; // не учитывается
 constexpr int ZX_BP_EXEC                = 1; // исполнение
@@ -204,7 +207,7 @@ constexpr int RADIX_BOL 				= 6;
 
 #define SAFE_A_DELETE(ptr)              if(ptr) { delete[] ptr; (ptr) = nullptr; }
 #define SAFE_DELETE(ptr)                if(ptr) { delete (ptr); (ptr) = nullptr; }
-#define modifySTATE(a, r)               { (*zxALU::_STATE) &= ~r; (*zxALU::_STATE) |= a; }
+#define modifySTATE(a, r)               { (*zxALU::_STATE) &= ~(r); (*zxALU::_STATE) |= (a); }
 #define SWAP_REG(r1, r2)                { auto a = *(r1); auto b = *(r2); *(r1) = b; *(r2) = a; }
 
 // вывод отладочной информации

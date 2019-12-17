@@ -17,7 +17,6 @@ import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Controller
 import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.zx.ZxCommon.*
-import ru.ostrovskal.zx.forms.ZxFormMain
 
 class ZxView(context: Context) : Surface(context) {
 
@@ -60,7 +59,7 @@ class ZxView(context: Context) : Surface(context) {
     // Кисть для отрисовки сообщения
     private var sys 				= Paint().apply {
         color = Color.GREEN
-        textSize = 24f.dp
+        textSize = 22f.dp
         textAlign = Paint.Align.CENTER
         typeface = context.makeFont("normal")
         setShadowLayer(1f.dp, 2f.dp, 2f.dp, 0x0.color)
@@ -107,16 +106,16 @@ class ZxView(context: Context) : Surface(context) {
         surfaceActive?.apply {
             canvas.drawBitmap(this, null, surfaceRect, nil)
         }
-        if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER] != 0.toByte()) {
+ /*       if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER] != 0.toByte()) {
             // отобрвзить регистры
             wnd.findForm<ZxFormMain>("main")?.debugger?.showRegisters(canvas, sys)
         }
         else {
-            if (ZxWnd.props[ZX_PROP_SHOW_FPS] != 0.toByte())
-                sys.drawTextInBounds(canvas, fps.toString(), surfaceRect, Gravity.START or Gravity.TOP)
-            if (ZxWnd.props[ZX_PROP_EXECUTE] == 0.toByte())
-                sys.drawTextInBounds(canvas, "PAUSED", surfaceRect, Gravity.CENTER)
-        }
+ */
+        if (ZxWnd.props[ZX_PROP_SHOW_FPS] != 0.toByte())
+            sys.drawTextInBounds(canvas, fps.toString(), surfaceRect, Gravity.START or Gravity.TOP)
+        if (ZxWnd.props[ZX_PROP_EXECUTE] == 0.toByte())
+            sys.drawTextInBounds(canvas, "PAUSED", surfaceRect, Gravity.CENTER)
     }
 
     override fun handleMessage(msg: Message): Boolean {

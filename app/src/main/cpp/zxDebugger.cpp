@@ -7,6 +7,26 @@
 #include "stkMnemonic.h"
 #include "zxDA.h"
 
+static uint8_t computeCmdLength(int address) {
+    auto v = rm8((uint16_t)address++);
+    auto m = &mnemonics[v];
+    uint8_t len = 0;
+    if(m->ops == O_PREF) {
+        if(v == PREF_DD || v == PREF_FD) {
+            v = rm8((uint16_t)address);
+            if(v == PREF_DD || v == PREF_FD || v == PREF_ED) return 1;
+            if(v == PREF_CB) return 4;
+            m = &mnemonics[v];
+            len = (uint8_t)(1 + (uint8_t)(m->regSrc == _RPHL || m->regDst == _RPHL));
+        } else if(v == PREF_CB) {
+            return 2;
+        } else if(v == PREF_ED) {
+            m = &mnemonics[rm8((uint16_t)address) + 512];
+        }
+    }
+    return len + (m->tiks >> 5);
+}
+
 const char *zxDebugger::itemList(int cmd, int data, int flags){
     auto buf = (uint16_t *) &TMP_BUF[0];
     auto res = (char*) &TMP_BUF[512]; auto rtmp = res;
@@ -92,8 +112,7 @@ void zxDebugger::trace(int mode) {
             yAddr = *(uint16_t *) (opts + ZX_PROP_JNI_RETURN_VALUE);
             nAddr = *(uint16_t *) (opts + ZX_PROP_JNI_RETURN_VALUE + 2);
         } else {
-            zxDA::cmdParser(&pc, (uint16_t*)&TMP_BUF[0], false);
-            yAddr = nAddr = pc;
+            yAddr = nAddr = (uint16_t)(pc + computeCmdLength(pc));
         }
     }
     auto tm = time(nullptr);
@@ -165,50 +184,85 @@ int zxDebugger::jump(int address, int mode, bool isCall) {
     return mode;
 }
 
-int zxDebugger::move(int entry, int delta) {
-    /*
-	_pc = pc;
-	if(count > 0) {
-		while(count--) {
-			pos = 0;
-			execute(0, 0);
-		}
-	} else if(count < 0) {
-		_pc += count;
-		return _pc;
-		int cc = 200;
-		int mn_diff = 1000000;
-		int mn_addr = 0;
-		int pc_t = _pc + count;
-		while(cc--) {
-			int addr = cmdJump(_pc);
-			if(addr < pc_t) {
-				int diff = pc_t - addr;
-				int mn = diff + count;
-				if(mn < mn_diff) {
-					mn_diff = mn;
-					mn_addr = addr;
-					if(mn < 30) break;
-				}
-			}
-			pos = 0;
-			execute(0, 0);
-		}
-		if(mn_diff > 7000) _pc += count;
-		else {
-			int pc;
-			_pc = mn_addr;
-			while(mn_diff > 0) {
-				pos = 0;
-				pc = _pc;
-				execute(0, 0);
-				mn_diff -= (_pc - pc);
-				if(_pc > pc_t) { _pc = pc; break; }
-			}
-		}
-	}
-	return _pc;
-     *
-     */
-    return 0;
+static int computeWndLength(int address, int finish, int count, int* length) {
+    *length = 0;
+    auto buf = &TMP_BUF[0];
+    while(count-- > 0 && address < finish) {
+        auto len = computeCmdLength(address);
+        *buf++ = len;
+        *length += len;
+        address += len;
+    }
+    return count + 1;
+}
+
+bool zxDebugger::findBackAddress(int entry, int address, int* addr) {
+    int nmin = 1000000;
+    *addr = -1;
+    int n, nn;
+    // искать в кэше
+    for(int i = 0 ; i < 512; i++) {
+        n = cmdCache[i];
+        if(n == 0) continue;
+        if(n > address) continue;
+        nn = address - n;
+        if(nmin > nn) {
+            nmin = nn; *addr = n;
+            if(nmin < 50) return true;
+        }
+    }
+    if(nmin < 300) return true;
+    // искать из переходов после
+    for(int i = 0 ; i < 1000; i++) {
+        if(jump(entry, ZX_DEBUGGER_MODE_PC, true) == ZX_DEBUGGER_MODE_PC) {
+            n = *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE);
+            if(n < address) {
+                nn = address - n;
+                if(nmin > nn) {
+                    nmin = nn; *addr = n;
+                    if(nmin < 50) return true;
+                }
+            }
+            entry = *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE + 2);;
+        } else {
+            entry += computeCmdLength(entry);
+        }
+    }
+    return nmin < 300;
+}
+
+int zxDebugger::move(int entry, int delta, int count) {
+    int length(0);
+    int finish = 0;
+    if(delta < 0) {
+        delta = -delta;
+        int wnd = delta + count;
+        auto size = computeWndLength(entry, 65536, wnd, &length);
+        // отмотать назад на count
+        for(int i = 1 ; i <= count; i++) length -= TMP_BUF[wnd - i - size];
+        entry += length;
+        finish = size != 0;
+    } else if(delta > 0) {
+        auto nentry = entry - (delta * 3 + 10);
+        int adr;
+        // найти ближайший к нему адрес
+        if(!findBackAddress(entry, nentry, &adr)) {
+            // не нашли - тупо отнимаем
+            entry -= delta;
+        } else {
+            // нашли
+            auto size = computeWndLength(adr, entry, 65535, &length);
+            auto sz = 65535 - size;
+            //info("move- nadr: %i adr: %i size: %i sz: %i length: %i delta: %i", nentry, adr, size, sz, length, delta);
+            if(sz < delta) {
+                // команд меньше, чем ожидалось
+                // что делать?? - ну сдвинем не на дельту тогда
+            }
+            for (int i = 1; i <= delta; i++)
+                entry -= TMP_BUF[sz - i];
+        }
+        if(entry < 0) { entry = 0; finish = 1; }
+    }
+    *(int *) (opts + ZX_PROP_JNI_RETURN_VALUE) = entry;
+    return finish;
 }

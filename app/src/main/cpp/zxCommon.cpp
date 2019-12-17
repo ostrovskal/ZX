@@ -11,10 +11,12 @@ uint8_t*    opts        = nullptr;
 uint8_t*    labels      = nullptr;
 BREAK_POINT* bps        = nullptr;
 
-// массив точек останова
-
 std::string FOLDER_FILES= "data/data/ru.ostrovskal.zx/files/";
 std::string FOLDER_CACHE= "data/data/ru.ostrovskal.zx/cache/";
+
+// кэш адресов перехода и текущая позиция занесения в кэш
+uint16_t    cmdCache[512];
+int         currentCmdPos(0);
 
 static uint8_t sym[] =  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 static uint8_t tbl[] =  { 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15, 14, 14, 14, 14, 14, 14, 12, 12 };

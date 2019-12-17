@@ -42,13 +42,13 @@ public final class ZxCommon {
     // DEBUGGER ACTION
     public final static int DEBUGGER_ACT_HEX_DEC    = 0;
     public final static int DEBUGGER_ACT_PREV       = 1;
-    public final static int DEBUGGER_ACT_BP         = 2;
+    public final static int DEBUGGER_ACT_ACTION     = 2;
     public final static int DEBUGGER_ACT_NEXT       = 3;
-    public final static int DEBUGGER_ACT_BP_LIST    = 4;
-    public final static int DEBUGGER_ACT_ACTION     = 5;
-    public final static int DEBUGGER_ACT_TRACE_IN   = 6;
-    public final static int DEBUGGER_ACT_TRACE_OUT  = 7;
-    public final static int DEBUGGER_ACT_TRACE_OVER = 8;
+    public final static int DEBUGGER_ACT_TRACE_IN   = 4;
+    public final static int DEBUGGER_ACT_TRACE_OUT  = 5;
+    public final static int DEBUGGER_ACT_TRACE_OVER = 6;
+    public final static int DEBUGGER_ACT_BP         = 7;
+    public final static int DEBUGGER_ACT_BP_LIST    = 8;
     public final static int DEBUGGER_ACT_SET_ASM    = 9;
 
     // UPDATE DEBUGGER
@@ -72,14 +72,11 @@ public final class ZxCommon {
     public final static int ZX_CPU_RAM              = 34;
     public final static int ZX_CPU_ROM              = 35;
     public final static int ZX_CPU_VID              = 36;
-    public final static int ZX_CPU_AY               = 41;
     public final static int ZX_CPU_STATE            = 64;
-    public final static int ZX_CPU_RR               = 25;
-    public final static int ZX_CPU_RI               = 24;
-    public final static int ZX_CPU_AF1              = 6;
-    public final static int ZX_CPU_HL1              = 4;
-    public final static int ZX_CPU_DE1              = 2;
-    public final static int ZX_CPU_BC1              = 0;
+    public final static int ZX_CPU_AF               = 6;
+    public final static int ZX_CPU_HL               = 4;
+    public final static int ZX_CPU_DE               = 2;
+    public final static int ZX_CPU_BC               = 0;
     public final static int ZX_CPU_IX               = 16;
     public final static int ZX_CPU_IY               = 18;
     public final static int ZX_CPU_PC               = 22;
@@ -477,7 +474,6 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     };
 
     public static final int[] style_debugger_flags = {
-//            ATTR_SHADOW_TEXT, R.string.shadow_null,
             ATTR_SIZE, R.dimen.debuggerTextDef,
             ATTR_FONT, R.string.font_small,
             ATTR_GRAVITY, Gravity.CENTER,
@@ -491,11 +487,9 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     };
 
     public static final int[] style_debugger_text = {
-//            ATTR_SHADOW_TEXT, R.string.shadow_text,
             ATTR_SIZE, R.dimen.debuggerTextDef,
             ATTR_FONT, R.string.font_small,
             ATTR_GRAVITY, Gravity.CENTER,
-//            ATTR_COLOR_DEFAULT, 0xffffff | COLOR
             ATTR_MAX_LINES, 1
     };
 
@@ -513,15 +507,9 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     };
 
     public static final int[] style_debugger_action = {
-//            ATTR_SHADOW_TEXT, R.string.shadow_text,
-//            ATTR_COLOR_DEFAULT, 0xf77499 | COLOR,
             ATTR_CLICKABLE, 1,
             ATTR_FOCUSABLE, 1,
-//            ATTR_PADDING, 0,
             ATTR_MIN_HEIGHT, R.dimen.heightButton,
-//            ATTR_SSH_PRESSED_OFFS, 0,
-//            ATTR_SSH_WIDTH_SELECTOR, 0,
-//            ATTR_SSH_COLOR_SELECTOR, 0,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_SSH_HORZ, 3,
             ATTR_SSH_TILE, 0,
@@ -570,32 +558,32 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
                                                     ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_8BIT, ZX_PROP_SND_SAVE};
 
     public static final int[] debuggerLand = {
-            30, 15,
+            30, 14,
             20, 0, 2, 3,   22, 0, 2, 3,   24, 0, 2, 3,  26, 0, 2, 3,  28, 0, 2, 3,
-            21, 3, 2, 3,   23, 3, 2, 3,   25, 3, 2, 3,  27, 3, 2, 3,  28, 13, 2, 2,
+            21, 3, 2, 3,   23, 3, 2, 3,   25, 3, 2, 3,  27, 3, 2, 3,  28, 12, 2, 3,
             0, 0, 20, 15,
             21, 6, 1, 1,   22, 6, 1, 1,   23, 6, 1, 1,  24, 6, 1, 1,  25, 6, 1, 1,  26, 6, 1, 1, 27, 6, 1, 1, 28, 6, 1, 1,
 
-            20, 7, 1, 1,   21, 7, 2, 1,   23, 7, 1, 1,  24, 7, 2, 1,  26, 7, 1, 1,  27, 7, 2, 1,
-            20, 8, 1, 1,   21, 8, 2, 1,   23, 8, 1, 1,  24, 8, 2, 1,  26, 8, 1, 1,  27, 8, 2, 1,
+            21, 7, 1, 1,   22, 7, 2, 1,   24, 7, 1, 1,  25, 7, 2, 1,  27, 7, 1, 1,  28, 7, 2, 1,
 
-            20,  9, 2, 1,  22,  9, 3, 1,  25,  9, 2, 1, 27,  9, 3, 1,
+            20,  8, 2, 1,  22,  8, 3, 1,  25,  8, 2, 1, 27,  8, 3, 1,
+            20, 9, 2, 1,   22,  9, 3, 1,  25,  9, 2, 1, 27,  9, 3, 1,
             20, 10, 2, 1,  22, 10, 3, 1,  25, 10, 2, 1, 27, 10, 3, 1,
             20, 11, 2, 1,  22, 11, 3, 1,  25, 11, 2, 1, 27, 11, 3, 1,
-            20, 12, 2, 1,  22, 12, 3, 1,  25, 12, 2, 1, 27, 12, 3, 1,
-            20, 13, 8, 2
+            20, 12, 8, 3
     };
 
     public static final int[] debuggerPort = {
             32, 18,
-            0, 0, 3, 2,    3, 0, 3, 2,    6, 0, 4, 2,   10, 0, 3, 2,  13, 0, 3, 2,
-            16, 0, 4, 2,   20, 0, 4, 2,   24, 0, 4, 2,  28, 0, 4, 2,  29, 6, 3, 2,
-            0, 8, 34, 11,
 
-            8, 2, 2, 1,    10, 2, 2, 1,   12, 2, 2, 1,  14, 2, 2, 1,  16, 2, 2, 1,  18, 2, 2, 1,  20, 2, 2, 1,  22, 2, 2, 1,
+            1, 0, 4, 2,    6, 0, 4, 2,   10, 0, 4, 2,   14, 0, 4, 2,  19, 0, 4, 2, 23, 0, 4, 2, 27, 0, 4, 2,
+            3, 2, 4, 2,    9, 2, 4, 2,
+            29, 6, 3, 2,
+            0, 8, 34, 10,
 
-            1, 3, 2, 1,    3, 3, 3, 1,    6, 3, 2, 1,   8, 3, 3, 1,   11, 3, 2, 1,  13, 3, 3, 1,
-            16, 3, 2, 1,   18, 3, 3, 1,   21, 3, 2, 1,  23, 3, 3, 1,  26, 3, 2, 1,  28, 3, 3, 1,
+            16, 2, 2, 1,   18, 2, 2, 1,   20, 2, 2, 1,  22, 2, 2, 1,  24, 2, 2, 1,  26, 2, 2, 1,  28, 2, 2, 1,  30, 2, 2, 1,
+
+            17, 3, 2, 1,   19, 3, 3, 1,   22, 3, 2, 1,  24, 3, 3, 1,  27, 3, 2, 1,  29, 3, 3, 1,
 
             0, 4, 2, 1,    2, 4, 6, 1,    8, 4, 2, 1,   10, 4, 6, 1,
             16, 4, 2, 1,   18, 4, 6, 1,   24, 4, 2, 1,  26, 4, 6, 1,
