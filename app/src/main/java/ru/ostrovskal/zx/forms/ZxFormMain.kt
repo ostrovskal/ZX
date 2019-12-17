@@ -17,7 +17,7 @@ import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.cellLayout
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.*
-import ru.ostrovskal.zx.ZxCommon.ZX_LIST
+import ru.ostrovskal.zx.ZxCommon.ZX_RL
 
 @Suppress("unused")
 class ZxFormMain: Form() {
@@ -30,7 +30,7 @@ class ZxFormMain: Form() {
     private val keyboard                = ZxKeyboard()
 
     // Отладчик
-    private val debugger                = ZxDebugger()
+    @JvmField val debugger              = ZxDebugger()
 
     // Разметка клавиатуры
     private var keyLyt: CellLayout?     = null
@@ -53,9 +53,9 @@ class ZxFormMain: Form() {
 
     private fun updateLayout() {
         if(ZxWnd.props[ZxCommon.ZX_PROP_SHOW_DEBUGGER].toBoolean) {
-            zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 6)
+            zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 7)
             keyLyt?.visibility = View.GONE; debLyt?.visibility = View.VISIBLE
-            debLyt?.apply { visibility = View.VISIBLE; layoutParams = CellLayout.LayoutParams(0, 6, 11, 9) }
+            debLyt?.apply { visibility = View.VISIBLE }//; layoutParams = CellLayout.LayoutParams(0, 7, 11, 8) }
         } else {
             val show = if (ZxWnd.props[ZxCommon.ZX_PROP_SHOW_KEY].toBoolean) View.VISIBLE else View.GONE
             val heightKeyboard = if (show == View.VISIBLE) ZxWnd.props[ZxCommon.ZX_PROP_KEY_SIZE] else 0
@@ -76,17 +76,18 @@ class ZxFormMain: Form() {
     override fun inflateContent(container: LayoutInflater) = ui {
         root = cellLayout(11, 15) {
             addUiView( ZxView(ctx).apply { zxview = this; id = R.id.zxView } )
-            debLyt = debugger.layout(wnd, this).lps(0, 10, 11, 9)
+            debLyt = debugger.layout(wnd, this).lps(0, 7, 11, 8)
             keyLyt = keyboard.layout(this).lps(0, 10, 11, 4)
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
-        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_LIST, delay = 100)
+        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL, delay = 100)
     }
 
     @SuppressLint("SetTextI18n")
     override fun handleMessage(msg: Message): Boolean {
         when(msg.action) {
+            ZxWnd.ZxMessages.ACT_DEBUGGER_LONG_CLOCK.ordinal-> debugger.fromItem(msg.arg1)
             ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
             ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1, msg.arg2)
             ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
@@ -105,6 +106,7 @@ class ZxFormMain: Form() {
                     }
                 }
             }
+            ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal    -> debugger.asm.setText(msg.obj.toString())
         }
         return true
     }

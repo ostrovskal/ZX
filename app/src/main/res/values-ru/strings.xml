@@ -6,7 +6,7 @@
     <string name="menuProperties">Свойства…</string>
     <string name="menuSelectDisk">Выбрать диск…</string>
     <string name="menuSound">Звук</string>
-    <string name="menuPokes">Pokes</string>
+    <string name="menuPokes">Pokes…</string>
     <string name="menuMru">Последние…</string>
     <string name="menuReset">Сброс</string>
     <string name="menuRestore">Восстановить</string>
@@ -69,8 +69,10 @@
     <string name="settingsSndTypeAY">Стерео AY</string>
     <string name="ioLoadError">Не удалось выполнить загрузку. Файл поврежден!</string>
     <string name="ioSaveError">Не удалось выполнить запись. Неизвестный формат файла!</string>
-    <string name="menuAddress">Адрес</string>
+    <string name="menuLabel">Метки</string>
     <string name="menuCode">Код</string>
     <string name="menuValue">Содержимое</string>
     <string name="menuTrace">Трассировка</string>
+    <string name="menuTracer">Трассер…</string>
+    <string name="headerTracer">Трассировщик</string>
 </resources>

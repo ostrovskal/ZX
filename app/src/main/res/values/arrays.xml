@@ -79,7 +79,7 @@
         <item>debugger,false</item>
         <item>tracer,false</item>
         <item>hex,false</item>
-        <item>debugger_address,true</item>
+        <item>debugger_label,false</item>
         <item>debugger_code,false</item>
         <item>debugger_value,false</item>
         <item>#errors,false</item>
@@ -185,6 +185,11 @@
         <item>@string/clazz_bps</item>
         <item>0</item>
         <item>@string/tag_bps</item>
+        <item>0</item>
+
+        <item>@string/clazz_traccer</item>
+        <item>0</item>
+        <item>@string/tag_traccer</item>
         <item>0</item>
     </array>
 </resources>

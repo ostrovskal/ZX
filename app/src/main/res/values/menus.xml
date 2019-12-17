@@ -17,12 +17,13 @@
     <integer name="MENU_PROPS_EXECUTE">1015</integer>
     <integer name="MENU_PROPS_DEBUGGER">1016</integer>
     <integer name="MENU_PROPS_TRACER">1017</integer>
-    <integer name="MENU_DEBUGGER_ADDRESS">1018</integer>
+    <integer name="MENU_DEBUGGER_LABEL">1018</integer>
     <integer name="MENU_DEBUGGER_CODE">1019</integer>
     <integer name="MENU_DEBUGGER_VALUE">1020</integer>
     <integer name="MENU_MRU">1021</integer>
     <integer name="MENU_POKES">1022</integer>
     <integer name="MENU_DEBUGGER1">1023</integer>
+    <integer name="MENU_TRACER">1024</integer>
     <integer name="MENU_DISK_A">1200</integer>
     <integer name="MENU_DISK_B">1201</integer>
     <integer name="MENU_DISK_C">1202</integer>

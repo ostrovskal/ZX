@@ -22,8 +22,8 @@ android {
         resValue "string", "dropbox_token", properties.getProperty("dropbox.token", "")
         minSdkVersion 19
         targetSdkVersion 29
-        versionCode 28
-        versionName "1.0.8"
+        versionCode 30
+        versionName "1.0.9"
         externalNativeBuild {
             cmake {  cppFlags "-std=c++11" }
         }

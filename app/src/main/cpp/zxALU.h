@@ -5,6 +5,8 @@
 #pragma once
 
 #include "zxStks.h"
+#include "zxAssembler.h"
+#include "zxDebugger.h"
 
 struct BREAK_POINT {
     // начальный адрес
@@ -65,8 +67,8 @@ public:
     // установка актуальных страниц
     void setPages();
 
-    // запуск трассера
-    void startTracer();
+    // запуск/отключение трассера
+    void tracer(int start);
 
     // проверить на срабатывании точки останова
     bool checkBPs(uint16_t address, uint8_t flg);
@@ -76,18 +78,6 @@ public:
 
     // выполнение при трассировке
     int stepDebug();
-
-    // трассировка в отладчике
-    int debuggerTrace(int mode);
-
-    // построение списков в отладчике
-    const char *debugger(int cmd, int data, int flags);
-
-    // сдвиг указателя на ПС в отладчике
-    int debuggerMove(int entry, int delta);
-
-    // получение адреса в памяти/адреса перехода в инструкции/адреса из стека
-    int debuggerJump(int address, int mode);
 
     // чтение из порта
     uint8_t readPort(uint8_t A0A7, uint8_t A8A15);
@@ -116,6 +106,9 @@ public:
     // счетчик тактов
     static uint32_t* _TICK;
 
+    // адрес возврата
+    static uint16_t* _CALL;
+
     // страницы ПЗУ
     uint8_t* PAGE_ROM[4];
 
@@ -128,8 +121,17 @@ public:
     // процессор
     zxCPU* cpu;
 
+    // ассемблер
+    zxAssembler* assembler;
+
+    // отладчик
+    zxDebugger* debugger;
+
     // начало инструкции
     static uint16_t PC;
+
+    // признак запуска трассера
+    bool isTracer;
 
 protected:
 

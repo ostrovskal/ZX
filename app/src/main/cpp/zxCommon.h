@@ -166,6 +166,7 @@ constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
 constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
 constexpr int ZX_CMD_MOVE_PC            = 11; // Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12; // Получение адреса в памяти/адреса перехода в инструкции
+constexpr int ZX_CMD_ASSEMBLER          = 13; // Ассемблирование
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //

@@ -6,7 +6,7 @@
     <string name="menuProperties">Properties…</string>
     <string name="menuSelectDisk">Select disk…</string>
     <string name="menuSound">Sound</string>
-    <string name="menuPokes">Pokes</string>
+    <string name="menuPokes">Pokes…</string>
     <string name="menuMru">Last…</string>
     <string name="menuReset">Reset</string>
     <string name="menuRestore">Restore</string>
@@ -115,9 +115,11 @@
     <string name="shadow_null" translatable="false">0,0,0,#ff000000</string>
     <string name="ri" translatable="false">I</string>
     <string name="radiiFormMessage" translatable="false">40,35,40,35,20,20,20,20</string>
-    <string name="menuAddress">Address</string>
+    <string name="menuLabel">Label</string>
     <string name="menuCode">Code</string>
     <string name="menuValue">Content</string>
     <string name="menuTrace">Tracer</string>
     <string name="headBps">Break Points</string>
+    <string name="menuTracer">Tracer…</string>
+    <string name="headerTracer">TRACER</string>
 </resources>

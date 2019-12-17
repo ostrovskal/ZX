@@ -57,6 +57,7 @@ zxCPU::zxCPU() {
 
 int zxCPU::call(uint16_t address) {
     *_SP -= 2;
+    *zxALU::_CALL = *_PC;
     wm16(*_SP, *_PC);
     *_PC = address;
     return 17;
@@ -466,7 +467,7 @@ int zxCPU::step() {
         *_F &= ~mskFlags;
         *_F |= (f & mskFlags);
     }
-    if (opts[ZX_PROP_TRACER]) {
+    if (ALU->isTracer) {
         if (!prefix && !offset) {
             auto length = zxDA::cmdParser(&zxALU::PC, (uint16_t *) &TMP_BUF[0], true);
             ALU->ftracer.write(&length, 1);

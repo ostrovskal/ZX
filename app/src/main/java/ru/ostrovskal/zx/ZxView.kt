@@ -12,9 +12,12 @@ import android.view.View
 import ru.ostrovskal.sshstd.Common.ACT_INIT_SURFACE
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
 import ru.ostrovskal.sshstd.Surface
+import ru.ostrovskal.sshstd.layouts.AbsoluteLayout
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Controller
+import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.zx.ZxCommon.*
+import ru.ostrovskal.zx.forms.ZxFormMain
 
 class ZxView(context: Context) : Surface(context) {
 
@@ -29,6 +32,18 @@ class ZxView(context: Context) : Surface(context) {
 
     // вернуть окно
     private val wnd                 by lazy { context as ZxWnd }
+
+    // кнопка записи трассера
+    private val butTracer                   = Tile(context, style_key_button).apply {
+        layoutParams = AbsoluteLayout.LayoutParams(70.dp, 25.dp, 0, 0)
+        visibility = View.GONE
+        tileIcon = 15
+        setOnClickListener {
+            "tracer click $tileIcon".info()
+            tileIcon = if(tileIcon == 15) 16 else 15
+            //ZxWnd.zxCmd(ZX_CMD_TRACER, tileIcon and 16, 0, "")
+        }
+    }
 
     // крестовина
     private val joyCross			= Controller(context, R.id.joyCross, false, style_zxCross).apply {
@@ -47,8 +62,8 @@ class ZxView(context: Context) : Surface(context) {
         color = Color.GREEN
         textSize = 24f.dp
         textAlign = Paint.Align.CENTER
-        typeface = context.makeFont("large")
-        setShadowLayer(2f.dp, 4f.dp, 4f.dp, 0x0.color)
+        typeface = context.makeFont("normal")
+        setShadowLayer(1f.dp, 2f.dp, 2f.dp, 0x0.color)
     }
 
     // "Пустая" кисть
@@ -57,6 +72,7 @@ class ZxView(context: Context) : Surface(context) {
     override fun onDetachedFromWindow() {
         wnd.main.removeView(joyCross)
         wnd.main.removeView(joyAction)
+        wnd.main.removeView(butTracer)
         super.onDetachedFromWindow()
     }
 
@@ -66,6 +82,7 @@ class ZxView(context: Context) : Surface(context) {
             if(indexOfChild(joyCross) == -1) {
                 addView(joyCross)
                 addView(joyAction)
+                addView(butTracer)
                 updateJoy()
             }
         }
@@ -90,16 +107,23 @@ class ZxView(context: Context) : Surface(context) {
         surfaceActive?.apply {
             canvas.drawBitmap(this, null, surfaceRect, nil)
         }
-        if (ZxWnd.props[ZX_PROP_SHOW_FPS].toBoolean)
-            sys.drawTextInBounds(canvas, fps.toString(), surfaceRect, Gravity.START or Gravity.TOP)
-        if (!ZxWnd.props[ZX_PROP_EXECUTE].toBoolean)
-            sys.drawTextInBounds(canvas, "PAUSED", surfaceRect, Gravity.CENTER)
+        if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER] != 0.toByte()) {
+            // отобрвзить регистры
+            wnd.findForm<ZxFormMain>("main")?.debugger?.showRegisters(canvas, sys)
+        }
+        else {
+            if (ZxWnd.props[ZX_PROP_SHOW_FPS] != 0.toByte())
+                sys.drawTextInBounds(canvas, fps.toString(), surfaceRect, Gravity.START or Gravity.TOP)
+            if (ZxWnd.props[ZX_PROP_EXECUTE] == 0.toByte())
+                sys.drawTextInBounds(canvas, "PAUSED", surfaceRect, Gravity.CENTER)
+        }
     }
 
     override fun handleMessage(msg: Message): Boolean {
         var ret = false
         when (msg.action) {
             ACT_INIT_SURFACE                                -> ret = true
+            ZxWnd.ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal-> updateTracer()
             ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal     -> updateSurface(msg.arg1 != 0)
             ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal         -> updateJoy()
             ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal      -> updateFilter()
@@ -114,6 +138,12 @@ class ZxView(context: Context) : Surface(context) {
             wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal, o = name)
         }
         return true
+    }
+
+    private fun updateTracer() {
+        val check = ZxWnd.props[ZX_PROP_TRACER].toBoolean
+        butTracer.visibility = if(check) View.VISIBLE else View.GONE
+        if(!check) ZxWnd.zxCmd(ZX_CMD_TRACER, 0, 0, "")
     }
 
     private fun io(name: String, loading: Boolean): Boolean {

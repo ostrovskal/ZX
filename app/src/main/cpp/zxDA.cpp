@@ -255,6 +255,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
         ssh_strcpy(&daResult, cod);
     }
     auto posMnemonic = daResult;
+    opts[ZX_PROP_JNI_RETURN_VALUE + 1] = (uint8_t)(daResult - result);
     // сама инструкция
     int idx = 0;
     char* lex(nullptr);

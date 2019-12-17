@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Typeface
 import android.text.InputType
 import android.view.LayoutInflater
-import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
+import ru.ostrovskal.sshstd.Common.*
 import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
 import ru.ostrovskal.sshstd.forms.Form
 import ru.ostrovskal.sshstd.objects.Theme
@@ -37,6 +37,7 @@ class ZxFormBreakPoints: Form() {
         return ui {
             linearLayout {
                 root = cellLayout(12, 16) {
+                    backgroundSet(style_form)
                     formHeader(R.string.headBps)
                     repeat(2) { y ->
                         repeat(2) { x ->
@@ -79,7 +80,8 @@ class ZxFormBreakPoints: Form() {
                             selection = p
                             clickRibbon()
                         }
-                    }.lps(0, 6, 12, 9)
+                    }.lps(0, 6, 12, 6)
+                    formFooter(BTN_OK, R.integer.I_YES)
                 }.lps(Theme.dimen(ctx, R.dimen.widthBps), Theme.dimen(ctx, R.dimen.heightBps))
                 clickRibbon()
             }

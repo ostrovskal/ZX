@@ -225,12 +225,13 @@ extern "C" {
             case ZX_CMD_PROPS:      ALU->updateProps(); break;
             case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], *ALU->_MODEL, true); break;
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
-            case ZX_CMD_TRACER:     ALU->startTracer(); break;
+            case ZX_CMD_TRACER:     ALU->tracer(arg1); break;
             case ZX_CMD_QUICK_BP:   ALU->quickBP((uint16_t)arg1); break;
-            case ZX_CMD_TRACE_X:    ret = ALU->debuggerTrace(arg1); break;
+            case ZX_CMD_TRACE_X:    ALU->debugger->trace(arg1); break;
             case ZX_CMD_STEP_DEBUG: ALU->stepDebug(); break;
-            case ZX_CMD_MOVE_PC:    ret = ALU->debuggerMove(arg1, arg2); break;
-            case ZX_CMD_JUMP:       ret = ALU->debuggerJump(arg1, arg2); break;
+            case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2); break;
+            case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
+            case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
         }
         debug("zxCmd finish");
         return ret;
@@ -241,7 +242,7 @@ extern "C" {
     }
 
     jstring zxDebuggerString(JNIEnv* env, jclass, jint cmd, jint data, jint flags) {
-        auto ret = ALU->debugger(cmd, data, flags);
+        auto ret = ALU->debugger->itemList(cmd, data, flags);
         return env->NewStringUTF(ret);
     }
 

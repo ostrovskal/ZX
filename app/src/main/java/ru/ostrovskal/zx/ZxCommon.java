@@ -26,16 +26,18 @@ public final class ZxCommon {
 
     public final static byte ZX_BP_NONE                = 0; // не учитывается
     public final static byte ZX_BP_EXEC                = 1; // исполнение
-    public final static byte ZX_BP_WMEM                = 2; // запись в память
-    public final static byte ZX_BP_RPORT               = 3; // чтение из порта
-    public final static byte ZX_BP_WPORT               = 4; // запись в порт
+//    public final static byte ZX_BP_WMEM                = 2; // запись в память
+//    public final static byte ZX_BP_RPORT               = 3; // чтение из порта
+//    public final static byte ZX_BP_WPORT               = 4; // запись в порт
 
+/*
     public final static int ZX_BP_OPS_EQ              = 0; // ==
     public final static int ZX_BP_OPS_NQ              = 1; // !=
     public final static int ZX_BP_OPS_GT              = 2; // >
     public final static int ZX_BP_OPS_LS              = 3; // <
     public final static int ZX_BP_OPS_GTE             = 4; // >=
     public final static int ZX_BP_OPS_LSE             = 5; // <=
+*/
 
     // DEBUGGER ACTION
     public final static int DEBUGGER_ACT_HEX_DEC    = 0;
@@ -47,9 +49,7 @@ public final class ZxCommon {
     public final static int DEBUGGER_ACT_TRACE_IN   = 6;
     public final static int DEBUGGER_ACT_TRACE_OUT  = 7;
     public final static int DEBUGGER_ACT_TRACE_OVER = 8;
-    public final static int DEBUGGER_ACT_SET_PC     = 9;
-    public final static int DEBUGGER_ACT_SET_SP     = 10;
-    public final static int DEBUGGER_ACT_SET_ASM    = 11;
+    public final static int DEBUGGER_ACT_SET_ASM    = 9;
 
     // UPDATE DEBUGGER
     public final static int ZX_PC                   = 1;
@@ -58,6 +58,7 @@ public final class ZxCommon {
     public final static int ZX_SEL                  = 8;
     public final static int ZX_LIST                 = 16;
     public final static int ZX_STORY                = 32;
+    public final static int ZX_TRACE                = 64;
     public final static int ZX_ALL                  = ZX_PC | ZX_REG | ZX_SEL | ZX_LIST | ZX_STORY | ZX_DT;
     public final static int ZX_SL                   = ZX_SEL | ZX_LIST;
     public final static int ZX_PSL                  = ZX_PC | ZX_SEL | ZX_LIST;
@@ -76,13 +77,9 @@ public final class ZxCommon {
     public final static int ZX_CPU_RR               = 25;
     public final static int ZX_CPU_RI               = 24;
     public final static int ZX_CPU_AF1              = 6;
-    public final static int ZX_CPU_AF2              = 14;
     public final static int ZX_CPU_HL1              = 4;
-    public final static int ZX_CPU_HL2              = 12;
     public final static int ZX_CPU_DE1              = 2;
-    public final static int ZX_CPU_DE2              = 10;
     public final static int ZX_CPU_BC1              = 0;
-    public final static int ZX_CPU_BC2              = 8;
     public final static int ZX_CPU_IX               = 16;
     public final static int ZX_CPU_IY               = 18;
     public final static int ZX_CPU_PC               = 22;
@@ -107,12 +104,13 @@ public final class ZxCommon {
     public final static int MENU_PROPS_EXECUTE      = 1015;
     public final static int MENU_PROPS_DEBUGGER     = 1016;
     public final static int MENU_PROPS_TRACER       = 1017;
-    public final static int MENU_DEBUGGER_ADDRESS   = 1018;
+    public final static int MENU_DEBUGGER_LABEL     = 1018;
     public final static int MENU_DEBUGGER_CODE      = 1019;
     public final static int MENU_DEBUGGER_VALUE     = 1020;
     public final static int MENU_MRU                = 1021;
     public final static int MENU_POKES              = 1022;
     public final static int MENU_DEBUGGER1          = 1023;
+    public final static int MENU_TRACER             = 1024;
 
     public final static int MENU_DISK_A             = 1200;
     public final static int MENU_DISK_B             = 1201;
@@ -143,6 +141,7 @@ public final class ZxCommon {
     public final static int FORM_POKES              = 3;
     public final static int FORM_LOADING            = 4;
     public final static int FORM_BREAK_POINTS       = 5;
+    public final static int FORM_TRACCER            = 6;
 
     // Разделяемые свойства
 
@@ -160,22 +159,22 @@ public final class ZxCommon {
 
     // 1. Булевы значения
     public static final int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
-    public static final int ZX_PROP_TRAP_TAPE       = 129; // Признак перехвата загрузки/записи с ленты
+    private static final int ZX_PROP_TRAP_TAPE      = 129; // Признак перехвата загрузки/записи с ленты
     public static final int ZX_PROP_SHOW_JOY        = 130; // Признак отображения джойстика
     public static final int ZX_PROP_SHOW_KEY        = 131; // Признак отображения клавиатуры
     public static final int ZX_PROP_SHOW_FPS        = 132; // Признак отображения FPS
-    public static final int ZX_PROP_TURBO_MODE      = 133; // Признак турбо-режима процессора
-    public static final int ZX_PROP_SND_LAUNCH      = 134; // Признак запуска звукового процессора
-    public static final int ZX_PROP_SND_BP          = 135; // Признак запуска бипера
-    public static final int ZX_PROP_SND_AY          = 136; // Признак трехканального AY
-    public static final int ZX_PROP_SND_8BIT        = 137; // Признак 8 битного звука
-    public static final int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
+    private static final int ZX_PROP_TURBO_MODE     = 133; // Признак турбо-режима процессора
+    private static final int ZX_PROP_SND_LAUNCH     = 134; // Признак запуска звукового процессора
+    private static final int ZX_PROP_SND_BP         = 135; // Признак запуска бипера
+    private static final int ZX_PROP_SND_AY         = 136; // Признак трехканального AY
+    private static final int ZX_PROP_SND_8BIT       = 137; // Признак 8 битного звука
+    private static final int ZX_PROP_SND_SAVE       = 138; // Признак прямой записи
     public static final int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображении
     public static final int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
     public static final int ZX_PROP_SHOW_DEBUGGER   = 141; // Признак режима отладчика
     public static final int ZX_PROP_TRACER          = 142; // Признак записи трассировки
     public static final int ZX_PROP_SHOW_HEX        = 143; // Признак 16-тиричного вывода
-    public static final int ZX_PROP_SHOW_ADDRESS    = 144; // Признак отображения адреса инструции
+    public static final int ZX_PROP_SHOW_LABEL      = 144; // Признак отображения меток инструции
     public static final int ZX_PROP_SHOW_CODE       = 145; // Признак режима кода инструкции
     public static final int ZX_PROP_SHOW_CODE_VALUE = 146; // Признак режима содержимого кода
 //    public static final int ZX_PROP_EXIT_ERROR    = 147; // Признак завершения с ошибкой(не загружать состояние)
@@ -184,12 +183,12 @@ public final class ZxCommon {
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
     public static final int ZX_PROP_BORDER_SIZE     = 151; // Размер границы
     public static final int ZX_PROP_MODEL_TYPE      = 152; // Модель памяти
-    public static final int ZX_PROP_SND_TYPE_AY     = 153; // Тип каналов в звуковом процессоре AY
-    public static final int ZX_PROP_SND_FREQUENCY   = 154; // Частота звука
-    public static final int ZX_PROP_SND_VOLUME_BP   = 155; // Громкость бипера
-    public static final int ZX_PROP_SND_VOLUME_AY   = 156; // Громкость AY
-    public static final int ZX_PROP_BLINK_SPEED     = 157; // Скорость мерцания курсора
-    public static final int ZX_PROP_CPU_SPEED       = 158; // Скорость процессора
+    private static final int ZX_PROP_SND_TYPE_AY    = 153; // Тип каналов в звуковом процессоре AY
+    private static final int ZX_PROP_SND_FREQUENCY  = 154; // Частота звука
+    private static final int ZX_PROP_SND_VOLUME_BP  = 155; // Громкость бипера
+    private static final int ZX_PROP_SND_VOLUME_AY  = 156; // Громкость AY
+    private static final int ZX_PROP_BLINK_SPEED    = 157; // Скорость мерцания курсора
+    private static final int ZX_PROP_CPU_SPEED      = 158; // Скорость процессора
     public static final int ZX_PROP_KEY_SIZE        = 159; // Размер экранной клавиатуры
     public static final int ZX_PROP_JOY_SIZE        = 160; // Размер экранного джойстика
 
@@ -197,7 +196,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
 
     // 4. Значение структур
-    public static final int ZX_PROP_BPS             = 192; // значения точек останова (8 * 8) 258 - 321
+    private static final int ZX_PROP_BPS             = 192; // значения точек останова (8 * 8) 258 - 321
 
     public static final int ZX_PROPS_COUNT          = 410; // Размер буфера свойств
     public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_BPS - ZX_PROP_FIRST_LAUNCH) + 8; // Количество свойств
@@ -212,18 +211,18 @@ public final class ZxCommon {
 */
 
     // Варианты форматирования чисел
-    public static final int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
-    public static final int ZX_FV_CODE				= 2; // "3X ", "2X "
-    public static final int ZX_FV_PADDR16			= 4; // "5(X)", "4(#X)"
-    public static final int ZX_FV_PADDR8			= 6; // "3(X)", "2(#X)"
-    public static final int ZX_FV_OFFS			    = 8; // "3+-X)", "2+-#X)"
-    public static final int ZX_FV_NUM16				= 10;// "5X", "4X"
+//    public static final int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
+//    public static final int ZX_FV_CODE				= 2; // "3X ", "2X "
+//    public static final int ZX_FV_PADDR16			= 4; // "5(X)", "4(#X)"
+//    public static final int ZX_FV_PADDR8			= 6; // "3(X)", "2(#X)"
+//    public static final int ZX_FV_OFFS			    = 8; // "3+-X)", "2+-#X)"
+//    public static final int ZX_FV_NUM16				= 10;// "5X", "4X"
     public static final int ZX_FV_OPS16				= 12;// "5X", "4#X"
     public static final int ZX_FV_OPS8				= 14;// "3X", "2#X"
-    public static final int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
-    public static final int ZX_FV_PVAL8				= 18;// "3{X}", "2{#X}"
-    public static final int ZX_FV_PVAL16			= 20;// "3{X}", "2{#X}"
-    public static final int ZX_FV_NUMBER			= 22;// "0X", "0X"
+//    public static final int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
+//    public static final int ZX_FV_PVAL8				= 18;// "3{X}", "2{#X}"
+//    public static final int ZX_FV_PVAL16			= 20;// "3{X}", "2{#X}"
+//    public static final int ZX_FV_NUMBER			= 22;// "0X", "0X"
     public static final int ZX_FV_SIMPLE			= 24;// "0X", "0X"
 
     // Команды
@@ -240,6 +239,7 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     public static final int ZX_CMD_STEP_DEBUG       = 10; // Выполнение в отладчике
     public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
+    public static final int ZX_CMD_ASSEMBLER        = 13; // Ассемблирование
 
     public static final int ZX_CMD_PRESETS_SAVE     = 0; // Сохранить параметры джойстика
     public static final int ZX_CMD_PRESETS_LOAD     = 1; // Загрузить параметры джойстика
@@ -247,13 +247,15 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     public static final int ZX_CMD_PRESETS_NAME     = 3; // Получить имя программы
 //    public static final int ZX_CMD_PRESETS_SET    = 4; // Установить имя программы
 
-    public static final int ZX_CMD_TRACE_IN         = 0; // Трассировка с заходом
-    public static final int ZX_CMD_TRACE_OUT        = 1; // Трассировка с обходом
-    public static final int ZX_CMD_TRACE_OVER       = 2; // Трассировка с выходом
+//    public static final int ZX_CMD_TRACE_IN         = 0; // Трассировка с заходом
+//    public static final int ZX_CMD_TRACE_OUT        = 1; // Трассировка с обходом
+//    public static final int ZX_CMD_TRACE_OVER       = 2; // Трассировка с выходом
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
     public static final int ZX_DEBUGGER_MODE_DT     = 2; // Список данных
+
+    private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 
     // Тема по умолчанию
     public static final int[] themeDef = {
@@ -274,6 +276,7 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             ATTR_SSH_COLOR_LAYOUT, 0x2d2929 | COLOR,
             ATTR_SSH_COLOR_NORMAL, 0x9599f7 | COLOR,
             ATTR_SSH_COLOR_LARGE, 0xbc5a1d | COLOR,
+            ATTR_SSH_COLOR_DEBUGGER_SELECTOR, 0x60bc5a1d,
             ATTR_SSH_COLOR_SMALL, 0x2ea362 | COLOR,
             ATTR_SSH_COLOR_HINT, 0xf77499 | COLOR,
             ATTR_SSH_COLOR_SELECTOR, Color.MAGENTA | COLOR,
@@ -474,48 +477,51 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     };
 
     public static final int[] style_debugger_flags = {
-            ATTR_SHADOW_TEXT, R.string.shadow_null,
-            ATTR_SIZE, R.dimen.debuggerTextFlags,
-            ATTR_FONT, R.string.font_small,
-            ATTR_GRAVITY, Gravity.CENTER,
-            ATTR_MAX_LINES, 1,
-            ATTR_COLOR_DEFAULT, 0xf77499 | COLOR
-    };
-
-    public static final int[] style_debugger_text = {
-            ATTR_SHADOW_TEXT, R.string.shadow_text,
+//            ATTR_SHADOW_TEXT, R.string.shadow_null,
             ATTR_SIZE, R.dimen.debuggerTextDef,
             ATTR_FONT, R.string.font_small,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_MAX_LINES, 1,
-            ATTR_COLOR_DEFAULT, 0xffffff | COLOR
+    };
+
+    public static final int[] style_debugger_selector = {
+            ATTR_SSH_SHAPE, TILE_SHAPE_RECT,
+            ATTR_SSH_COLOR_SELECTOR, ATTR_SSH_COLOR_DEBUGGER_SELECTOR | THEME,
+            ATTR_SSH_WIDTH_SELECTOR, 2
+    };
+
+    public static final int[] style_debugger_text = {
+//            ATTR_SHADOW_TEXT, R.string.shadow_text,
+            ATTR_SIZE, R.dimen.debuggerTextDef,
+            ATTR_FONT, R.string.font_small,
+            ATTR_GRAVITY, Gravity.CENTER,
+//            ATTR_COLOR_DEFAULT, 0xffffff | COLOR
+            ATTR_MAX_LINES, 1
     };
 
     public static final int[] style_debugger_ribbon = {
-            ATTR_SELECTOR, Color.BLUE,
+            ATTR_SELECTOR, ATTR_SSH_COLOR_DEBUGGER_SELECTOR | THEME,
             ATTR_LONG_CLICKABLE, 1,
             ATTR_PADDING, 2
     };
 
     public static final int[] style_debugger_item = {
-            //ATTR_SHADOW_TEXT, R.string.shadow_null,
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
-            ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_GRAVITY, Gravity.START,
             ATTR_MAX_LINES, 1,
             ATTR_SIZE, R.dimen.debuggerTextList
     };
 
     public static final int[] style_debugger_action = {
-            ATTR_SHADOW_TEXT, R.string.shadow_text,
-            ATTR_COLOR_DEFAULT, 0xf77499 | COLOR,
+//            ATTR_SHADOW_TEXT, R.string.shadow_text,
+//            ATTR_COLOR_DEFAULT, 0xf77499 | COLOR,
             ATTR_CLICKABLE, 1,
             ATTR_FOCUSABLE, 1,
-            ATTR_PADDING, 0,
+//            ATTR_PADDING, 0,
             ATTR_MIN_HEIGHT, R.dimen.heightButton,
-            ATTR_SSH_PRESSED_OFFS, 0,
-            ATTR_SSH_WIDTH_SELECTOR, 0,
-            ATTR_SSH_COLOR_SELECTOR, 0,
+//            ATTR_SSH_PRESSED_OFFS, 0,
+//            ATTR_SSH_WIDTH_SELECTOR, 0,
+//            ATTR_SSH_COLOR_SELECTOR, 0,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_SSH_HORZ, 3,
             ATTR_SSH_TILE, 0,
@@ -538,7 +544,7 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             ATTR_PADDING_HORZ, R.dimen.paddingHorzDebEdit,
             ATTR_PADDING_VERT, 0,//R.dimen.paddingVertEdit,
             ATTR_IME_OPTIONS, IME_FLAG_NO_EXTRACT_UI,
-            ATTR_INPUT_TYPE, android.text.InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS,
+            ATTR_INPUT_TYPE, InputType.TYPE_NULL,
             ATTR_SSH_SHAPE, TILE_SHAPE_RECT,
             ATTR_SSH_WIDTH_SELECTOR, 1,
             ATTR_SSH_COLOR_SELECTOR, Color.DKGRAY | COLOR,
@@ -564,36 +570,29 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
                                                     ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_8BIT, ZX_PROP_SND_SAVE};
 
     public static final int[] debuggerLand = {
-            30,
-            20, 0, 2, 2,   22, 0, 2, 2,   24, 0, 2, 2,  26, 0, 2, 2,  28, 0, 2, 2,
-            21, 2, 2, 2,   23, 2, 2, 2,   25, 2, 2, 2,  27, 2, 2, 2,
-            24, 13, 1, 1,  29, 13, 1, 1,  28, 14, 2, 1,
+            30, 15,
+            20, 0, 2, 3,   22, 0, 2, 3,   24, 0, 2, 3,  26, 0, 2, 3,  28, 0, 2, 3,
+            21, 3, 2, 3,   23, 3, 2, 3,   25, 3, 2, 3,  27, 3, 2, 3,  28, 13, 2, 2,
             0, 0, 20, 15,
-            21, 4, 1, 1,   21, 5, 1, 1,   22, 4, 1, 1,  22, 5, 1, 1,  23, 4, 1, 1, 23, 5, 1, 1,
-            24, 4, 1, 1,   24, 5, 1, 1,   25, 4, 1, 1,  25, 5, 1, 1,  26, 4, 1, 1, 26, 5, 1, 1,
-            27, 4, 1, 1,   27, 5, 1, 1,   28, 4, 1, 1,  28, 5, 1, 1,
+            21, 6, 1, 1,   22, 6, 1, 1,   23, 6, 1, 1,  24, 6, 1, 1,  25, 6, 1, 1,  26, 6, 1, 1, 27, 6, 1, 1, 28, 6, 1, 1,
 
-            20, 6, 1, 1,   21, 6, 2, 1,   23, 6, 1, 1,  24, 6, 2, 1,  26, 6, 1, 1, 27, 6, 2, 1,
-            20, 7, 1, 1,   21, 7, 2, 1,   23, 7, 1, 1,  24, 7, 2, 1,  26, 7, 1, 1, 27, 7, 2, 1,
+            20, 7, 1, 1,   21, 7, 2, 1,   23, 7, 1, 1,  24, 7, 2, 1,  26, 7, 1, 1,  27, 7, 2, 1,
+            20, 8, 1, 1,   21, 8, 2, 1,   23, 8, 1, 1,  24, 8, 2, 1,  26, 8, 1, 1,  27, 8, 2, 1,
 
-            20, 8, 2, 1,   22, 8, 3, 1,   25, 8, 2, 1,  27, 8, 3, 1,
-            20, 9, 2, 1,   22, 9, 3, 1,   25, 9, 2, 1,  27, 9, 3, 1,
+            20,  9, 2, 1,  22,  9, 3, 1,  25,  9, 2, 1, 27,  9, 3, 1,
             20, 10, 2, 1,  22, 10, 3, 1,  25, 10, 2, 1, 27, 10, 3, 1,
             20, 11, 2, 1,  22, 11, 3, 1,  25, 11, 2, 1, 27, 11, 3, 1,
             20, 12, 2, 1,  22, 12, 3, 1,  25, 12, 2, 1, 27, 12, 3, 1,
-            20, 13, 1, 1,  21, 13, 3, 1,  25, 13, 1, 1, 26, 13, 3, 1,
-            20, 14, 8, 1
+            20, 13, 8, 2
     };
 
     public static final int[] debuggerPort = {
-            32,
+            32, 18,
             0, 0, 3, 2,    3, 0, 3, 2,    6, 0, 4, 2,   10, 0, 3, 2,  13, 0, 3, 2,
-            16, 0, 4, 2,   20, 0, 4, 2,   24, 0, 4, 2,  28, 0, 4, 2,
-            22, 6, 2, 1,   30, 6, 2, 1,   29, 7, 3, 1,
-            0, 8, 34, 7,
-            0, 2, 2, 1,    2, 2, 2, 1,    4, 2, 2, 1,   6, 2, 2, 1,   8, 2, 2, 1,   10, 2, 2, 1,
-            12, 2, 2, 1,   14, 2, 2, 1,   16, 2, 2, 1,  18, 2, 2, 1,  20, 2, 2, 1,  22, 2, 2, 1,
-            24, 2, 2, 1,   26, 2, 2, 1,   28, 2, 2, 1,  30, 2, 2, 1,
+            16, 0, 4, 2,   20, 0, 4, 2,   24, 0, 4, 2,  28, 0, 4, 2,  29, 6, 3, 2,
+            0, 8, 34, 11,
+
+            8, 2, 2, 1,    10, 2, 2, 1,   12, 2, 2, 1,  14, 2, 2, 1,  16, 2, 2, 1,  18, 2, 2, 1,  20, 2, 2, 1,  22, 2, 2, 1,
 
             1, 3, 2, 1,    3, 3, 3, 1,    6, 3, 2, 1,   8, 3, 3, 1,   11, 3, 2, 1,  13, 3, 3, 1,
             16, 3, 2, 1,   18, 3, 3, 1,   21, 3, 2, 1,  23, 3, 3, 1,  26, 3, 2, 1,  28, 3, 3, 1,
@@ -602,9 +601,12 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             16, 4, 2, 1,   18, 4, 6, 1,   24, 4, 2, 1,  26, 4, 6, 1,
             0, 5, 2, 1,    2, 5, 6, 1,    8, 5, 2, 1,   10, 5, 6, 1,
             16, 5, 2, 1,   18, 5, 6, 1,   24, 5, 2, 1,  26, 5, 6, 1,
-            0, 6, 2, 1,    2, 6, 6, 1,    8, 6, 2, 1,   10, 6, 6, 1,
-            16, 6, 2, 1,   18, 6, 4, 1,   24, 6, 2, 1,  26, 6, 4, 1,
-            0, 7, 29, 1
+            0, 6, 29, 2
     };
 
+    public static final int[] menuProps = {
+            ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0,
+            ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER, ZX_PROP_TRACER,
+            ZX_PROP_SHOW_LABEL, ZX_PROP_SHOW_CODE, ZX_PROP_SHOW_CODE_VALUE
+    };
 }

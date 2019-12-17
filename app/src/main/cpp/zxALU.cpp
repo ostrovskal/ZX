@@ -13,6 +13,8 @@
 // текущий счетчик инструкций
 uint32_t* zxALU::_TICK(nullptr);
 
+uint16_t* zxALU::_CALL(nullptr);
+
 uint16_t zxALU::PC(0);
 
 // актуальные страницы
@@ -70,7 +72,7 @@ static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
     buf[2] = page;
 }
 
-zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surface(nullptr), cpu(nullptr) {
+zxALU::zxALU() : isTracer(false), joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surface(nullptr), cpu(nullptr) {
     blink = blinkMsk = blinkShift = 0;
     sizeBorder = 0;
     pageTRDOS = &ROMS[ZX_ROM_TRDOS];
@@ -92,8 +94,11 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), surfa
     zxALU::_VID     = &opts[VID];
     zxALU::_ROM     = &opts[ROM];
     zxALU::_TICK    = (uint32_t*)&opts[TICK0];
+    zxALU::_CALL    = (uint16_t*)&opts[CALL0];
 
     cpu = new zxCPU();
+    assembler = new zxAssembler();
+    debugger = new zxDebugger();
 }
 
 zxALU::~zxALU() {
@@ -101,6 +106,8 @@ zxALU::~zxALU() {
 //    SAFE_DELETE(tape);
 //    SAFE_DELETE(snd);
     SAFE_DELETE(cpu);
+    SAFE_DELETE(assembler);
+    SAFE_DELETE(debugger);
 }
 
 bool zxALU::load(const char *name, int type) {
@@ -825,10 +832,13 @@ void zxALU::updateFrame() {
     blink++;
 }
 
-void zxALU::startTracer() {
+void zxALU::tracer(int start) {
     ftracer.close();
-    auto name = std::string(progName) + ".log";
-    ftracer.open(zxFile::makePath(name.c_str(), false).c_str(), zxFile::create_write);
+    isTracer = start != 0;
+    if(isTracer) {
+        auto name = std::string(progName) + ".log";
+        ftracer.open(zxFile::makePath(name.c_str(), false).c_str(), zxFile::create_write);
+    }
 }
 
 void zxALU::quickBP(uint16_t address) {
@@ -889,108 +899,6 @@ bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
         *cpu->_PC = PC;
     }
     return res;
-}
-
-const char *zxALU::debugger(int cmd, int data, int flags) {
-    auto buf = (uint16_t *) &TMP_BUF[0];
-    auto res = (char*) &TMP_BUF[512]; auto rtmp = res;
-    auto tmp = (uint16_t)data;
-    switch(cmd) {
-        case ZX_DEBUGGER_MODE_PC:
-            // disassembler
-            zxDA::cmdParser(&tmp, buf, false);
-            zxDA::cmdToString(buf, res, flags);
-            break;
-        case ZX_DEBUGGER_MODE_SP: {
-                // stack addr       >content<     chars
-                auto isSP = tmp == *cpu->_SP;
-                int val;
-                auto length = 5 - opts[ZX_PROP_SHOW_HEX];
-                if(data < 65535 && data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
-                else ssh_char(&rtmp, '?', length);
-                auto count = 8 - isSP;
-                ssh_char(&rtmp, ' ', count);
-                if(isSP) *rtmp++ = '>';
-                if(data < 65535 && data >= 0) {
-                    val = rm16((uint16_t)data);
-                    ssh_strcpy(&rtmp, ssh_fmtValue(val, ZX_FV_OPS16, true));
-                } else {
-                    ssh_char(&rtmp, '?', length);
-                    val = -1;
-                }
-                if(isSP) *rtmp++ = '<';
-                ssh_char(&rtmp, ' ', count);
-                uint8_t v;
-                for (int i = 0; i < 16; i++) {
-                    if(val < 0) v = 0; else v = rm8((uint16_t) (val + i));
-                    if (v < 32) v = '.';
-                    else if(v > 127) v = '.';
-                    *rtmp++ = v;
-                }
-                tmp += 2;
-                *rtmp = 0;
-            }
-            break;
-        case ZX_DEBUGGER_MODE_DT: {
-                // data
-                uint8_t v;
-                auto tres = rtmp + 256;
-                // flags значений
-                // address
-                if(data < 65536 && data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
-                else ssh_char(&rtmp, '?', 5 - opts[ZX_PROP_SHOW_HEX]);
-                ssh_char(&rtmp, ' ', 3);
-                for (int i = 0; i < flags; i++) {
-                    auto t = (data + i);
-                    if(t < 65536 && t >= 0) {
-                        v = rm8((uint16_t) t);
-                        ssh_strcpy(&rtmp, ssh_fmtValue((int) v, ZX_FV_OPS8, true));
-                    } else {
-                        ssh_char(&rtmp, '?', 3);
-                        v = 0;
-                    }
-                    *rtmp++ = ' ';
-                    if (v < 32) v = '.';
-                    else if (v > 127) v = '.';
-                    *tres++ = v;
-                }
-                *tres = 0;
-                ssh_char(&rtmp, ' ', 3);
-                ssh_strcpy(&rtmp, res + 256);
-                tmp += flags;
-                *rtmp = 0;
-            }
-            break;
-    }
-    opts[ZX_PROP_JNI_RETURN_VALUE] = (uint8_t)(tmp - data);
-    return res;
-}
-
-int zxALU::debuggerMove(int entry, int delta) {
-    return 0;
-}
-
-int zxALU::debuggerTrace(int mode) {
-    return 0;
-}
-
-int zxALU::debuggerJump(int address, int mode) {
-    uint16_t ret(0);
-    switch(mode) {
-        case ZX_DEBUGGER_MODE_PC:
-            // взять инструкцию по адресу
-            // определить ее тип - переход(JR JMP CALL RST DJNZ RET) / LD [PNN], REG / LD REG, [PNN]
-            break;
-        case ZX_DEBUGGER_MODE_SP:
-            ret = rm16(address);
-            mode = ZX_DEBUGGER_MODE_PC;
-            break;
-        case ZX_DEBUGGER_MODE_DT:
-            mode = -1;
-            break;
-    }
-    *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE) = ret;
-    return mode;
 }
 
 #pragma clang diagnostic pop

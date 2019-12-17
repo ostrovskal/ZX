@@ -14,6 +14,6 @@
     <dimen name="settingsTextColor">10sp</dimen>
     <dimen name="actionBar">25dp</dimen>
     <dimen name="widthBps">300dp</dimen>
-    <dimen name="heightBps">305dp</dimen>
-    <dimen name="debuggerTextList">9sp</dimen>
+    <dimen name="heightTracer">300dp</dimen>
+    <dimen name="widthTracer">300dp</dimen>
 </resources>

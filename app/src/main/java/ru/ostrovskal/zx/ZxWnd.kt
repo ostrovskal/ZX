@@ -62,7 +62,13 @@ class ZxWnd : Wnd() {
         // обновление смены пропуска кадров
         ACT_UPDATE_SKIP_FRAMES,
         // обновление главной разметки
-        ACT_UPDATE_MAIN_LAYOUT
+        ACT_UPDATE_MAIN_LAYOUT,
+        // длинный клик в списке отладчика
+        ACT_DEBUGGER_LONG_CLOCK,
+        // установка текста инструкции
+        ACT_DEBUGGER_ASSEMBLER_TEXT,
+        // включение/выключение кнопки трассера
+        ACT_UPDATE_TRACER_BUTTON
     }
 
     // главная разметка
@@ -88,10 +94,6 @@ class ZxWnd : Wnd() {
             props[ZX_CPU_STATE] = state or add
         }
 
-        val menuProps               = listOf(  ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0,
-                                                        ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER, ZX_PROP_TRACER,
-                                                        ZX_PROP_SHOW_ADDRESS, ZX_PROP_SHOW_CODE, ZX_PROP_SHOW_CODE_VALUE)
-
         val modelNames              = listOf(R.string.menu48kk, R.string.menu48k, R.string.menu128k, R.string.menuPentagon, R.string.menuScorpion)
 
         val props                            = ByteArray(ZX_PROPS_COUNT)
@@ -102,7 +104,7 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_PROPS_SOUND, R.integer.I_SOUND, R.integer.MENU_PROPS_TAPE, R.integer.I_CASSETE, R.integer.MENU_PROPS_FILTER, R.integer.I_FILTER, R.integer.MENU_PROPS_TURBO, R.integer.I_TURBO,
                                                 R.integer.MENU_PROPS_EXECUTE, R.integer.I_COMPUTER, R.integer.MENU_PROPS_DEBUGGER, R.integer.I_DEBUGGER, R.integer.MENU_DEBUGGER1, R.integer.I_DEBUGGER,
                                                 R.integer.MENU_PROPS_TRACER, R.integer.I_TRACER, R.integer.MENU_MRU, R.integer.I_MRU, R.integer.MENU_POKES, R.integer.I_POKES,
-                                                R.integer.MENU_DEBUGGER_ADDRESS, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
+                                                R.integer.MENU_DEBUGGER_LABEL, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
                                                 R.integer.MENU_DEBUGGER_VALUE, R.integer.I_VALUE)
         @JvmStatic
         external fun zxInit(asset: AssetManager, nameSave: String, errors: Boolean)
@@ -260,6 +262,7 @@ class ZxWnd : Wnd() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(val id = resources.getInteger(item.itemId)) {
+            MENU_TRACER                             ->  instanceForm(FORM_TRACCER)
             MENU_POKES                              -> instanceForm(FORM_POKES)
             MENU_CLOUD                              -> instanceForm(FORM_LOADING)
             MENU_IO                                 -> instanceForm(FORM_IO, "filter", ".z80,.tap,.tga")
@@ -274,7 +277,7 @@ class ZxWnd : Wnd() {
                 menu.findItem(R.integer.MENU_KEYBOARD)?.isVisible = !isDebugger
                 menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = isDebugger
             }
-            MENU_DEBUGGER_ADDRESS, MENU_PROPS_TRACER,
+            MENU_DEBUGGER_LABEL, MENU_PROPS_TRACER,
             MENU_DEBUGGER_CODE, MENU_DEBUGGER_VALUE,
             MENU_PROPS_KEYBOARD, MENU_PROPS_SOUND,
             MENU_PROPS_TURBO,
@@ -326,11 +329,11 @@ class ZxWnd : Wnd() {
             if(id == MENU_PROPS_DEBUGGER) modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
         }
-        if(id == MENU_PROPS_DEBUGGER || id == MENU_DEBUGGER_ADDRESS || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
+        if(id == MENU_PROPS_DEBUGGER || id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal,
                 a1 = read16(ZX_CPU_PC), a2 = ZX_ALL)
         if(id == MENU_PROPS_TRACER)
-            zxCmd(ZX_CMD_TRACER, 0, 0, "")
+            hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal)
         return isChecked
     }
 
