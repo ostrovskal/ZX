@@ -55,9 +55,9 @@
     <integer name="I_E_INK_YELLOW">48</integer>
     <integer name="I_E_BRIGHT">49</integer>
 
-    <integer name="I_DA">50</integer>
-    <integer name="I_SP">51</integer>
-    <integer name="I_CM">52</integer>
+    <integer name="I_ROM">50</integer>
+    <integer name="I_BOX">51</integer>
+    <integer name="I_TRACCER">52</integer>
     <integer name="I_HEX">53</integer>
     <integer name="I_DEC">54</integer>
     <integer name="I_POKES">55</integer>

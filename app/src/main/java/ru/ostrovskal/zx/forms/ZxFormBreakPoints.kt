@@ -19,12 +19,13 @@ import ru.ostrovskal.zx.ZxWnd
 
 @Suppress("unused")
 class ZxFormBreakPoints: Form() {
+    companion object {
+        val cond = listOf("==", "<>", ">", "<", ">=", "<=")
+        val type = listOf("None", "Exec", "WMem", "RPort", "WPort")
+    }
 
     private var isInner         = false
     private var isAddr2         = false
-
-    private val cond = listOf("==", "<>", ">", "<", ">=", "<=")
-    private val type = listOf("None", "Exec", "WMem", "RPort", "WPort")
 
     override fun footer(btn: Int, param: Int) {
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_LIST)

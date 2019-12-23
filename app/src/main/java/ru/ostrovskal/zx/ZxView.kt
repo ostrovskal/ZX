@@ -1,16 +1,12 @@
 package ru.ostrovskal.zx
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
+import android.graphics.*
 import android.os.Message
 import android.view.Gravity
 import android.view.SurfaceHolder
 import android.view.View
-import ru.ostrovskal.sshstd.Common.ACT_INIT_SURFACE
-import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
+import ru.ostrovskal.sshstd.Common.*
 import ru.ostrovskal.sshstd.Surface
 import ru.ostrovskal.sshstd.layouts.AbsoluteLayout
 import ru.ostrovskal.sshstd.utils.*
@@ -25,6 +21,17 @@ class ZxView(context: Context) : Surface(context) {
 
     // поверхность рендеринга
     private var surface: Bitmap?    = null
+
+    // поверхность рендеринга
+    private val surface2: Bitmap    by lazy { surface?.run { Bitmap.createBitmap(width * 4, height * 4, Bitmap.Config.ARGB_8888) } ?: error("") }
+
+    //
+    private val rSurface2: RectF    by lazy { RectF(0f, 0f, surface2.width.toFloat(), surface2.height.toFloat()) }
+
+    private val canvas2: Canvas     by lazy { Canvas(surface2) }
+
+    // признак промежуточного преобразования
+    private var is2x                = false
 
     // кэшированный размер границы
     private var sizeBorder          = -1
@@ -87,6 +94,7 @@ class ZxView(context: Context) : Surface(context) {
         }
         updateJoy()
         updateFilter()
+        is2x = (dMetrics.heightPixels > 1280 || dMetrics.widthPixels > 1280)
         isSkippedFrames = ZxWnd.props[ZX_PROP_SKIP_FRAMES].toBoolean
         frameTime = 20
         updateSurface(true)
@@ -104,14 +112,13 @@ class ZxView(context: Context) : Surface(context) {
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
         surfaceActive?.apply {
-            canvas.drawBitmap(this, null, surfaceRect, nil)
+            if (is2x) {
+                canvas2.drawBitmap(this, null, rSurface2, nil)
+                canvas.drawBitmap(surface2, null, surfaceRect, null)
+            } else {
+                canvas.drawBitmap(this, null, surfaceRect, nil)
+            }
         }
- /*       if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER] != 0.toByte()) {
-            // отобрвзить регистры
-            wnd.findForm<ZxFormMain>("main")?.debugger?.showRegisters(canvas, sys)
-        }
-        else {
- */
         if (ZxWnd.props[ZX_PROP_SHOW_FPS] != 0.toByte())
             sys.drawTextInBounds(canvas, fps.toString(), surfaceRect, Gravity.START or Gravity.TOP)
         if (ZxWnd.props[ZX_PROP_EXECUTE] == 0.toByte())

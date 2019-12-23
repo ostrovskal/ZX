@@ -686,7 +686,7 @@ void zxALU::setPages() {
 }
 
 void zxALU::execute() {
-    // опрос отображение экрана, воспроизведение звука
+    // отображение экрана, воспроизведение звука
     updateFrame();
     if(opts[ZX_PROP_SND_LAUNCH]) {
 //        snd->execute();

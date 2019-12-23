@@ -20,33 +20,38 @@ import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.zx.ZxCommon.*
 
 class ZxDebugger {
+    companion object {
+        val iconAction = listOf(R.integer.I_HEX, R.integer.I_UNDO, R.integer.I_PLAY, R.integer.I_REDO,
+                                        R.integer.I_TRACE_IN, R.integer.I_TRACE_OUT, R.integer.I_TRACE_OVER,
+                                        R.integer.I_BP, R.integer.I_LIST_BP, R.integer.I_PLAY)
+
+        private val registers = arrayOf(
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagS,     ZX_CPU_F,    0x80, 7),
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagZ,     ZX_CPU_F,    0x40, 6),
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagY,     ZX_CPU_F,    0x20, 5),
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagH,     ZX_CPU_F,    0x10, 4),
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagX,     ZX_CPU_F,    0x08, 3),
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagP,     ZX_CPU_F,    0x04, 2),
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagN,     ZX_CPU_F,    0x02, 1),
+            ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagC,     ZX_CPU_F,    0x01, 0),
+            ZxRegister(ZX_FV_OPS8, R.id.edit1,  R.string.ram,   ZX_CPU_RAM,  0xff),
+            ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.rom,   ZX_CPU_ROM,  0xff),
+            ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.vid,   ZX_CPU_VID,  0xff),
+            ZxRegister(ZX_FV_OPS16, R.id.edit3, R.string.raf,   ZX_CPU_AF),
+            ZxRegister(ZX_FV_OPS16, R.id.edit4, R.string.rhl,   ZX_CPU_HL),
+            ZxRegister(ZX_FV_OPS16, R.id.edit5, R.string.rde,   ZX_CPU_DE),
+            ZxRegister(ZX_FV_OPS16, R.id.edit6, R.string.rbc,  ZX_CPU_BC),
+            ZxRegister(ZX_FV_OPS16, R.id.edit7, R.string.rix,  ZX_CPU_IX),
+            ZxRegister(ZX_FV_OPS16, R.id.edit8, R.string.riy,  ZX_CPU_IY),
+            ZxRegister(ZX_FV_OPS16, R.id.edit9, R.string.rpc,  ZX_CPU_PC),
+            ZxRegister(ZX_FV_OPS16, R.id.edit10, R.string.rsp,  ZX_CPU_SP)
+        )
+    }
 
     private class ZxRegister(@JvmField val fmt: Int, @JvmField val id: Int, @JvmField val nm: Int,
                              @JvmField val offs: Int, @JvmField val msk: Int = 0xffff, @JvmField val shift: Int = 0,
                              @JvmField var oval: Int = 0,
                              @JvmField var text: Text? = null, @JvmField var edit: Edit? = null)
-
-    private val registers = arrayOf(
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagS,     ZX_CPU_F,    0x80, 7),
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagZ,     ZX_CPU_F,    0x40, 6),
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagY,     ZX_CPU_F,    0x20, 5),
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagH,     ZX_CPU_F,    0x10, 4),
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagX,     ZX_CPU_F,    0x08, 3),
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagP,     ZX_CPU_F,    0x04, 2),
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagN,     ZX_CPU_F,    0x02, 1),
-        ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagC,     ZX_CPU_F,    0x01, 0),
-        ZxRegister(ZX_FV_OPS8, R.id.edit1,  R.string.ram,   ZX_CPU_RAM,  0xff),
-        ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.rom,   ZX_CPU_ROM,  0xff),
-        ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.vid,   ZX_CPU_VID,  0xff),
-        ZxRegister(ZX_FV_OPS16, R.id.edit3, R.string.raf,   ZX_CPU_AF),
-        ZxRegister(ZX_FV_OPS16, R.id.edit4, R.string.rhl,   ZX_CPU_HL),
-        ZxRegister(ZX_FV_OPS16, R.id.edit5, R.string.rde,   ZX_CPU_DE),
-        ZxRegister(ZX_FV_OPS16, R.id.edit6, R.string.rbc,  ZX_CPU_BC),
-        ZxRegister(ZX_FV_OPS16, R.id.edit7, R.string.rix,  ZX_CPU_IX),
-        ZxRegister(ZX_FV_OPS16, R.id.edit8, R.string.riy,  ZX_CPU_IY),
-        ZxRegister(ZX_FV_OPS16, R.id.edit9, R.string.rpc,  ZX_CPU_PC),
-        ZxRegister(ZX_FV_OPS16, R.id.edit10, R.string.rsp,  ZX_CPU_SP)
-    )
 
     //
     private lateinit var wnd: Wnd
@@ -76,9 +81,6 @@ class ZxDebugger {
     private val storyPC                     = IntArray(32) { 0 }
 
     fun layout(wnd: Wnd, ui: CellLayout) = with(ui) {
-        val iconAction = listOf(R.integer.I_HEX, R.integer.I_UNDO, R.integer.I_PLAY, R.integer.I_REDO, R.integer.I_TRACE_IN, R.integer.I_TRACE_OUT, R.integer.I_TRACE_OVER,
-                                R.integer.I_BP, R.integer.I_LIST_BP,
-                                R.integer.I_PLAY)
         this@ZxDebugger.wnd = wnd
         selector = TileDrawable(context, style_debugger_selector)
         val coord = if(config.portrait) debuggerPort else debuggerLand
@@ -251,7 +253,7 @@ class ZxDebugger {
         }
     }
 
-    fun fromItem(data: Int) {
+    private fun fromItem(data: Int) {
         var mode = list.mode
         val ret = ZxWnd.zxCmd(ZX_CMD_JUMP, data, mode, "")
         val dat = ZxWnd.read16(ZX_PROP_JNI_RETURN_VALUE)
