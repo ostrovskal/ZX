@@ -24,41 +24,44 @@ import ru.ostrovskal.zx.ZxWnd
 
 @Suppress("unused")
 class ZxFormSettings : Form() {
+    companion object {
+        private val settingsAY      = listOf("ACB", "ABC", "NONE")
+        private val settingsFreq    = listOf("44100", "22050", "11025")
+
+        private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
+
+        private val keyButtons      = listOf("N/A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+            // 11
+            "N/A", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
+            // 22
+            "ENTER", "CAPS", "A", "S", "D", "F", "G", "H", "J", "K", "L",
+            // 33
+            "SYMBOL", "N/A", "Z", "X", "C", "SPACE", "V", "B", "N", "M",
+            // 43
+            "←", "→", "↑", "↓",
+            // 47
+            "K←", "K→", "K↑", "K↓", "K*")
+
+        private val idNulls         = listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5, R.id.button6, R.id.button7, R.id.button8)
+
+        private val idSpinners      = listOf(R.id.spinner5, R.id.spinner6, R.id.spinner7, R.id.spinner8, R.id.spinner9, R.id.spinner10, R.id.spinner11, R.id.spinner12)
+
+        private val idSeeks         = listOf(R.id.seek1, R.id.seek2, R.id.seek3, R.id.seek4, R.id.seek5, R.id.seek6, R.id.seek7, R.id.seek8, R.id.seek9, R.id.seek10)
+
+        private val rangeCommon= arrayOf(3..16, 1..6, 1..6, 0..4, 3..9)
+    }
+
     private var curView         = 0
     private var updateJoy       = false
     private var updateBorder    = false
     private var updateKey       = false
     private val copyProps       = ByteArray(ZX_PROPS_COUNT)
 
-    private val settingsAY      = listOf("ACB", "ABC", "NONE")
-    private val settingsFreq    = listOf("44100", "22050", "11025")
-
-    private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
-
-    private val keyButtons      = listOf("N/A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
-                                                     // 11
-                                                     "N/A", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
-                                                     // 22
-                                                     "ENTER", "CAPS", "A", "S", "D", "F", "G", "H", "J", "K", "L",
-                                                     // 33
-                                                     "SYMBOL", "N/A", "Z", "X", "C", "SPACE", "V", "B", "N", "M",
-                                                     // 43
-                                                     "←", "→", "↑", "↓",
-                                                     // 47
-                                                     "K←", "K→", "K↑", "K↓", "K*")
-
-    private val idNulls         = listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5, R.id.button6, R.id.button7, R.id.button8)
-
-    private val idSpinners      = listOf(R.id.spinner5, R.id.spinner6, R.id.spinner7, R.id.spinner8, R.id.spinner9, R.id.spinner10, R.id.spinner11, R.id.spinner12)
-
-    private val idSeeks         = listOf(R.id.seek1, R.id.seek2, R.id.seek3, R.id.seek4, R.id.seek5, R.id.seek6, R.id.seek7, R.id.seek8, R.id.seek9, R.id.seek10)
-
     override fun getTheme() = R.style.dialog_progress
 
     private val commonPage: TabLayout.Content.() -> View = {
+        val textsCommon = context.loadResource("settingsCommonTexts", "array", IntArray(0))
         cellLayout(16, 21) {
-            val textsCommon = wnd.loadResource("settingsCommonTexts", "array", IntArray(0))
-            val rangeCommon = arrayOf(3..16, 1..6, 1..6, 0..4, 3..9)
             repeat(3) { y ->
                 repeat(2) { x ->
                     val pos = y * 2 + x
@@ -93,7 +96,7 @@ class ZxFormSettings : Form() {
     }
 
     private val joyPage: TabLayout.Content.() -> View = {
-        val textsJoy = wnd.loadResource("settingsJoyTexts", "array", IntArray(0))
+        val textsJoy = context.loadResource("settingsJoyTexts", "array", IntArray(0))
         var inner = false
         cellLayout(20, 20) {
             text(R.string.settingsJoyType, style_text_settings).lps(0, 0, 3, 4)

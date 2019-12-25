@@ -111,6 +111,7 @@ extern "C" {
         }
         copyAFile(amgr, "labels.bin", nullptr, &labels);
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
+        ALU->initGL();
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
         if(!errors) ALU->load(nameSave, ZX_CMD_IO_STATE);
         debug("zxInit finish");
@@ -232,6 +233,7 @@ extern "C" {
             case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2, 10); break;
             case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
+            case ZX_CMD_DRAW_FRAME: ALU->drawFrame(); break;
         }
         debug("zxCmd finish");
         return ret;

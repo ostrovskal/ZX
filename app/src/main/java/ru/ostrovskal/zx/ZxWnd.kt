@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import ru.ostrovskal.sshstd.Common.*
+import ru.ostrovskal.sshstd.Config
 import ru.ostrovskal.sshstd.TileDrawable
 import ru.ostrovskal.sshstd.Wnd
 import ru.ostrovskal.sshstd.layouts.AbsoluteLayout
@@ -242,7 +243,7 @@ class ZxWnd : Wnd() {
         menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = isDebugger
         menu.findItem(R.integer.MENU_KEYBOARD)?.apply { (icon as? TileDrawable)?.tile =
             resources.getInteger(if(props[ZX_PROP_SHOW_KEY].toBoolean) R.integer.I_KEY else R.integer.I_JOY); isVisible = !isDebugger }
-        menu.findItem(R.integer.MENU_IO)?.setShowAsAction(if(config.portrait) SHOW_AS_ACTION_NEVER else SHOW_AS_ACTION_ALWAYS)
+        menu.findItem(R.integer.MENU_IO)?.setShowAsAction(if(Config.isPortrait) SHOW_AS_ACTION_NEVER else SHOW_AS_ACTION_ALWAYS)
         this.menu = menu
         return true
     }

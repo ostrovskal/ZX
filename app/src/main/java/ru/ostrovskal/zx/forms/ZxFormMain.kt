@@ -6,11 +6,11 @@ import android.annotation.SuppressLint
 import android.app.ActionBar
 import android.os.Bundle
 import android.os.Message
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
+import ru.ostrovskal.sshstd.Config
 import ru.ostrovskal.sshstd.Surface
 import ru.ostrovskal.sshstd.forms.Form
 import ru.ostrovskal.sshstd.layouts.CellLayout
@@ -23,8 +23,6 @@ import ru.ostrovskal.zx.ZxCommon.ZX_RL
 class ZxFormMain: Form() {
 
     override val surface: Surface? get() = zxview
-
-    private val sizeButtonText= listOf(10f, 10f, 10f, 10f, 11f, 11.5f, 12f, 12.5f, 13f, 13.5f)
 
     // Клавиатура
     private val keyboard                = ZxKeyboard()
@@ -55,7 +53,7 @@ class ZxFormMain: Form() {
         if(ZxWnd.props[ZxCommon.ZX_PROP_SHOW_DEBUGGER].toBoolean) {
             zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 7)
             keyLyt?.visibility = View.GONE; debLyt?.visibility = View.VISIBLE
-            debLyt?.apply { visibility = View.VISIBLE }//; layoutParams = CellLayout.LayoutParams(0, 7, 11, 8) }
+            debLyt?.apply { visibility = View.VISIBLE }
         } else {
             val show = if (ZxWnd.props[ZxCommon.ZX_PROP_SHOW_KEY].toBoolean) View.VISIBLE else View.GONE
             val heightKeyboard = if (show == View.VISIBLE) ZxWnd.props[ZxCommon.ZX_PROP_KEY_SIZE] else 0
@@ -63,10 +61,6 @@ class ZxFormMain: Form() {
             keyLyt?.apply {
                 visibility = show; debLyt?.visibility = View.GONE
                 layoutParams = CellLayout.LayoutParams(0, 15 - heightKeyboard, 11, heightKeyboard.toInt())
-                if (show == View.VISIBLE) {
-                    val szTextButton = sizeButtonText[heightKeyboard.toInt()].sp
-                    loopChildren { (it as? TextView)?.setTextSize(TypedValue.COMPLEX_UNIT_PX, szTextButton) }
-                }
             }
         }
         root.requestLayout()
@@ -101,7 +95,7 @@ class ZxFormMain: Form() {
                     }
                     (customView as? TextView)?.apply {
                         val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
-                        text = if(config.portrait) "${msg.obj}" else "$model - ${msg.obj}"
+                        text = if(Config.isPortrait) msg.obj.toString() else "$model - ${msg.obj}"
                     }
                 }
             }

@@ -31,6 +31,9 @@ public:
     // Обновление кадра
     void updateFrame();
 
+    // отрисовка кадра
+    void drawFrame();
+
     // обновление процессора
     void updateCPU(int todo, bool interrupt);
 
@@ -133,6 +136,8 @@ public:
     // признак запуска трассера
     bool isTracer;
 
+    void initGL();
+
 protected:
 
     // загрузка состояния
@@ -164,6 +169,15 @@ protected:
 
     // текущее приращение ГПУ
     int periodGPU;
+
+    // габариты текстуры
+    GLsizei frameWidth, frameHeight;
+
+    // ИД текстуры
+    GLuint texture;
+
+    // буфер кадра
+    uint8_t* frameBuffer;
 
     // старое значение кнопок джойстика
     uint8_t joyOldButtons;

@@ -8,6 +8,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import ru.ostrovskal.sshstd.Common.*
+import ru.ostrovskal.sshstd.Config
 import ru.ostrovskal.sshstd.STORAGE
 import ru.ostrovskal.sshstd.TileDrawable
 import ru.ostrovskal.sshstd.Wnd
@@ -83,7 +84,7 @@ class ZxDebugger {
     fun layout(wnd: Wnd, ui: CellLayout) = with(ui) {
         this@ZxDebugger.wnd = wnd
         selector = TileDrawable(context, style_debugger_selector)
-        val coord = if(config.portrait) debuggerPort else debuggerLand
+        val coord = if(Config.isPortrait) debuggerPort else debuggerLand
         var pos = 0; var idx = 0
         cellLayout(coord[pos++], coord[pos++]) {
             backgroundSet(style_form)

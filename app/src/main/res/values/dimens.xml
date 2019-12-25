@@ -6,7 +6,7 @@
     <dimen name="cloudHeight">200dp</dimen>
     <dimen name="pokeWidth">270dp</dimen>
     <dimen name="pokeHeight">150dp</dimen>
-    <dimen name="settingsWidth">520dp</dimen>
+    <dimen name="settingsWidth">420dp</dimen>
     <dimen name="settingsHeight">280dp</dimen>
     <dimen name="debuggerTextFlags">8sp</dimen>
     <dimen name="debuggerTextDef">10sp</dimen>

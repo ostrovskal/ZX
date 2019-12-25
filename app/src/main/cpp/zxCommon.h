@@ -7,6 +7,9 @@
 #include <jni.h>
 #include <android/log.h>
 #include <android/bitmap.h>
+#include <GLES2/gl2.h>
+#include <EGL/egl.h>
+
 #include <limits.h>
 #include <cstring>
 #include <stdarg.h>
@@ -170,6 +173,7 @@ constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отла
 constexpr int ZX_CMD_MOVE_PC            = 11; // Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12; // Получение адреса в памяти/адреса перехода в инструкции
 constexpr int ZX_CMD_ASSEMBLER          = 13; // Ассемблирование
+constexpr int ZX_CMD_DRAW_FRAME         = 14; // Отрисовка кадра
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //

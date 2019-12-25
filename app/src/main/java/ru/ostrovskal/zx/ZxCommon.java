@@ -289,13 +289,9 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
 
     /** Стиль кнопки клавиатуры */
     public static final int[] style_key_button = {
-            ATTR_SHADOW_TEXT, R.string.shadow_text,
-            ATTR_SIZE, 13,
             ATTR_FONT, R.string.font_small,
             ATTR_COLOR_DEFAULT, 0xf77499 | COLOR,
             ATTR_CLICKABLE, 1,
-            ATTR_PADDING, 0,
-            ATTR_SSH_PRESSED_OFFS, 0,
             ATTR_GRAVITY, Gravity.CENTER,
             ATTR_SSH_HORZ, 2,
             ATTR_SSH_TILE, 1,
@@ -459,7 +455,7 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             ATTR_FONT, R.string.font_small,
             ATTR_SIZE, R.dimen.normal,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_SPINNER | THEME,
-            ATTR_MIN_HEIGHT, R.dimen.heightSelectItem,
+            ATTR_MIN_HEIGHT, R.dimen.heightSpinnerItem,
             ATTR_PADDING_HORZ, R.dimen.paddingHorzSelectItem,
             ATTR_SSH_VERT, 3,
             ATTR_SSH_PATCH9, R.string.patch9_select_item,
@@ -485,7 +481,6 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             ATTR_SSH_COLOR_SELECTOR, ATTR_SSH_COLOR_DEBUGGER_SELECTOR | THEME,
             ATTR_SSH_WIDTH_SELECTOR, 2
     };
-
     public static final int[] style_debugger_text = {
             ATTR_SIZE, R.dimen.debuggerTextDef,
             ATTR_FONT, R.string.font_small,
@@ -564,7 +559,7 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             0, 0, 20, 15,
             21, 6, 1, 1,   22, 6, 1, 1,   23, 6, 1, 1,  24, 6, 1, 1,  25, 6, 1, 1,  26, 6, 1, 1, 27, 6, 1, 1, 28, 6, 1, 1,
 
-            21, 7, 1, 1,   22, 7, 2, 1,   24, 7, 1, 1,  25, 7, 2, 1,  27, 7, 1, 1,  28, 7, 2, 1,
+            20, 7, 2, 1,   22, 7, 2, 1,   24, 7, 1, 1,  25, 7, 2, 1,  27, 7, 1, 1,  28, 7, 2, 1,
 
             20,  8, 2, 1,  22,  8, 3, 1,  25,  8, 2, 1, 27,  8, 3, 1,
             20, 9, 2, 1,   22,  9, 3, 1,  25,  9, 2, 1, 27,  9, 3, 1,
@@ -592,9 +587,30 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
             0, 6, 29, 2
     };
 
-    public static final int[] menuProps = {
+    public static final int[] keyButtonPos  = {
+            0, 3, 0, 3, 3, 0, 6, 3, 0, 9, 3, 0, 12, 3, 0, 15, 3, 0, 18, 3, 0, 21, 3, 0, 24, 3, 0, 27, 3, 0, 30, 3, 0,
+            0, 3, 1, 3, 3, 1, 6, 3, 1, 9, 3, 1, 12, 3, 1, 15, 3, 1, 18, 3, 1, 21, 3, 1, 24, 3, 1, 27, 3, 1, 30, 3, 1,
+            0, 3, 2, 3, 3, 2, 6, 3, 2, 9, 3, 2, 12, 3, 2, 15, 3, 2, 18, 3, 2, 21, 3, 2, 24, 3, 2, 27, 3, 2, 30, 3, 2,
+            0, 3, 3, 3, 3, 3, 6, 3, 3, 9, 3, 3, 12, 9, 3, 21, 3, 3, 24, 3, 3, 27, 3, 3, 30, 3, 3
+    };
+
+    public static final int[] menuProps     = {
             ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0,
             ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER, ZX_PROP_TRACER,
             ZX_PROP_SHOW_LABEL, ZX_PROP_SHOW_CODE, ZX_PROP_SHOW_CODE_VALUE
+    };
+
+    public static final CharSequence[] names = {
+            "N/A", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+            "PLOT", "DRAW", "REM", "RUN", "RAND", "RET", "IF", "POKE", "INPUT", "PRINT", "SIN", "COS", "TAN", "INT", "RND", "STR$", "CHR$",
+            "CODE", "PEEK", "TAB", "ASN", "ACS", "ATN", "VERIF", "MERGE", "OUT", "AND", "OR", "AT", "INKY$", "FN",
+            "NEW", "SAVE", "DIM", "FOR", "GOTO", "GOSUB", "LOAD", "LIST", "LET", "COPY", "CLEAR", "READ", "REST", "DATA", "SGN", "ABS", "VAL",
+            "LEN", "USR", "STOP", "NOT", "STEP", "TO", "THEN", "CIRCL", "VAL$", "SCRN$",
+            "ATTR", "LN", "BEEP", "INK", "PAPER", "FLUSH", "BRIGH", "OVER", "INVER", "CONT", "CLS", "BORD", "NEXT", "PAUSE", "POINT",
+            "*", "=", "<>", "<", ">", ">=", "<=", ",", "/", "?", ".", ":", ";", "&", "%", "+", "-", "_", "'", "\"", "EXP", "LPRINT", "LLIST",
+            "BIN", "", "!", "#", "$", "(", ")", "@", "[", "]", "{", "}", "DEF FN", "OPEN", "CLOSE", "FORMAT", "LINE", "ERASE", "MOVE", "CAT",
+            "[C]", "[G]", "true", "inv", "SQR", "PI", "[L]", "[E]", "~", "|", "IN", "TILE", "BREAK"
     };
 }

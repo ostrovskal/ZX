@@ -60,7 +60,7 @@ static uint8_t buttons[] = {
         CB_SAVE, 0, CB_DIM, 0, CB_FOR, 0, CB_GOTO, 0, CB_GOSUB, 0, CB_LOAD, 0, CB_LIST, 0, CB_LET, 0, CB_TILE, 12, CB_EE, 0, CB_COPY, 0, CB_CLEAR, 0, CB_CONT, 0,
         CB_BREAK, 0, CB_CLS, 0, CB_BORDER, 0, CB_NEXT, 0, CB_PAUSE, 0,
 
-        CB_TILE, 60, CB_TILE, 61, CB_TILE, 62, CB_TILE, 63, CB_TILE, 64, CB_TILE, 65, CB_TILE, 67, CB_TILE, 66, CB_GG, 0, CB_TILE, 0,
+        CB_TILE, 60, CB_TILE, 61, CB_TILE, 62, CB_TILE, 63, CB_TILE, 64, CB_TILE, 65, CB_TILE, 67, CB_TILE, 66, CB_GG, 0, CB_TILE, 5,
         CB_TILE, 5, CB_Q, 0, CB_INKEYS_, 0, CB_E, 0, CB_R, 0, CB_T, 0, CB_FN, 0, CB_U, 0, CB_I, 0, CB_O, 0, CB_P, 0, CB_TILE, 6, CB_TILE, 10, CB_A, 0,
         CB_S, 0, CB_D, 0, CB_F, 0, CB_G, 0, CB_H, 0, CB_J, 0, CB_K, 0, CB_L, 0, CB_TILE, 12, CB_EE, 0, CB_POINT, 0, CB_PI, 0, CB_C, 0, CB_SPACE, 0,
         CB_RND, 0, CB_B, 0, CB_N, 0, CB_M, 0,

@@ -1,33 +1,23 @@
 package ru.ostrovskal.zx
 
+import android.content.Context
+import android.util.TypedValue
 import android.view.ViewGroup
-import android.view.ViewManager
 import ru.ostrovskal.sshstd.Common
 import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.backgroundSet
 import ru.ostrovskal.sshstd.ui.cellLayout
-import ru.ostrovskal.sshstd.utils.uiView
+import ru.ostrovskal.sshstd.utils.addUiView
+import ru.ostrovskal.sshstd.utils.sp
+import ru.ostrovskal.sshstd.utils.sp2px
 import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.zx.ZxCommon.*
 
 class ZxKeyboard {
-
+    companion object {
+        private val tiles           = arrayOfNulls<Tile?>(43)
+    }
     private var root: ViewGroup?            = null
-
-    private val tiles           = arrayOfNulls<Tile?>(43)
-
-    private val names= arrayOf("N/A", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-        "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
-        "PLOT", "DRAW", "REM", "RUN", "RAND", "RET", "IF", "POKE", "INPUT", "PRINT", "SIN", "COS", "TAN", "INT", "RND", "STR$", "CHR$",
-        "CODE", "PEEK", "TAB", "ASN", "ACS", "ATN", "VERIFY", "MERGE", "OUT", "AND", "OR", "AT", "INKEY$", "FN",
-        "NEW", "SAVE", "DIM", "FOR", "GOTO", "GOSUB", "LOAD", "LIST", "LET", "COPY", "CLEAR", "READ", "RESTORE", "DATA", "SGN", "ABS", "VAL",
-        "LEN", "USR", "STOP", "NOT", "STEP", "TO", "THEN", "CIRCLE", "VAL$", "SCRN$",
-        "ATTR", "LN", "BEEP", "INK", "PAPER", "FLUSH", "BRIGHT", "OVER", "INVERSE", "CONT", "CLS", "BORDER", "NEXT", "PAUSE", "POINT",
-        "*", "=", "<>", "<", ">", ">=", "<=", ",", "/", "?", ".", ":", ";", "&", "%", "+", "-", "_", "'", "\"", "EXP", "LPRINT", "LLIST",
-        "BIN", "", "!", "#", "$", "(", ")", "@", "[", "]", "{", "}", "DEF FN", "OPEN", "CLOSE", "FORMAT", "LINE", "ERASE", "MOVE", "CAT",
-        "[C]", "[G]", "true", "invert", "SQP", "PI", "[L]", "[E]", "~", "|", "IN", "TILE", "BREAK"
-    )
 
     fun update() {
         tiles.forEachIndexed { index, tile ->
@@ -47,24 +37,29 @@ class ZxKeyboard {
         }
     }
 
-    /** Реализация кнопки клавиатуры */
-    private fun ViewManager.keyboardButton() = uiView({ Tile(it, style_key_button).apply {
-        setOnTouchListener { v, event ->
-            root?.apply { ZxWnd.zxCmd(ZX_CMD_UPDATE_KEY, indexOfChild(v) + 1, event.action, "") }
-            false
-        } } }, {} )
+    private class KeyboardButton(context: Context) : Tile(context, style_key_button) {
+        init {
+            setOnTouchListener { v, event ->
+                val index = ((parent as? CellLayout)?.indexOfChild(v) ?: -1) + 1
+                ZxWnd.zxCmd(ZX_CMD_UPDATE_KEY, index, event.action, "")
+                false
+            }
+        }
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            val mh = measuredWidth.coerceAtMost(measuredHeight).sp2px
+            val hbutton = mh.sp * 0.4f
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, hbutton)
+        }
+    }
 
     fun layout(ui: CellLayout) = with(ui) {
-        cellLayout(11, 4) {
+        cellLayout(33, 4) {
             root = this
             backgroundSet(Common.style_form)
-            repeat(4) { y ->
-                repeat(11) rep@{ x ->
-                    if(y == 3 && x > 8) return@rep
-                    var xx = x
-                    if(y == 3 && x > 4) xx += 2
-                    tiles[y * 11 + x] = keyboardButton().lps(xx, y, if(y == 3 && x == 4) 3 else 1, 1)
-                }
+            repeat(42) { idx ->
+                val pos = idx * 3
+                addUiView(KeyboardButton(context).apply { tiles[idx] = this; lps(keyButtonPos[pos + 0], keyButtonPos[pos + 2], keyButtonPos[pos + 1], 1) } )
             }
         }
     }

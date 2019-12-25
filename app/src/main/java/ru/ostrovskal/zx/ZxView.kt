@@ -6,7 +6,9 @@ import android.os.Message
 import android.view.Gravity
 import android.view.SurfaceHolder
 import android.view.View
-import ru.ostrovskal.sshstd.Common.*
+import ru.ostrovskal.sshstd.Common.ACT_INIT_SURFACE
+import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
+import ru.ostrovskal.sshstd.Config
 import ru.ostrovskal.sshstd.Surface
 import ru.ostrovskal.sshstd.layouts.AbsoluteLayout
 import ru.ostrovskal.sshstd.utils.*
@@ -94,7 +96,7 @@ class ZxView(context: Context) : Surface(context) {
         }
         updateJoy()
         updateFilter()
-        is2x = (dMetrics.heightPixels > 1280 || dMetrics.widthPixels > 1280)
+        is2x = (Config.screenHeight > 1280 || Config.screenWidth > 1280)
         isSkippedFrames = ZxWnd.props[ZX_PROP_SKIP_FRAMES].toBoolean
         frameTime = 20
         updateSurface(true)
