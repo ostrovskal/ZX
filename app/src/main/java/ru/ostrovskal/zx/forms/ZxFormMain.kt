@@ -11,18 +11,18 @@ import android.view.View
 import android.widget.TextView
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
 import ru.ostrovskal.sshstd.Config
-import ru.ostrovskal.sshstd.Surface
 import ru.ostrovskal.sshstd.forms.Form
 import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.cellLayout
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.*
+import ru.ostrovskal.zx.ZxCommon.ZX_PROP_EXECUTE
 import ru.ostrovskal.zx.ZxCommon.ZX_RL
 
 @Suppress("unused")
 class ZxFormMain: Form() {
 
-    override val surface: Surface? get() = zxview
+    //override val surface: Surface? get() = zxview
 
     // Клавиатура
     private val keyboard                = ZxKeyboard()
@@ -81,6 +81,14 @@ class ZxFormMain: Form() {
     @SuppressLint("SetTextI18n")
     override fun handleMessage(msg: Message): Boolean {
         when(msg.action) {
+            ZxWnd.ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal-> zxview?.updateTracer()
+            ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal         -> zxview?.updateJoy()
+            ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal,
+            ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal,
+            ZxWnd.ZxMessages.ACT_RESET.ordinal,
+            ZxWnd.ZxMessages.ACT_MODEL.ordinal,
+            ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal,
+            ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal            -> zxview?.callAction(msg)
             ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
             ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1, msg.arg2)
             ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
@@ -94,8 +102,17 @@ class ZxFormMain: Form() {
                         displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM or ActionBar.DISPLAY_SHOW_HOME
                     }
                     (customView as? TextView)?.apply {
-                        val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
-                        text = if(Config.isPortrait) msg.obj.toString() else "$model - ${msg.obj}"
+                        text = if (!ZxWnd.props[ZX_PROP_EXECUTE].toBoolean) {
+                            "[PAUSE]"
+                        } else {
+                            val name = ZxWnd.zxPresets(ZxCommon.ZX_CMD_PRESETS_NAME)
+                            if (Config.isPortrait) {
+                                name
+                            } else {
+                                val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
+                                "$model - $name"
+                            }
+                        }
                     }
                 }
             }

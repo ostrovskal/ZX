@@ -33,6 +33,20 @@ find_library( # Sets the name of the path variable.
         jnigraphics)
 
 find_library( # Sets the name of the path variable.
+        gl-lib
+
+        # Specifies the name of the NDK library that
+        # you want CMake to locate.
+        EGL)
+
+find_library( # Sets the name of the path variable.
+        gl2-lib
+
+        # Specifies the name of the NDK library that
+        # you want CMake to locate.
+        GLESv2)
+
+find_library( # Sets the name of the path variable.
         a-lib
 
         # Specifies the name of the NDK library that
@@ -46,4 +60,7 @@ target_link_libraries( # Specifies the target library.
         # included in the NDK.
         ${log-lib}
         ${bmp-lib}
-        ${a-lib})
+        ${a-lib}
+        ${gl-lib}
+        ${gl2-lib}
+        )

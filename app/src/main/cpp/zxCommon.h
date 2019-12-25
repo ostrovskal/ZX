@@ -174,6 +174,7 @@ constexpr int ZX_CMD_MOVE_PC            = 11; // Выполнение сдвиг
 constexpr int ZX_CMD_JUMP               = 12; // Получение адреса в памяти/адреса перехода в инструкции
 constexpr int ZX_CMD_ASSEMBLER          = 13; // Ассемблирование
 constexpr int ZX_CMD_DRAW_FRAME         = 14; // Отрисовка кадра
+constexpr int ZX_CMD_INIT_GL            = 15; // Инициализация GL
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //

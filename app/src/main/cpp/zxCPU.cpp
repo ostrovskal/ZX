@@ -144,6 +144,7 @@ int zxCPU::step() {
 
     incrementR();
 
+/*
     if(zxALU::PC == 0) {
         if(strcmp(ALU->presets(nullptr, ZX_CMD_PRESETS_NAME), "BASIC") != 0) {
             // несанкционированный сброс(ошибка в программе)
@@ -151,6 +152,7 @@ int zxCPU::step() {
         }
     }
 
+*/
     zxCPU::MNEMONIC* m(nullptr);
     while(isExecute) {
         if(offset == 256 && prefix) {
@@ -468,19 +470,6 @@ int zxCPU::step() {
             ALU->ftracer.write(TMP_BUF, (size_t)length);
         }
     }
-/*
-    static bool debug = false;
-    if(PC == 4743) debug = true;
-    if(debug) {
-        if(!prefix && !offset) {
-            auto buf = (uint16_t *) &TMP_BUF[0];
-            zxDA::cmdParser(&PC, buf, true);
-            static char res[512];
-            zxDA::cmdToString(buf, res, DA_PC | DA_CODE | DA_REGS | DA_PN | DA_PNN, 0);
-            info(res);
-        }
-    }
-*/
     return ticks;
 }
 

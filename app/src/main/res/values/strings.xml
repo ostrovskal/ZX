@@ -1,6 +1,5 @@
 <resources>
     <string name="themeDef" translatable="false">def</string>
-    <string name="menuLoadCloud">Loading…</string>
     <string name="menuOpenSave">Open/Save…</string>
     <string name="menuSettings">Settings…</string>
     <string name="menuProperties">Properties…</string>
@@ -32,7 +31,7 @@
     <string name="hintName">name</string>
     <string name="headerIO">Operations</string>
     <string name="downloadCloud">Download…</string>
-    <string name="headerCloud">Loading from Cloud</string>
+    <string name="headerCloud" translatable="false">Download</string>
     <string name="connectCloud">Connected…</string>
     <string name="connectError">Unable to connect to the server. Check your internet connection!</string>
     <string name="pokeHead" translatable="false">Pokes</string>
@@ -42,8 +41,6 @@
     <string name="hintMask">mask</string>
     <string name="hintValue">value</string>
     <string name="settingsHead">Settings</string>
-    <string name="settingsFPS" translatable="false">FPS</string>
-    <string name="settingsFrames">Skip frm</string>
     <string name="settingsJoyType">Type</string>
     <string name="settingsJoyPreset">Samples</string>
     <string name="settingsCPU" translatable="false">CPU</string>

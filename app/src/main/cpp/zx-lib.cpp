@@ -47,25 +47,6 @@ extern "C" {
         return ALU->updateKeys(0, 0);
     }
 
-    void zxSurface(JNIEnv *env, jclass, jobject bmp) {
-        info("zxSurface");
-        if(objBmp) {
-            env->DeleteGlobalRef(objBmp);
-            objBmp = nullptr;
-        }
-        if(!(objBmp = env->NewGlobalRef(bmp))) {
-            info("NewGlobalRef(bmp) error!");
-            abort();
-        }
-        if (AndroidBitmap_lockPixels(env, bmp, (void**)&ALU->surface) < 0) {
-            info("AndroidBitmap_lockPixels error!");
-            abort();
-        }
-        AndroidBitmap_unlockPixels(env, bmp);
-        ALU->updateProps();
-        debug("zxSurface finish");
-    }
-
     void zxShutdown(JNIEnv *env, jobject) {
         info("zxShutdown");
         if(objBmp) {
@@ -111,30 +92,9 @@ extern "C" {
         }
         copyAFile(amgr, "labels.bin", nullptr, &labels);
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
-        ALU->initGL();
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
         if(!errors) ALU->load(nameSave, ZX_CMD_IO_STATE);
         debug("zxInit finish");
-    }
-
-    jbyteArray zxSaveState(JNIEnv* env, jclass) {
-        info("zxSaveState");
-        auto jmemory = env->NewByteArray(262144);
-        auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
-        memcpy(mem, ALU->RAMs, 262144);
-        env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
-        ALU->setPages();
-        debug("zxSaveState finish");
-        return jmemory;
-    }
-
-    void zxLoadState(JNIEnv* env, jclass, jbyteArray jmemory) {
-        info("zxLoadState");
-        auto mem = (uint8_t*) env->GetPrimitiveArrayCritical(jmemory, nullptr);
-        memcpy(ALU->RAMs, mem, 262144);
-        env->ReleasePrimitiveArrayCritical((jarray)jmemory, mem, JNI_ABORT);
-        ALU->updateProps();
-        debug("zxLoadState finish");
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props) {
@@ -223,7 +183,7 @@ extern "C" {
             case ZX_CMD_UPDATE_KEY: ALU->updateKeys(arg1, arg2); break;
             case ZX_CMD_PRESETS:    ALU->presets(env->GetStringUTFChars(arg3, nullptr), arg1); break;
             case ZX_CMD_DIAG:       ALU->diag(); break;
-            case ZX_CMD_PROPS:      ALU->updateProps(); break;
+            case ZX_CMD_PROPS:      ALU->updateProps(arg1); break;
             case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], *ALU->_MODEL, true); break;
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
             case ZX_CMD_TRACER:     ALU->tracer(arg1); break;
@@ -234,6 +194,8 @@ extern "C" {
             case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_DRAW_FRAME: ALU->drawFrame(); break;
+            case ZX_CMD_INIT_GL:    ALU->initGL(); break;
+
         }
         debug("zxCmd finish");
         return ret;
@@ -267,7 +229,6 @@ extern "C" {
             { "zxGetProp", "(Ljava/lang/String;I)V", (void*)&zxGetProp },
             { "zxSetProp", "(I)Ljava/lang/String;", (void*)&zxSetProp },
             { "zxExecute", "()I", (void*)&zxExecute },
-            { "zxSurface", "(Landroid/graphics/Bitmap;)V", (void*)&zxSurface },
             { "zxCmd", "(IIILjava/lang/String;)I", (void*)&zxCmd },
             { "zxIO", "(Ljava/lang/String;Z)Z", (void*)&zxIO },
             { "zxPresets", "(I)Ljava/lang/String;", (void*)&zxPresets },
@@ -275,8 +236,6 @@ extern "C" {
             { "zxFormatNumber", "(IIZ)Ljava/lang/String;", (void*)&zxFormatNumber },
             { "zxDebuggerString", "(III)Ljava/lang/String;", (void*)&zxDebuggerString },
             { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },
-            { "zxSaveState", "()[B", (void*)&zxSaveState },
-            { "zxLoadState", "([B)V", (void*)&zxLoadState },
             { "zxNumberToString", "(II)Ljava/lang/String;", (void*)&zxNumberToString }
     };
 
@@ -287,7 +246,7 @@ extern "C" {
             abort();
         }
         auto wnd = env->FindClass("ru/ostrovskal/zx/ZxWnd");
-        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)) - 3);
+        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)) - 1);
 
         return JNI_VERSION_1_6;
     }

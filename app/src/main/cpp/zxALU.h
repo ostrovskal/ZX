@@ -50,7 +50,7 @@ public:
     const char* presets(const char *name, int ops);
 
     // обновление свойств
-    void updateProps();
+    void updateProps(int filter);
 
     // сброс
     void signalRESET(bool resetTape);
@@ -87,9 +87,6 @@ public:
 
     // быстрая проверка на точку останова
     BREAK_POINT* quickCheckBPs(uint16_t address, uint8_t flg);
-
-    // поверхность рендеринга
-    uint32_t* surface;
 
     // ПЗУ
     uint8_t* ROMS;
@@ -177,7 +174,7 @@ protected:
     GLuint texture;
 
     // буфер кадра
-    uint8_t* frameBuffer;
+    uint32_t* frameBuffer;
 
     // старое значение кнопок джойстика
     uint8_t joyOldButtons;

@@ -2,7 +2,6 @@ package ru.ostrovskal.zx
 
 import android.content.Context
 import android.content.res.AssetManager
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -40,8 +39,6 @@ class ZxWnd : Wnd() {
         ACT_UPDATE_KEY_BUTTONS,
         // обновление отладчика(a1 - параметры)
         ACT_UPDATE_DEBUGGER,
-        // обновление фильтра отображения
-        ACT_UPDATE_FILTER,
         // завершнение скачивания файлов из облака
         ACT_DROPBOX_DOWNLOAD_FINISH,
         // завершение запроса на получение списка файлов из облака
@@ -60,6 +57,8 @@ class ZxWnd : Wnd() {
         ACT_IO_ERROR,
         // обновление поверхности
         ACT_UPDATE_SURFACE,
+        // обновление фильтра
+        ACT_UPDATE_FILTER,
         // обновление смены пропуска кадров
         ACT_UPDATE_SKIP_FRAMES,
         // обновление главной разметки
@@ -132,9 +131,6 @@ class ZxWnd : Wnd() {
         external fun zxExecute(): Int
 
         @JvmStatic
-        external fun zxSurface(bmp: Bitmap)
-
-        @JvmStatic
         external fun zxInt(idx: Int, mask: Int, read: Boolean, value: Int): Long
 
         @JvmStatic
@@ -155,13 +151,6 @@ class ZxWnd : Wnd() {
 /*
         @JvmStatic
         external fun zxNumberToString(value: Int, fmt: Int): String
-
-        @JvmStatic
-        external fun zxSaveState(): ByteArray
-
-        @JvmStatic
-        external fun zxLoadState(mem: ByteArray)
-
 
 */
     }
@@ -201,7 +190,7 @@ class ZxWnd : Wnd() {
                     zxProps(props)
                     settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
                     zxInit(assets, nameAutoSave, errors)
-                    if(restart) hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_SURFACE.ordinal, a1 = 1)
+                    if(restart) hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_SURFACE.ordinal, a1 = 1)
                 }
             }
             "#errors".b = true
@@ -268,8 +257,8 @@ class ZxWnd : Wnd() {
             MENU_CLOUD                              -> instanceForm(FORM_LOADING)
             MENU_IO                                 -> instanceForm(FORM_IO, "filter", ".z80,.tap,.tga")
             MENU_SETTINGS                           -> instanceForm(FORM_OPTIONS)
-            MENU_RESTORE                            -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
-            MENU_RESET                              -> hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_RESET.ordinal)
+            MENU_RESTORE                            -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
+            MENU_RESET                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_RESET.ordinal)
             MENU_EXIT                               -> { nameAutoSave = ZX_AUTO_SAVE; finish() }
             MENU_PROPS_DEBUGGER                     -> {
                 // спрятать/показать элемент клавы
@@ -292,11 +281,11 @@ class ZxWnd : Wnd() {
             MENU_MODEL_128K, MENU_MODEL_PENTAGON,
             MENU_MODEL_SCORPION                  -> {
                 props[ZX_PROP_MODEL_TYPE] = (id - MENU_MODEL_48KK).toByte()
-                hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_MODEL.ordinal)
+                hand?.send(RECEPIENT_FORM, ZxMessages.ACT_MODEL.ordinal)
             }
             MENU_PROPS_FILTER                    -> {
                 "filter".b = !"filter".b
-                hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_FILTER.ordinal)
+                hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_FILTER.ordinal)
             }
             MENU_MRU_1, MENU_MRU_2,
             MENU_MRU_3, MENU_MRU_4,
@@ -322,7 +311,7 @@ class ZxWnd : Wnd() {
             props[ZX_PROP_SHOW_KEY] = 0.toByte()
             props[ZX_PROP_SHOW_JOY] = 0.toByte()
             drawable?.tile = if(tile == 46) 40 else 46
-            hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_JOY.ordinal, 50)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_JOY.ordinal, 50)
         }
         props[prop] = isChecked.toByte
         zxCmd(ZX_CMD_PROPS, 0, 0, "")
@@ -336,7 +325,9 @@ class ZxWnd : Wnd() {
         if(id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL)
         if(id == MENU_PROPS_TRACER)
-            hand?.send(RECEPIENT_SURFACE_UI, ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal)
+        if(id == MENU_PROPS_EXECUTE)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
         return isChecked
     }
 
@@ -360,7 +351,7 @@ class ZxWnd : Wnd() {
                 "#mru$i".s = "#mru${i - 1}".s
             }
             "#mru1".s = title
-            hand?.send(RECEPIENT_SURFACE_BG, ZxMessages.ACT_IO_LOAD.ordinal, o = title)
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_IO_LOAD.ordinal, o = title)
         } catch (e: FileNotFoundException) {
             "Файл не найден - <$title>!".debug()
             repeat(10 - pos) {

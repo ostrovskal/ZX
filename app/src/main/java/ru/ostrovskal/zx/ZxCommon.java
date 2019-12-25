@@ -237,6 +237,8 @@ public static final int ZX_CMD_TRACER               = 7;  // Запуск тра
     public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
     public static final int ZX_CMD_ASSEMBLER        = 13; // Ассемблирование
+    public static final int ZX_CMD_DRAW_FRAME       = 14; // Отрисовка кадра
+    public static final int ZX_CMD_INIT_GL          = 15; // Инициализация GL
 
     public static final int ZX_CMD_PRESETS_SAVE     = 0; // Сохранить параметры джойстика
     public static final int ZX_CMD_PRESETS_LOAD     = 1; // Загрузить параметры джойстика

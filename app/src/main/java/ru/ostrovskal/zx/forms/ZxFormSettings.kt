@@ -53,7 +53,6 @@ class ZxFormSettings : Form() {
 
     private var curView         = 0
     private var updateJoy       = false
-    private var updateBorder    = false
     private var updateKey       = false
     private val copyProps       = ByteArray(ZX_PROPS_COUNT)
 
@@ -71,7 +70,6 @@ class ZxFormSettings : Form() {
                             setOnClickListener {
                                 ZxWnd.props[settingsCommon[pos]] = progress.toByte()
                                 when (pos) {
-                                    3 -> updateBorder = true
                                     2 -> updateJoy = true
                                     4 -> updateKey = true
                                 }
@@ -80,18 +78,6 @@ class ZxFormSettings : Form() {
                     }
                 }
             }
-            check(R.id.button1, R.string.settingsFPS) {
-                isChecked = ZxWnd.props[ZX_PROP_SHOW_FPS] != 0.toByte()
-                setOnClickListener {
-                    ZxWnd.props[ZX_PROP_SHOW_FPS] = if(isChecked) 1 else 0
-                }
-            }.lps(9, 15, 3, 3)
-            check(R.id.button2, R.string.settingsFrames) {
-                isChecked = ZxWnd.props[ZX_PROP_SKIP_FRAMES].toBoolean
-                setOnClickListener {
-                    ZxWnd.props[ZX_PROP_SKIP_FRAMES] = if(isChecked) 1 else 0
-                }
-            }.lps(12, 15, 5, 3)
         }
     }
 
@@ -257,13 +243,11 @@ class ZxFormSettings : Form() {
             BTN_OK -> {
                 wnd.hand?.apply {
                     super.footer(btn, param)
-                    if (updateBorder) send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal, a1 = 0)
-                    if (updateJoy) send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal)
+                    if (updateJoy) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal)
                     if (updateKey) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
-                    send(RECEPIENT_SURFACE_UI, ZxWnd.ZxMessages.ACT_UPDATE_SKIP_FRAMES.ordinal)
                 }
                 ZxWnd.zxCmd(ZX_CMD_PRESETS, ZX_CMD_PRESETS_SAVE, 0, ZxWnd.zxPresets(ZX_CMD_PRESETS_NAME))
-                ZxWnd.zxCmd(ZX_CMD_PROPS, 0, 0, "")
+                ZxWnd.zxCmd(ZX_CMD_PROPS, "filter".i, 0, "")
             }
             BTN_DEF -> {
                 val tab = (root as? TabLayout)?.currentTab ?: 0
@@ -368,19 +352,15 @@ class ZxFormSettings : Form() {
     }
 
     private fun defaultCommon(content: View, settings: Array<String>, reset: Boolean) {
-        repeat(7) {
+        repeat(5) {
             val opt = settingsCommon[it]
             if(reset) {
                 val o = opt - ZX_PROP_FIRST_LAUNCH
                 ZxWnd.zxGetProp(settings[o].substringAfterLast(','), o)
             }
-            if(it < 5) {
-                content.byIdx<Seek>(it * 2 + 1).progress = ZxWnd.props[opt].toInt()
-            } else {
-                content.byIdx<Check>(it + 5).isChecked = ZxWnd.props[opt].toBoolean
-            }
+            content.byIdx<Seek>(it * 2 + 1).progress = ZxWnd.props[opt].toInt()
         }
-        if(reset) { updateJoy = true; updateBorder = true; updateKey = true }
+        if(reset) { updateJoy = true; updateKey = true }
     }
 
     class Item : UiComponent() {

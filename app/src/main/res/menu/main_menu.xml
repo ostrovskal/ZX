@@ -29,7 +29,7 @@
     </item>
     <item
         android:id="@integer/MENU_CLOUD"
-        android:title="@string/menuLoadCloud"
+        android:title="@string/downloadCloud"
         android:showAsAction="ifRoom" />
     <item
         android:id="@integer/MENU_IO"

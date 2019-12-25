@@ -41,6 +41,7 @@ class ZxFormIO: Form() {
                     editEx(R.id.edit1, R.string.hintName, style_edit_zx) {
                         maxLength = 27
                         inputType = InputType.TYPE_CLASS_TEXT
+                        isFocusable = false
                         changeTextLintener = {
                             val txt = it.toString()
                             val enabled = files.contains(txt)
@@ -62,7 +63,7 @@ class ZxFormIO: Form() {
                         iconResource = R.integer.I_SAVE
                         setOnClickListener {
                             footer(BTN_OK, 0)
-                            wnd.hand?.send(RECEPIENT_SURFACE_BG, ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal, o = root.byId<Edit>(R.id.edit1)?.text)
+                            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal, o = root.byId<Edit>(R.id.edit1)?.text)
                         }
                     }.lps(10, 4, 5, 3)
                     button {

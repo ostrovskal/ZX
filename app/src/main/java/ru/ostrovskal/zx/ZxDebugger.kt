@@ -3,7 +3,6 @@ package ru.ostrovskal.zx
 import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -139,7 +138,7 @@ class ZxDebugger {
             edit(R.id.edit11, R.string.null_text, style_debugger_edit) {
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
                 maxLength = 40
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, 14f.sp)
+                //setTextSize(TypedValue.COMPLEX_UNIT_PX, 14f.sp)
                 gravity = Gravity.CENTER_VERTICAL
             }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
         }
@@ -208,6 +207,7 @@ class ZxDebugger {
                     data = ZxWnd.read16(ZX_CPU_PC)
                     flags = ZX_ALL
                 } else flags = ZX_STORY
+                wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
             }
             DEBUGGER_ACT_TRACE_IN,
             DEBUGGER_ACT_TRACE_OUT,

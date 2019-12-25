@@ -73,12 +73,13 @@ static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
 }
 
 zxALU::zxALU() : isTracer(false), joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), frameHeight(0), frameWidth(0), texture(0),
-                surface(nullptr), cpu(nullptr), frameBuffer(nullptr) {
+                cpu(nullptr) {
     blink = blinkMsk = blinkShift = 0;
     sizeBorder = 0;
     pageTRDOS = &ROMS[ZX_ROM_TRDOS];
 
     RAMs = new uint8_t[ZX_TOTAL_RAM];
+    frameBuffer = new uint32_t[320 * 256];
 
     for (int i = 0; i < 16; i++) PAGE_RAM[i] = (RAMs + i * 16384);
 
@@ -421,19 +422,28 @@ const char* zxALU::presets(const char *name, int ops) {
     return buf;
 }
 
-void zxALU::updateProps() {
+void zxALU::drawFrame() {
+    if(frameBuffer) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
+    }
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void zxALU::updateProps(int filter) {
     // скорость мерцания
     blinkShift = opts[ZX_PROP_BLINK_SPEED];
     blinkMsk = (1U << (blinkShift + 1)) - 1;
     // граница
     sizeBorder = (uint32_t)opts[ZX_PROP_BORDER_SIZE] * 8;
-    frameWidth = sizeBorder + 256;
-    frameHeight = sizeBorder + 192;
-    SAFE_A_DELETE(frameBuffer);
-    frameBuffer = new uint8_t[frameWidth * frameHeight * 4];
+    frameWidth = sizeBorder * 2 + 256;
+    frameHeight = sizeBorder * 2 + 192;
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
+    // настройка объекта текстуры
+    filter = filter != 0 ? GL_LINEAR : GL_NEAREST;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
     auto params = &modelParams[*_MODEL * 4];
     auto turbo = opts[ZX_PROP_TURBO_MODE] ? 2 : 1;
@@ -701,6 +711,7 @@ void zxALU::execute() {
 //        snd->execute();
 //        snd->play();
     }
+    drawFrame();
 }
 
 void zxALU::stepDebug() {
@@ -762,7 +773,7 @@ void zxALU::updateCPU(int todo, bool interrupt) {
 void zxALU::updateFrame() {
     uint32_t line, i, tmp, c;
 
-    auto dest = surface;
+    auto dest = frameBuffer;
     if(!dest) return;
 
     auto isBlink = ((blink & blinkMsk) >> blinkShift) == 0;
@@ -911,11 +922,10 @@ bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
 }
 
 static GLuint createShader(GLenum type, const char* text) {
-    GLint length = 1;
     GLint compileStatus;
     auto shaderId = glCreateShader(type);
     if (shaderId == 0) return 0;
-    glShaderSource(shaderId, 1, &text, &length);
+    glShaderSource(shaderId, 1, &text, nullptr);
     glCompileShader(shaderId);
     glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compileStatus);
     if(compileStatus == 0) {
@@ -942,10 +952,10 @@ static GLuint createProgram(GLuint vShader, GLuint fShader) {
 
 void zxALU::initGL() {
     static float vertices[] = {
-        -1f,  1f, 1f,   0f, 1f,
-        -1f, -1f, 1f,   0f, 0f,
-        1f,   1f, 1f,   1f, 1f,
-        1f,  -1f, 1f,   1f, 0f
+        -1.0f,  1.0f, 1.0f,   0.0f, 0.0f,
+        -1.0f, -1.0f, 1.0f,   0.0f, 1.0f,
+        1.0f,   1.0f, 1.0f,   1.0f, 0.0f,
+        1.0f,  -1.0f, 1.0f,   1.0f, 1.0f
     };
     static const char* vertShader = "attribute vec4 a_Position;\n"
                                     "attribute vec2 a_Texture;\n"
@@ -960,14 +970,12 @@ void zxALU::initGL() {
                                     "void main() {\n"
                                     "    gl_FragColor = texture2D(u_TextureUnit, v_Texture);\n}";
 
-    glClearColor(0f, 0f, 0f, 1f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     // шейдеры
     auto vShader  = createShader(GL_VERTEX_SHADER, vertShader);
     auto fShader  = createShader(GL_FRAGMENT_SHADER, fragShader);
     auto pid      = createProgram(vShader, fShader);
     glUseProgram(pid);
-    glDeleteShader(vShader);
-    glDeleteShader(fShader);
     // параметры шейдеров
     auto aPositionLocation    = (GLuint)glGetAttribLocation(pid, "a_Position");
     auto aTextureLocation     = (GLuint)glGetAttribLocation(pid, "a_Texture");
@@ -979,21 +987,12 @@ void zxALU::initGL() {
     glEnableVertexAttribArray(aTextureLocation);
     // текстура
     glGenTextures(1, &texture);
-    // настройка объекта текстуры
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glBindTexture(GL_TEXTURE_2D, 0);
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, texture);
-    // юнит текстуры
-    glUniform1i(uTextureUnitLocation, 0);
-}
-
-void zxALU::drawFrame() {
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frameWidth, frameHeight, GL_RGBA, GL_UNSIGNED_BYTE, bitmapBuffer);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
+    if(texture) {
+        // юнит текстуры
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(uTextureUnitLocation, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 #pragma clang diagnostic pop
