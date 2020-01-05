@@ -52,15 +52,15 @@ static int modelParams[] = {
 
 static uint8_t semiRows[] = {
         0, 0x00, 0, 0, 3, 0x01, 0, 0, 3, 0x02, 0, 0, 3, 0x04, 0, 0, 3, 0x08, 0, 0,
-        3, 0x10, 0, 0, 4, 0x10, 0, 0, 4, 0x08, 0, 0, 4, 0x04, 0, 0, 4, 0x02, 0, 0,
-        4, 0x01, 0, 0, 4, 0x01, 0, 1, 2, 0x01, 0, 0, 2, 0x02, 0, 0, 2, 0x04, 0, 0,
-        2, 0x08, 0, 0, 2, 0x10, 0, 0, 5, 0x10, 0, 0, 5, 0x08, 0, 0, 5, 0x04, 0, 0,
-        5, 0x02, 0, 0, 5, 0x01, 0, 0, 6, 0x01, 0, 0, 0, 0x01, 0, 0, 1, 0x01, 0, 0,
-        1, 0x02, 0, 0, 1, 0x04, 0, 0, 1, 0x08, 0, 0, 1, 0x10, 0, 0, 6, 0x10, 0, 0,
-        6, 0x08, 0, 0, 6, 0x04, 0, 0, 6, 0x02, 0, 0, 7, 0x02, 0, 0, 0, 0x01, 7, 2,
-        0, 0x02, 0, 0, 0, 0x04, 0, 0, 0, 0x08, 0, 0, 7, 0x01, 0, 0, 0, 0x10, 0, 0,
-        7, 0x10, 0, 0, 7, 0x08, 0, 0, 7, 0x04, 0, 0,
-        4, 0x08, 0, 1, 4, 0x10, 0, 1, 3, 0x10, 0, 1, 4, 0x04, 0, 1,
+        3, 0x10, 0, 0, 4, 0x10, 0, 0, 4, 0x08, 0, 0, 4, 0x04, 0, 0, 4, 0x02, 0, 0,// 5
+        4, 0x01, 0, 0, 4, 0x01, 0, 1, 2, 0x01, 0, 0, 2, 0x02, 0, 0, 2, 0x04, 0, 0,// 10
+        2, 0x08, 0, 0, 2, 0x10, 0, 0, 5, 0x10, 0, 0, 5, 0x08, 0, 0, 5, 0x04, 0, 0,// 15
+        5, 0x02, 0, 0, 5, 0x01, 0, 0, 6, 0x01, 0, 0, 0, 0x01, 0, 0, 1, 0x01, 0, 0,// 20
+        1, 0x02, 0, 0, 1, 0x04, 0, 0, 1, 0x08, 0, 0, 1, 0x10, 0, 0, 6, 0x10, 0, 0,// 25
+        6, 0x08, 0, 0, 6, 0x04, 0, 0, 6, 0x02, 0, 0, 7, 0x02, 0, 0, 0, 0x01, 7, 2,// 30
+        0, 0x02, 0, 0, 0, 0x04, 0, 0, 0, 0x08, 0, 0, 7, 0x01, 0, 0, 0, 0x10, 0, 0,// 35
+        7, 0x10, 0, 0, 7, 0x08, 0, 0, 7, 0x04, 0, 0,// 40
+        4, 0x08, 0, 1, 4, 0x10, 0, 1, 3, 0x10, 0, 1, 4, 0x04, 0, 1,// 43
         8, 0x02, 0, 0, 8, 0x01, 0, 0, 8, 0x08, 0, 0, 8, 0x04, 0, 0, 8, 0x10, 0, 0
 };
 
@@ -72,8 +72,8 @@ static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
     buf[2] = page;
 }
 
-zxALU::zxALU() : isTracer(false), joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), frameHeight(0), frameWidth(0), texture(0),
-                cpu(nullptr) {
+zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), frameHeight(0), frameWidth(0), texture(0),
+                cpu(nullptr), snd(nullptr), tape(nullptr) {
     blink = blinkMsk = blinkShift = 0;
     sizeBorder = 0;
     pageTRDOS = &ROMS[ZX_ROM_TRDOS];
@@ -106,8 +106,8 @@ zxALU::zxALU() : isTracer(false), joyOldButtons(0), periodGPU(0), _FF(255), colo
 zxALU::~zxALU() {
     SAFE_A_DELETE(RAMs);
     SAFE_A_DELETE(frameBuffer);
-//    SAFE_DELETE(tape);
-//    SAFE_DELETE(snd);
+    SAFE_DELETE(tape);
+    SAFE_DELETE(snd);
     SAFE_DELETE(cpu);
     SAFE_DELETE(assembler);
     SAFE_DELETE(debugger);
@@ -161,12 +161,12 @@ bool zxALU::openState(const char *name) {
     // tape->loadState(ptr);
     // восстанавливаем страницы
     setPages();
-    // грузим параметры джойстика
-    presets((const char*)ptr, ZX_CMD_PRESETS_SET);
+    // загрузить имя сохраненной проги
+    programName((const char*)ptr);
     return true;
 }
 
-bool zxALU::saveState(const char* name) {
+bool zxALU::saveState(const char* nm) {
     uint32_t size;
     auto buf = TMP_BUF;
     // сохраняем регистры
@@ -179,9 +179,9 @@ bool zxALU::saveState(const char* name) {
     }
     // сохраняем состояние ленты
     // buf = tape->saveState(buf);
-    // сохраняем имя программы
-    ssh_memcpy(&buf, progName, sizeof(progName));
-    return zxFile::writeFile(name, TMP_BUF, buf - TMP_BUF, false);
+    // сохранить имя проги
+    ssh_memcpy(&buf, name.c_str(), (size_t)(name.length() + 1));
+    return zxFile::writeFile(nm, TMP_BUF, buf - TMP_BUF, false);
 }
 
 bool zxALU::openZ80(const char *name) {
@@ -284,8 +284,7 @@ bool zxALU::openZ80(const char *name) {
     if(head3 && length == 87) writePort(0xfd, 0x1f, head3->port1FFD);
     // копируем буфер
     memcpy(RAMs, TMP_BUF, 262144);
-    // загружаем параметры джойстика
-    if(isZ80) presets(name, ZX_CMD_PRESETS_SET);
+    if(isZ80) programName(name);
     return true;
 }
 
@@ -352,83 +351,6 @@ bool zxALU::saveZ80(const char *name) {
     return zxFile::writeFile(name, TMP_BUF, buf - TMP_BUF, true);
 }
 
-static bool presetsOps(PRESET* ptr, int ops, const char* name, char** l) {
-    auto lst = *l;
-    auto isFind = strcasecmp(ptr->name, name) == 0;
-    switch(ops) {
-        // Получить список пресетов
-        case ZX_CMD_PRESETS_LIST:
-            if(*(lst - 1)) *lst++ = ',';
-            *l = ssh_strcpy(&lst, ptr->name);
-            break;
-        // Загрузить параметры джойстика
-        case ZX_CMD_PRESETS_SET:
-        case ZX_CMD_PRESETS_LOAD:
-            if(isFind) {
-                opts[ZX_PROP_JOY_TYPE] = ptr->joyType;
-                memcpy(&opts[ZX_PROP_JOY_KEYS], &ptr->joyL, 8);
-                return true;
-            }
-            break;
-            // Сохранить параметры джойстика
-        case ZX_CMD_PRESETS_SAVE:
-            return isFind;
-    }
-    return false;
-}
-
-const char* zxALU::presets(const char *name, int ops) {
-    // джойстик по умолчанию
-    static uint8_t joyDef[] = {0, 47, 48, 49, 50, 51, 0, 0, 0};
-
-    if(ops == ZX_CMD_PRESETS_NAME) return progName;
-    auto tmp = &TMP_BUF[524288 - 80000];
-    ssh_memzero(tmp, 80000);
-    zxFile::readFile("joy_presets", tmp, false, nullptr);
-    char* buf = (char*)(tmp + 40000);
-    auto lst = buf;
-    auto ptr = (PRESET*)tmp;
-    // в имени убрать расширение
-    if(ops == ZX_CMD_PRESETS_SET) {
-        if(name) {
-            auto n = strstr(name, ".");
-            if(n) {
-                memcpy(&buf[100], name, n - name);
-                name = &buf[100];
-            }
-            auto lenName = strlen(name);
-            ssh_memzero(&progName, sizeof(progName));
-            memcpy(&progName, name, lenName > 30 ? 30 : lenName);
-        }
-    }
-    // ищем имя в БД
-    bool isOK = false;
-    while(ptr->name[0]) {
-        isOK = presetsOps(ptr, ops, name, &lst);
-        if(isOK) break;
-        ptr += sizeof(PRESET);
-    }
-    // Сохранить/Добавить параметры джойстика
-    if(ops == ZX_CMD_PRESETS_SAVE || ops == ZX_CMD_PRESETS_SET) {
-        ssh_memzero(&ptr->name, 31);
-        memcpy(&ptr->name, progName, sizeof(progName));
-        if(ops == ZX_CMD_PRESETS_SET && !isOK) {
-            memcpy(&opts[ZX_PROP_JOY_TYPE], joyDef, sizeof(joyDef));
-        }
-        ptr->joyType = opts[ZX_PROP_JOY_TYPE];
-        memcpy(&ptr->joyL, &opts[ZX_PROP_JOY_KEYS], 8);
-        zxFile::writeFile("joy_presets", tmp, 40000, false);
-    }
-    return buf;
-}
-
-void zxALU::drawFrame() {
-    if(frameBuffer) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
-    }
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
 void zxALU::updateProps(int filter) {
     // скорость мерцания
     blinkShift = opts[ZX_PROP_BLINK_SPEED];
@@ -459,9 +381,20 @@ void zxALU::updateProps(int filter) {
 //    tape->updateProps();
 }
 
+static void execJoyKeys(int i, bool pressed) {
+    int k           = opts[ZX_PROP_JOY_KEYS + i] * 4;
+    auto semiRow    = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 0]);
+    auto semiRowEx  = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 2]);
+    auto bit        = semiRows[k + 1];
+    auto bitEx      = semiRows[k + 3];
+    if (bitEx) opts[semiRowEx] ^= (-pressed ^ opts[semiRowEx]) & bitEx;
+    if (semiRow == ZX_PROP_VALUES_KEMPSTON) pressed = !pressed;
+    opts[semiRow] ^= (-pressed ^ opts[semiRow]) & bit;
+}
+
 int zxALU::updateKeys(int key, int action) {
     if (key) {
-        // клавиша была нажата/отпущена на экранной клавматурк
+        // клавиша была нажата/отпущена на экранной клавматуре
         auto idx = key * 4;
         auto semiRow = ZX_PROP_VALUES_SEMI_ROW + semiRows[idx + 0];
         auto semiRowEx = ZX_PROP_VALUES_SEMI_ROW + semiRows[idx + 2];
@@ -543,22 +476,14 @@ int zxALU::updateKeys(int key, int action) {
         if (opts[ZX_PROP_SHOW_JOY]) {
             auto buttons = (opts[ZX_PROP_JOY_ACTION_VALUE] << 4) | opts[ZX_PROP_JOY_CROSS_VALUE];
             if (buttons != joyOldButtons) {
-                uint8_t o;
                 joyOldButtons = buttons;
+                // 1. отжать
                 for (int i = 0; i < 8; i++) {
-                    int pressed     = buttons & (1 << i);
-                    int k           = opts[ZX_PROP_JOY_KEYS + i] * 4;
-                    auto semiRow    = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 0]);
-                    auto semiRowEx  = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 2]);
-                    auto bit        = semiRows[k + 1];
-                    auto bitEx      = semiRows[k + 3];
-                    if (bitEx) {
-                        o = opts[semiRowEx];
-                        opts[semiRowEx] = pressed ? (o & ~bitEx) : (o | bitEx);
-                    }
-                    if (semiRow == ZX_PROP_VALUES_KEMPSTON) pressed = !pressed;
-                    o = opts[semiRow];
-                    opts[semiRow] = pressed ? (o & ~bit) : (o | bit);
+                    if(!(buttons & numBits[i])) execJoyKeys(i, true);
+                }
+                // 2. нажать
+                for (int i = 0; i < 8; i++) {
+                    if(buttons & numBits[i]) execJoyKeys(i, false);
                 }
             }
         }
@@ -599,9 +524,8 @@ void zxALU::signalRESET(bool resetTape) {
     *cpu->_SP = 65534; *_FE = 0b11100111; *_VID = 5;
     // сброс состояния с сохранением статуса отладчика
     modifySTATE(0, ~ZX_DEBUG);
-    // устанавливаем программу по умолчанию
-    presets("BASIC", ZX_CMD_PRESETS_SET);
     setPages();
+    programName("BASIC");
 }
 
 void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
@@ -711,7 +635,11 @@ void zxALU::execute() {
 //        snd->execute();
 //        snd->play();
     }
-    drawFrame();
+    if(frameBuffer) {
+//        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frameWidth, frameHeight, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
+    }
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 void zxALU::stepDebug() {
@@ -854,10 +782,10 @@ void zxALU::updateFrame() {
 
 void zxALU::tracer(int start) {
     ftracer.close();
-    isTracer = start != 0;
-    if(isTracer) {
-        auto name = std::string(progName) + ".log";
-        ftracer.open(zxFile::makePath(name.c_str(), false).c_str(), zxFile::create_write);
+    opts[ZX_PROP_LAUNCH_TRACCER] = (uint8_t)start;
+    if(start != 0) {
+        auto nm = name + ".log";
+        ftracer.open(zxFile::makePath(nm.c_str(), false).c_str(), zxFile::create_write);
     }
 }
 
@@ -993,6 +921,21 @@ void zxALU::initGL() {
         glUniform1i(uTextureUnitLocation, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
+}
+
+const char *zxALU::programName(const char *nm) {
+    if(nm && strlen(nm) > 0) {
+        static char tmp_nm[64];
+        // оставить только имя
+        auto s = strchr(nm, '/');
+        auto e = strchr(nm, '.');
+        if(!e) e = (char*)(nm + strlen(nm));
+        if(s) s++; else s = (char*)nm;
+        memcpy(tmp_nm, s, e - s);
+        tmp_nm[e - s] = 0;
+        name = tmp_nm;
+    }
+    return name.c_str();
 }
 
 #pragma clang diagnostic pop

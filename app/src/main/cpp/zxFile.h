@@ -62,6 +62,7 @@ public:
     size_t set_pos(long pos, int flags) const { return (size_t)fseek(fd, pos, flags); }
     static bool writeFile(const char* path, void* buffer, size_t size, bool isFiles = true);
     static void* readFile(const char* path, void* buffer, bool isFiles = true, size_t* size = nullptr);
+    static bool makeDir(const char* path) { return mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO) == 0; }
     static std::string makePath(const char* name, bool isFiles);
 protected:
     FILE* fd;

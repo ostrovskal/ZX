@@ -30,6 +30,7 @@ extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
 extern BREAK_POINT*			            bps;
 extern uint16_t                         cmdCache[512];
+extern uint8_t                          numBits[8];
 extern int                              currentCmdPos;
 
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
@@ -85,14 +86,14 @@ constexpr int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого з
 constexpr int ZX_PROP_TRAP_TAPE       = 129; // Признак перехвата загрузки/записи с ленты
 constexpr int ZX_PROP_SHOW_JOY        = 130; // Признак отображения джойстика
 constexpr int ZX_PROP_SHOW_KEY        = 131; // Признак отображения клавиатуры
-constexpr int ZX_PROP_SHOW_FPS        = 132; // Признак отображения FPS
+constexpr int ZX_PROP_LAUNCH_TRACCER  = 132; // Признак запуска трассера
 constexpr int ZX_PROP_TURBO_MODE      = 133; // Признак турбо-режима процессора
 constexpr int ZX_PROP_SND_LAUNCH      = 134; // Признак запуска звукового процессора
 constexpr int ZX_PROP_SND_BP          = 135; // Признак запуска бипера
 constexpr int ZX_PROP_SND_AY          = 136; // Признак запуска AY
 constexpr int ZX_PROP_SND_8BIT        = 137; // Признак 8 битного звука
 constexpr int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
-constexpr int ZX_PROP_SKIP_FRAMES     = 139; // Признак пропуска кадров при отображений
+constexpr int ZX_PROP_ERRORS          = 139; // Признак наличия ошибки при выходе в прошлый раз
 constexpr int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
 constexpr int ZX_PROP_SHOW_DEBUGGER   = 141; // Признак режима отладчика
 constexpr int ZX_PROP_TRACER          = 142; // Признак записи трассировки
@@ -100,7 +101,6 @@ constexpr int ZX_PROP_SHOW_HEX        = 143; // Признак 16-тирично
 constexpr int ZX_PROP_SHOW_ADDRESS    = 144; // Признак отображения адреса инструкции
 constexpr int ZX_PROP_SHOW_CODE       = 145; // Признак отображения кода инструкции
 constexpr int ZX_PROP_SHOW_CODE_VALUE = 146; // Признак отображения содержимого по коду
-constexpr int ZX_PROP_ERRORS          = 147; // Признак наличия ошибки при выходе в прошлый раз
 
 // 2. Байтовые значения
 constexpr int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -163,27 +163,18 @@ constexpr int ZX_CMD_MODEL              = 0; // Установка модели 
 constexpr int ZX_CMD_PROPS              = 1; // Установка свойств
 constexpr int ZX_CMD_RESET              = 2; // Сброс
 constexpr int ZX_CMD_UPDATE_KEY         = 3; // Обковление кнопок
-constexpr int ZX_CMD_PRESETS            = 4; // Установка/получение пресетов джойстика
+constexpr int ZX_CMD_INIT_GL            = 4; // Инициализация GL
 constexpr int ZX_CMD_POKE               = 5; // Установка POKE
-constexpr int ZX_CMD_DIAG               = 6; // Диагностика
+constexpr int ZX_CMD_ASSEMBLER          = 6; // Ассемблирование
 constexpr int ZX_CMD_TRACER             = 7; // Запуск трасировщика
 constexpr int ZX_CMD_QUICK_BP           = 8; // Быстрая установка точки останова
 constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
 constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
 constexpr int ZX_CMD_MOVE_PC            = 11; // Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12; // Получение адреса в памяти/адреса перехода в инструкции
-constexpr int ZX_CMD_ASSEMBLER          = 13; // Ассемблирование
-constexpr int ZX_CMD_DRAW_FRAME         = 14; // Отрисовка кадра
-constexpr int ZX_CMD_INIT_GL            = 15; // Инициализация GL
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
-
-constexpr int ZX_CMD_PRESETS_SAVE       = 0; // Сохранить параметры джойстика
-constexpr int ZX_CMD_PRESETS_LOAD       = 1; // Загрузить параметры джойстика
-constexpr int ZX_CMD_PRESETS_LIST       = 2; // Получить список пресетов
-constexpr int ZX_CMD_PRESETS_NAME       = 3;// Получить имя программы
-constexpr int ZX_CMD_PRESETS_SET        = 4;// Установить имя программы
 
 constexpr int ZX_CMD_TRACE_IN           = 0; // Трассировка с заходом
 constexpr int ZX_CMD_TRACE_OUT          = 1; // Трассировка с обходом

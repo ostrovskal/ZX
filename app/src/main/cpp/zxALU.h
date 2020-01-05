@@ -7,6 +7,8 @@
 #include "zxStks.h"
 #include "zxAssembler.h"
 #include "zxDebugger.h"
+#include "zxTape.h"
+#include "zxSound.h"
 
 struct BREAK_POINT {
     // начальный адрес
@@ -31,9 +33,6 @@ public:
     // Обновление кадра
     void updateFrame();
 
-    // отрисовка кадра
-    void drawFrame();
-
     // обновление процессора
     void updateCPU(int todo, bool interrupt);
 
@@ -47,7 +46,7 @@ public:
     bool save(const char* name, int type);
 
     // пресеты
-    const char* presets(const char *name, int ops);
+    //const char* presets(const char *name, int ops);
 
     // обновление свойств
     void updateProps(int filter);
@@ -57,9 +56,6 @@ public:
 
     // обновление клавиатуры/джойстика
     int updateKeys(int key, int action);
-
-    // диагностика
-    void diag() { }
 
     // смена модели памяти
     bool changeModel(uint8_t _new, uint8_t  _old, bool isReset);
@@ -130,10 +126,10 @@ public:
     // начало инструкции
     static uint16_t PC;
 
-    // признак запуска трассера
-    bool isTracer;
-
+    // иницмализация OpenGL ES
     void initGL();
+
+    const char *programName(const char *name);
 
 protected:
 
@@ -186,11 +182,11 @@ protected:
     uint32_t sizeBorder, colorBorder;
 
     // звуковая карта
-    //zxSND* snd;
+    zxSound* snd;
 
     // лента
-    //zxTAPE* tape;
+    zxTape* tape;
 
-    // имя программы
-    char progName[32];
+    // имя проги
+    std::string name;
 };

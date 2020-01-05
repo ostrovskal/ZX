@@ -20,6 +20,7 @@ import ru.ostrovskal.sshstd.widgets.Text
 import ru.ostrovskal.sshstd.widgets.lists.Spinner
 import ru.ostrovskal.zx.R
 import ru.ostrovskal.zx.ZxCommon.*
+import ru.ostrovskal.zx.ZxPreset
 import ru.ostrovskal.zx.ZxWnd
 
 @Suppress("unused")
@@ -32,13 +33,13 @@ class ZxFormSettings : Form() {
 
         private val keyButtons      = listOf("N/A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
             // 11
-            "N/A", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
+            "DEL", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
             // 22
             "ENTER", "CAPS", "A", "S", "D", "F", "G", "H", "J", "K", "L",
             // 33
             "SYMBOL", "N/A", "Z", "X", "C", "SPACE", "V", "B", "N", "M",
             // 43
-            "←", "→", "↑", "↓",
+            "↑", "↓", "←", "→",
             // 47
             "K←", "K→", "K↑", "K↓", "K*")
 
@@ -107,12 +108,12 @@ class ZxFormSettings : Form() {
             }.lps(2, 0, 7, 4)
             text(R.string.settingsJoyPreset, style_text_settings).lps(10, 0, 10, 4)
             spinner(R.id.spinner2) {
-                adapter = ArrayListAdapter(context, Popup(), Item(), ZxWnd.zxPresets(ZX_CMD_PRESETS_LIST).split(','))
+                adapter = ArrayListAdapter(context, Popup(), Item(), ZxPreset.list())
                 mIsSelection = false
                 itemClickListener = { _, v, _, _ ->
                     (v as? Text)?.apply {
                         inner = true
-                        ZxWnd.zxCmd(ZX_CMD_PRESETS, ZX_CMD_PRESETS_LOAD, 0, text.toString())
+                        ZxPreset.load(text.toString())
                         (root as? TabLayout)?.apply {
                             currentContent.byIdx<Spinner>(1).selection = ZxWnd.props[ZX_PROP_JOY_TYPE].toInt()
                             repeat(8) {
@@ -246,7 +247,7 @@ class ZxFormSettings : Form() {
                     if (updateJoy) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal)
                     if (updateKey) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
                 }
-                ZxWnd.zxCmd(ZX_CMD_PRESETS, ZX_CMD_PRESETS_SAVE, 0, ZxWnd.zxPresets(ZX_CMD_PRESETS_NAME))
+                ZxPreset.save()
                 ZxWnd.zxCmd(ZX_CMD_PROPS, "filter".i, 0, "")
             }
             BTN_DEF -> {
@@ -256,7 +257,7 @@ class ZxFormSettings : Form() {
             }
             else -> {
                 super.footer(btn, param)
-                copyProps.copyInto(ZxWnd.props, ZX_PROP_FIRST_LAUNCH, ZX_PROP_FIRST_LAUNCH, ZX_PROPS_COUNT)
+                copyProps.copyInto(ZxWnd.props, ZX_PROP_JOY_TYPE, ZX_PROP_JOY_TYPE, ZX_PROPS_COUNT)
             }
         }
     }
@@ -331,6 +332,7 @@ class ZxFormSettings : Form() {
     private fun defaultJoy(content: View, reset: Boolean) {
         if(reset) ZxWnd.props[ZX_PROP_JOY_TYPE] = 0
         content.byIdx<Spinner>(1).selection = ZxWnd.props[ZX_PROP_JOY_TYPE].toInt()
+        content.byIdx<Spinner>(3).selectionString = ZxWnd.zxProgramName("")
     }
 
     private fun defaultSound(content: View, settings: Array<String>, reset: Boolean) {

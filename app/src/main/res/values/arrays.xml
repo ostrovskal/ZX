@@ -67,14 +67,14 @@
         <item>trap_tape,false</item>
         <item>show_joy,false</item>
         <item>show_key,true</item>
-        <item>show_fps,false</item>
+        <item>launch_traccer,false</item>
         <item>turbo_mode,false</item>
         <item>snd_launch,true</item>
         <item>snd_bp,true</item>
         <item>snd_ay,false</item>
         <item>snd_8bit,false</item>
         <item>snd_save,false</item>
-        <item>skip_frames,false</item>
+        <item>#errors,false</item>
         <item>execute,true</item>
         <item>debugger,false</item>
         <item>tracer,false</item>
@@ -82,9 +82,9 @@
         <item>debugger_label,false</item>
         <item>debugger_code,false</item>
         <item>debugger_value,false</item>
-        <item>#errors,false</item>
 
-        <item>unusedBool,false</item>
+        <item>unusedBool1,true</item>
+        <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
 
         <item>active_disk,0</item>

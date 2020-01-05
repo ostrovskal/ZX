@@ -70,20 +70,30 @@ extern "C" {
         return ret;
     }
 
-    void zxInit(JNIEnv *env, jobject, jobject asset, jstring name, jboolean errors) {
-        auto nameSave = env->GetStringUTFChars(name, nullptr);
-        info("zxInit name: %s error: %i", nameSave, errors);
+    void zxInit(JNIEnv *env, jobject, jobject asset, jstring name, jboolean error) {
+        auto prgName = env->GetStringUTFChars(name, nullptr);
+        info("zxInit name: %s error: %i", prgName, error);
         TMP_BUF = new uint8_t[ZX_SIZE_TMP_BUF];
         ALU = new zxALU();
 
         auto amgr = AAssetManager_fromJava(env, asset);
         if(opts[ZX_PROP_FIRST_LAUNCH]) {
             // перенести все игры из активов на диск
-            std::string fl("games/");
+            std::string out("games/");
+            std::string z80("Z80/");
+            std::string tap("TAP/");
+            std::string path("");
+            zxFile::makeDir(zxFile::makePath("Z80", true).c_str());
+            zxFile::makeDir(zxFile::makePath("TAP", true).c_str());
             auto dir = AAssetManager_openDir(amgr, "games");
             const char* file;
             while ((file = AAssetDir_getNextFileName(dir))) {
-                copyAFile(amgr, (fl + file).c_str(), file);
+                switch(parseExtension(file)) {
+                    case ZX_CMD_IO_Z80: path = z80 + file; break;
+                    case ZX_CMD_IO_TAPE: path = tap + file; break;
+                    default: path = file; break;
+                }
+                copyAFile(amgr, (out + file).c_str(), path.c_str());
             }
             AAssetDir_close(dir);
             opts[ZX_PROP_FIRST_LAUNCH] = 0;
@@ -93,7 +103,7 @@ extern "C" {
         copyAFile(amgr, "labels.bin", nullptr, &labels);
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
-        if(!errors) ALU->load(nameSave, ZX_CMD_IO_STATE);
+        if(!error) ALU->load(prgName, ZX_CMD_IO_STATE);
         debug("zxInit finish");
     }
 
@@ -108,13 +118,6 @@ extern "C" {
         env->ReleasePrimitiveArrayCritical((jarray)props, opts, JNI_ABORT);
         ssh_memzero(opts, ZX_PROPS_COUNT);
         debug("zxProps finish");
-    }
-
-    jstring zxPresets(JNIEnv* env, jclass, jint cmd) {
-        info("zxPresets");
-        auto ret = ALU->presets("", cmd);
-        debug("zxPresets res: %s", ret);
-        return env->NewStringUTF(ret);
     }
 
     jstring zxSetProp(JNIEnv* env, jclass, jint idx) {
@@ -174,6 +177,10 @@ extern "C" {
         return (ret & mask);
     }
 
+    jstring zxProgramName(JNIEnv* env, jclass, jstring name) {
+        return env->NewStringUTF(ALU->programName(env->GetStringUTFChars(name, nullptr)));
+    }
+
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
         debug("zxCmd cmd: %i", cmd);
         int ret(0);
@@ -181,8 +188,6 @@ extern "C" {
             default:                debug("Неизвестная комманда в zxCmd(%i)", cmd); break;
             case ZX_CMD_POKE:       ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
             case ZX_CMD_UPDATE_KEY: ALU->updateKeys(arg1, arg2); break;
-            case ZX_CMD_PRESETS:    ALU->presets(env->GetStringUTFChars(arg3, nullptr), arg1); break;
-            case ZX_CMD_DIAG:       ALU->diag(); break;
             case ZX_CMD_PROPS:      ALU->updateProps(arg1); break;
             case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], *ALU->_MODEL, true); break;
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
@@ -193,7 +198,6 @@ extern "C" {
             case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2, 10); break;
             case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
-            case ZX_CMD_DRAW_FRAME: ALU->drawFrame(); break;
             case ZX_CMD_INIT_GL:    ALU->initGL(); break;
 
         }
@@ -231,8 +235,8 @@ extern "C" {
             { "zxExecute", "()I", (void*)&zxExecute },
             { "zxCmd", "(IIILjava/lang/String;)I", (void*)&zxCmd },
             { "zxIO", "(Ljava/lang/String;Z)Z", (void*)&zxIO },
-            { "zxPresets", "(I)Ljava/lang/String;", (void*)&zxPresets },
             { "zxInt", "(IIZI)J", (void*)&zxInt },
+            { "zxProgramName", "(Ljava/lang/String;)Ljava/lang/String;", (void*)&zxProgramName },
             { "zxFormatNumber", "(IIZ)Ljava/lang/String;", (void*)&zxFormatNumber },
             { "zxDebuggerString", "(III)Ljava/lang/String;", (void*)&zxDebuggerString },
             { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },

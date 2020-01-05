@@ -19,6 +19,7 @@ import ru.ostrovskal.sshstd.Wnd
 import ru.ostrovskal.sshstd.layouts.AbsoluteLayout
 import ru.ostrovskal.sshstd.objects.Settings
 import ru.ostrovskal.sshstd.objects.Theme
+import ru.ostrovskal.sshstd.sql.SQL
 import ru.ostrovskal.sshstd.ui.UiComponent
 import ru.ostrovskal.sshstd.ui.UiCtx
 import ru.ostrovskal.sshstd.ui.absoluteLayout
@@ -107,7 +108,7 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_DEBUGGER_LABEL, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
                                                 R.integer.MENU_DEBUGGER_VALUE, R.integer.I_VALUE)
         @JvmStatic
-        external fun zxInit(asset: AssetManager, nameSave: String, errors: Boolean)
+        external fun zxInit(asset: AssetManager, name: String, error: Boolean)
 
         @JvmStatic
         external fun zxProps(props: ByteArray)
@@ -125,6 +126,9 @@ class ZxWnd : Wnd() {
         external fun zxGetProp(value: String, idx: Int)
 
         @JvmStatic
+        external fun zxProgramName(name: String): String
+
+        @JvmStatic
         external fun zxSetProp(idx: Int): String
 
         @JvmStatic
@@ -132,9 +136,6 @@ class ZxWnd : Wnd() {
 
         @JvmStatic
         external fun zxInt(idx: Int, mask: Int, read: Boolean, value: Int): Long
-
-        @JvmStatic
-        external fun zxPresets(cmd: Int): String
 
         @JvmStatic
         external fun zxFormatNumber(value: Int, fmt: Int, force: Boolean): String
@@ -177,6 +178,8 @@ class ZxWnd : Wnd() {
         if (hand == null) {
             // Создаем UI хэндлер
             hand = Handler(Looper.getMainLooper(), this)
+            // Инициализируем БД
+            SQL.connection(this, false, ZxPreset)
             // Инициализируем установки
             settings = loadResource("settings", "array_str", arrayOf(""))
             Settings.initialize(getSharedPreferences(logTag, Context.MODE_PRIVATE), settings)
@@ -190,9 +193,9 @@ class ZxWnd : Wnd() {
                     zxProps(props)
                     settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
                     zxInit(assets, nameAutoSave, errors)
-                    if(restart) hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_SURFACE.ordinal, a1 = 1)
                 }
             }
+            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
             "#errors".b = true
         }
     }
@@ -252,7 +255,7 @@ class ZxWnd : Wnd() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(val id = resources.getInteger(item.itemId)) {
-            MENU_TRACER                             ->  instanceForm(FORM_TRACCER)
+            MENU_TRACER                             -> instanceForm(FORM_TRACCER)
             MENU_POKES                              -> instanceForm(FORM_POKES)
             MENU_CLOUD                              -> instanceForm(FORM_LOADING)
             MENU_IO                                 -> instanceForm(FORM_IO, "filter", ".z80,.tap,.tga")
@@ -316,12 +319,17 @@ class ZxWnd : Wnd() {
         props[prop] = isChecked.toByte
         zxCmd(ZX_CMD_PROPS, 0, 0, "")
         if(id == MENU_PROPS_DEBUGGER || id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
-            if(id == MENU_PROPS_DEBUGGER) modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
+            if(id == MENU_PROPS_DEBUGGER) {
+                modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)
+                if(isChecked) {
+                    hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = read16(ZX_CPU_PC), a2 = ZX_ALL)
+                } else {
+                    props[ZX_PROP_EXECUTE] = 1
+                    hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
+                }
+            }
         }
-        if(id == MENU_PROPS_DEBUGGER)
-            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = read16(ZX_CPU_PC), a2 = ZX_ALL)
-
         if(id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL)
         if(id == MENU_PROPS_TRACER)

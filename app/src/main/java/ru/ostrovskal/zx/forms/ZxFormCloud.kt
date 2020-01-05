@@ -29,23 +29,23 @@ import ru.ostrovskal.zx.R
 import ru.ostrovskal.zx.ZxCommon.style_backgrnd_io
 import ru.ostrovskal.zx.ZxCommon.style_item_cloud
 import ru.ostrovskal.zx.ZxWnd
-import java.io.File
 
 @Suppress("unused")
 class ZxFormCloud : Form() {
-
-    // Допустимые расщирения
-    private val validExt        = listOf(".tap", ".z80", ".trd", ".tga", ".wav")
+    companion object {
+        // Допустимые расщирения
+        private val validExt     = listOf(".tap", ".z80", ".trd", ".tga", ".wav")
+    }
 
     // фоновый тред
-    private var thread: Thread? = null
+    private var thread: Thread?             = null
 
     // Количество выбранных файлов
     @STORAGE
     private var checkedCount                = 0
 
     // Список уже загруженных
-    private var filesLocal      = File(folderFiles).list()?.run { filter { it.validFileExtensions(validExt) } } ?: listOf()
+    private val filesLocal      by lazy { folderFiles.collectedFiles(validExt) }
 
     // Список в облаке
     private var filesCloud= mutableListOf<DropBox.FileInfo>()
@@ -92,7 +92,16 @@ class ZxFormCloud : Form() {
                 checked.forEachIndexed { index, b ->
                     if (b) {
                         val file = filesCloud[index]
-                        withContext(Dispatchers.IO) { dbx.download(file, folderFiles + File.separator + file.name) }
+                        withContext(Dispatchers.IO) {
+                            var sep = ""
+                            val name = file.name
+                            when(validExt.indexOf(name.substring(name.indexOf('.')))) {
+                                0   -> sep = "tap/"
+                                1   -> sep = "z80/"
+                                2   -> sep = "trd/"
+                            }
+                            dbx.download(file, folderFiles + sep + name)
+                        }
                         fp.primary = idx++
                     }
                 }

@@ -47,6 +47,7 @@ class ZxFormMain: Form() {
     override fun restoreState(state: Bundle) {
         super.restoreState(state)
         debugger.restore(state)
+        zxview?.updateTracer()
     }
 
     private fun updateLayout() {
@@ -93,7 +94,7 @@ class ZxFormMain: Form() {
             ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1, msg.arg2)
             ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
             ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal           -> {
-                ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 0, 0))
+                ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 280.dp, 160.dp))
             }
             ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal   -> {
                 wnd.actionBar?.apply {
@@ -105,12 +106,13 @@ class ZxFormMain: Form() {
                         text = if (!ZxWnd.props[ZX_PROP_EXECUTE].toBoolean) {
                             "[PAUSE]"
                         } else {
-                            val name = ZxWnd.zxPresets(ZxCommon.ZX_CMD_PRESETS_NAME)
+                            val prgName = ZxWnd.zxProgramName("")
+                            ZxPreset.load(prgName)
                             if (Config.isPortrait) {
-                                name
+                                prgName
                             } else {
                                 val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
-                                "$model - $name"
+                                "$model - $prgName"
                             }
                         }
                     }

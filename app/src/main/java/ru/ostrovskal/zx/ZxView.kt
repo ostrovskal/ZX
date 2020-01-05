@@ -13,6 +13,7 @@ import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Controller
 import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.zx.ZxCommon.*
+import java.lang.Thread.sleep
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -20,7 +21,11 @@ class ZxView(context: Context) : GLSurfaceView(context) {
 
     private inner class ZxRender : Renderer {
         override fun onDrawFrame(gl: GL10) {
+            val tm = System.currentTimeMillis()
             updateState()
+            val diff = System.currentTimeMillis() - tm
+            val delay = 20 - diff
+            if(delay > 0) sleep(delay)
         }
 
         override fun onSurfaceChanged(gl: GL10, width: Int, height: Int) {
@@ -37,40 +42,40 @@ class ZxView(context: Context) : GLSurfaceView(context) {
     // вернуть окно
     private val wnd             by lazy { context as ZxWnd }
 
-    private var action      = 0
+    private inner class RunnableParams(private val msg: Message) : Runnable {
 
-    private var obj: Any?   = null
-
-    private val loop = Runnable {
-        var update = false
-        when (action) {
-            ACT_INIT_SURFACE                                    -> update = true
-            ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal,
-            ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal          -> {
-                ZxWnd.zxCmd(ZX_CMD_PROPS, "filter".i, 0, "")
+        override fun run() {
+            var update = false
+            when(msg.action) {
+                ACT_INIT_SURFACE                                    -> {
+                    update = true
+                }
+                ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal,
+                ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal          -> {
+                    ZxWnd.zxCmd(ZX_CMD_PROPS, "filter".i, 0, "")
+                }
+                ZxWnd.ZxMessages.ACT_RESET.ordinal                  -> {
+                    ZxWnd.zxCmd(ZX_CMD_RESET, 0, 0, "")
+                    update = true
+                }
+                ZxWnd.ZxMessages.ACT_MODEL.ordinal                  -> {
+                    ZxWnd.zxCmd(ZX_CMD_MODEL, 0, 0, "")
+                    update = true
+                }
+                ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal,
+                ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal                -> {
+                    update = io(msg.obj.toString(), msg.action == ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal)
+                }
             }
-            ZxWnd.ZxMessages.ACT_RESET.ordinal                  -> {
-                ZxWnd.zxCmd(ZX_CMD_RESET, 0, 0, "")
-                update = true
+            if (update) {
+                wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
             }
-            ZxWnd.ZxMessages.ACT_MODEL.ordinal                  -> {
-                ZxWnd.zxCmd(ZX_CMD_MODEL, 0, 0, "")
-                update = true
-            }
-            ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal,
-            ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal                -> {
-                update = io(obj.toString(), action == ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal)
-            }
-        }
-        if (update) {
-            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
+            msg.recycle()
         }
     }
 
     fun callAction(msg: Message) {
-        action = msg.action
-        obj = msg.obj
-        queueEvent(loop)
+        queueEvent(RunnableParams(Message.obtain(msg)) )
     }
 
     init {
@@ -78,8 +83,7 @@ class ZxView(context: Context) : GLSurfaceView(context) {
         setEGLConfigChooser(5, 6, 5, 0, 0, 0)
         setRenderer(ZxRender())
         debugFlags = 0//DEBUG_CHECK_GL_ERROR
-        action = ACT_INIT_SURFACE
-        queueEvent(loop)
+        queueEvent(RunnableParams(Message.obtain().apply { what = ACT_INIT_SURFACE} ) )
     }
 
     // кнопка записи трассера
@@ -88,9 +92,8 @@ class ZxView(context: Context) : GLSurfaceView(context) {
         visibility = View.GONE
         tileIcon = 15
         setOnClickListener {
-            "tracer click $tileIcon".info()
             tileIcon = if (tileIcon == 15) 16 else 15
-            //ZxWnd.zxCmd(ZX_CMD_TRACER, tileIcon and 16, 0, "")
+            ZxWnd.zxCmd(ZX_CMD_TRACER, tileIcon and 16, 0, "")
         }
     }
 
@@ -136,9 +139,13 @@ class ZxView(context: Context) : GLSurfaceView(context) {
     }
 
     fun updateTracer() {
-        val check = ZxWnd.props[ZX_PROP_TRACER].toBoolean
-        butTracer.visibility = if (check) View.VISIBLE else View.GONE
-        if (!check) ZxWnd.zxCmd(ZX_CMD_TRACER, 0, 0, "")
+        butTracer.visibility = if (ZxWnd.props[ZX_PROP_TRACER].toBoolean) {
+            butTracer.tileIcon = if (ZxWnd.props[ZX_PROP_LAUNCH_TRACCER].toBoolean) 16 else 15
+            View.VISIBLE
+        } else {
+            ZxWnd.zxCmd(ZX_CMD_TRACER, 0, 0, "")
+            View.GONE
+        }
     }
 
     private fun io(name: String, loading: Boolean): Boolean {

@@ -105,7 +105,7 @@ uint8_t * zxCPU::initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, u
             break;
         case _BT:
             // вычисление бита
-            v8 = (uint8_t)(1 << ((codeOps >> 3) & 7));
+            v8 = numBits[(codeOps >> 3) & 7];
             break;
         case _N_:
             // без операнда
@@ -144,15 +144,6 @@ int zxCPU::step() {
 
     incrementR();
 
-/*
-    if(zxALU::PC == 0) {
-        if(strcmp(ALU->presets(nullptr, ZX_CMD_PRESETS_NAME), "BASIC") != 0) {
-            // несанкционированный сброс(ошибка в программе)
-            ALU->signalRESET(true);
-        }
-    }
-
-*/
     zxCPU::MNEMONIC* m(nullptr);
     while(isExecute) {
         if(offset == 256 && prefix) {
@@ -463,13 +454,15 @@ int zxCPU::step() {
         *_F &= ~mskFlags;
         *_F |= (f & mskFlags);
     }
-    if (ALU->isTracer) {
+/*
+    if (opts[ZX_PROP_LAUNCH_TRACCER]) {
         if (!prefix && !offset) {
             auto length = zxDA::cmdParser(&zxALU::PC, (uint16_t *) &TMP_BUF[0], true);
             ALU->ftracer.write(&length, 1);
             ALU->ftracer.write(TMP_BUF, (size_t)length);
         }
     }
+*/
     return ticks;
 }
 

@@ -16,7 +16,9 @@ add_library( # Sets the name of the library.
         zxFile.cpp
         zxDA.cpp
         zxDebugger.cpp
-        zxAssembler.cpp)
+        zxAssembler.cpp
+        zxTape.cpp
+        zxSound.cpp)
 
 find_library( # Sets the name of the path variable.
         log-lib

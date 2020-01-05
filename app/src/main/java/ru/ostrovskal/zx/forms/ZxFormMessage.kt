@@ -12,11 +12,4 @@ class ZxFormMessage : FormMessage() {
             root.backgroundSet(style_form_message)
         }
     }
-/*
-
-    override fun handleMessage(msg: Message): Boolean {
-        wnd.findForm<ZxFormMain>("main")?.handleMessage(msg)
-        return super.handleMessage(msg)
-    }
-*/
 }
