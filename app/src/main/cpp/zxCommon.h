@@ -32,6 +32,7 @@ extern BREAK_POINT*			            bps;
 extern uint16_t                         cmdCache[512];
 extern uint8_t                          numBits[8];
 extern int                              currentCmdPos;
+extern int                              frequencies[3];
 
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
 #define ZX_TOTAL_RAM                    262144

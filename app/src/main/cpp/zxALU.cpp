@@ -99,7 +99,7 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), cpu(n
     gpu = new zxGPU();
 
     snd = new zxSound();
-    tape = new zxTape();
+    tape = new zxTape(snd);
     disk = new zxDisk();
 
     assembler = new zxAssembler();
@@ -565,7 +565,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             setPages();
         } else if(A8A15 < 0xC0) { // BFFD
             // записываем значение в текущий регистр
-            snd->writeCurrent(val);
+            snd->write(*snd->_CURRENT, val);
         } else if(A8A15 >= 0xC0) { // FFFD
             // устанавливаем текущий регистр
             *snd->_CURRENT = (uint8_t)(val & 15);
