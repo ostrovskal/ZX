@@ -69,6 +69,7 @@ bool zxTape::load(uint8_t* ptr, bool unpacked) {
                 return false;
             data = TMP_BUF;
         }
+        info("load TAP len: %i", len);
         addBlock(data, size);
         ptr += len;
     }
@@ -241,49 +242,6 @@ void zxTape::updateProps() {
     isTrap = opts[ZX_PROP_TRAP_TAPE];
 }
 
-int zxTape::trap(uint16_t pc) {
-    if(pc < 16384) {
-        // активность TR DOS
-        if(pc == 15616 || pc == 15619) {
-            info("Перехват TRDOS");
-            ALU->save("trdLoader.zx", ZX_CMD_IO_Z80);
-            //(pageROM != PAGE_ROM[0] && *_MODEL > MODEL_128K) * ZX_TR_DOS
-            //modifySTATE(, ZX_TRDOS);
-            return 4;
-        }
-        bool success = false;
-        if (pc == 1218) {
-            if(isTrap) {
-                // перехват SAVE ""
-                trapSave();
-                success = true;
-            }
-        } else if ((pc == 1366 || pc == 1378) && currentBlock < countBlocks) {
-            if(isTrap) {
-                // перехват LOAD ""
-                auto size = blocks[currentBlock].size - 2;
-                auto de = *ALU->cpu->_DE;
-                if (de == size) {
-                    trapLoad();
-                    success = true;
-                } else {
-                    info("В перехватчике load "" недопустимый размер (%i - %i)!", de, size);
-                }
-            } else {
-                if (posImpulse >= lenImpulse)
-                    updateImpulseBuffer(true);
-            }
-        }
-        if(success) {
-            auto psp = ALU->cpu->_SP;
-            *ALU->cpu->_PC = rm16(*psp);
-            *psp += 2;
-            return 4;
-        }
-    }
-    return 0;
-}
-
 void zxTape::updateImpulseBuffer(bool force) {
     if(currentBlock < countBlocks) {
         lenImpulse = posImpulse = 0;
@@ -378,9 +336,13 @@ void zxTape::trapLoad() {
     auto len 	= blk->size - 2;
     auto data 	= blk->data + 1;
     auto ix 	= *cpu->_IX;
-
+    info("trapLoad block: %i size: %i", currentBlock, len);
     for(int i = 0; i < len; i++) ::wm8(realPtr((uint16_t)(ix + i)), data[i]);
     *cpu->_DE -= len; *cpu->_IX += len;
+    *cpu->_AF = 0x00B3;
+    *cpu->_BC = 0x01B0;
+    opts[_RH] = 0;
+    opts[_RL] = data[len];
     if(nextBlock()) updateImpulseBuffer(false);
 }
 
@@ -403,5 +365,45 @@ bool zxTape::nextBlock() {
     currentBlock++;
     if(currentBlock >= countBlocks) reset();
     return currentBlock < countBlocks;
+}
+
+int zxTape::trap(uint16_t pc) {
+    if(pc < 16384) {
+        // активность TR DOS
+        if(pc == 15616 || pc == 15619) {
+            info("Перехват TRDOS");
+            ALU->save("trdLoader.zx", ZX_CMD_IO_Z80);
+            //(pageROM != PAGE_ROM[0] && *_MODEL > MODEL_128K) * ZX_TR_DOS
+            //modifySTATE(, ZX_TRDOS);
+            return 4;
+        }
+        if (pc == 1218) {
+            if(isTrap) {
+                // перехват SAVE ""
+                trapSave();
+                auto psp = ALU->cpu->_SP;
+                *ALU->cpu->_PC = rm16(*psp);
+                *psp += 2;
+                return 4;
+            }
+        } else if ((pc == 1366 || pc == 1388) && currentBlock < countBlocks) {
+            if(isTrap) {
+                // перехват LOAD ""
+                auto size = blocks[currentBlock].size - 2;
+                auto de = *ALU->cpu->_DE;
+                if (de != size) {
+                    info("В перехватчике load "" недопустимый размер block: %i (DE: %i - BLOCK_SIZE: %i)!", currentBlock, de, size);
+                } else {
+                    trapLoad();
+                    // переносим на конец процедуры загрузки
+                    *ALU->cpu->_PC = 0x5e2;
+                }
+            } else {
+                if (posImpulse >= lenImpulse)
+                    updateImpulseBuffer(true);
+            }
+        }
+    }
+    return 0;
 }
 

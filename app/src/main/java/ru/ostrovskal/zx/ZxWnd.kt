@@ -274,8 +274,8 @@ class ZxWnd : Wnd() {
             MENU_DEBUGGER_LABEL, MENU_PROPS_TRACER,
             MENU_DEBUGGER_CODE, MENU_DEBUGGER_VALUE,
             MENU_PROPS_KEYBOARD, MENU_PROPS_SOUND,
-            MENU_PROPS_TURBO,
-            MENU_PROPS_TAPE, MENU_PROPS_EXECUTE     -> updatePropsMenuItem(item)
+            MENU_PROPS_TURBO, MENU_PROPS_TAPE,
+            MENU_PROPS_EXECUTE                      -> updatePropsMenuItem(item)
             MENU_DISK_A, MENU_DISK_B,
             MENU_DISK_C, MENU_DISK_D                -> {
                 props[ZX_PROP_ACTIVE_DISK] = (id - MENU_DISK_A).toByte()

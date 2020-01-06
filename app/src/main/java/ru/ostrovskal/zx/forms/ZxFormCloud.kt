@@ -95,7 +95,7 @@ class ZxFormCloud : Form() {
                         withContext(Dispatchers.IO) {
                             var sep = ""
                             val name = file.name
-                            when(validExt.indexOf(name.substring(name.indexOf('.')))) {
+                            when(validExt.indexOf(name.substring(name.lastIndexOf('.')))) {
                                 0   -> sep = "TAP/"
                                 1   -> sep = "Z80/"
                                 2   -> sep = "TRD/"

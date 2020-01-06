@@ -11,7 +11,7 @@
     <integer name="MENU_EXIT">1008</integer>
     <integer name="MENU_KEYBOARD">1009</integer>
     <integer name="MENU_PROPS_SOUND">1011</integer>
-    <integer name="MENU_PROPS_TAPE">10012</integer>
+    <integer name="MENU_PROPS_TAPE">1012</integer>
     <integer name="MENU_PROPS_FILTER">1013</integer>
     <integer name="MENU_PROPS_TURBO">1014</integer>
     <integer name="MENU_PROPS_EXECUTE">1015</integer>

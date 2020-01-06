@@ -64,7 +64,7 @@
 
     <string-array name="settings" translatable="false">
         <item>first_launch,true</item>
-        <item>trap_tape,false</item>
+        <item>trap_tape,true</item>
         <item>show_joy,false</item>
         <item>show_key,true</item>
         <item>launch_traccer,false</item>
