@@ -72,14 +72,12 @@ static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
     buf[2] = page;
 }
 
-zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), frameHeight(0), frameWidth(0), texture(0),
-                cpu(nullptr), snd(nullptr), tape(nullptr) {
+zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), cpu(nullptr), snd(nullptr), tape(nullptr), disk(nullptr), gpu(nullptr) {
     blink = blinkMsk = blinkShift = 0;
     sizeBorder = 0;
     pageTRDOS = &ROMS[ZX_ROM_TRDOS];
 
     RAMs = new uint8_t[ZX_TOTAL_RAM];
-    frameBuffer = new uint32_t[320 * 256];
 
     for (int i = 0; i < 16; i++) PAGE_RAM[i] = (RAMs + i * 16384);
 
@@ -91,7 +89,6 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), frame
     _7FFD    		= &opts[PORT_FD];
     _FE             = &opts[PORT_FE];
 
-    //zxALU::_TRDOS   = &opts[TRDOS0];
     zxALU::_RAM     = &opts[RAM];
     zxALU::_VID     = &opts[VID];
     zxALU::_ROM     = &opts[ROM];
@@ -99,48 +96,55 @@ zxALU::zxALU() : joyOldButtons(0), periodGPU(0), _FF(255), colorBorder(7), frame
     zxALU::_CALL    = (uint16_t*)&opts[CALL0];
 
     cpu = new zxCPU();
+    gpu = new zxGPU();
+
+    snd = new zxSound();
+    tape = new zxTape();
+    disk = new zxDisk();
+
     assembler = new zxAssembler();
     debugger = new zxDebugger();
 }
 
 zxALU::~zxALU() {
-    SAFE_A_DELETE(RAMs);
-    SAFE_A_DELETE(frameBuffer);
-    SAFE_DELETE(tape);
-    SAFE_DELETE(snd);
-    SAFE_DELETE(cpu);
     SAFE_DELETE(assembler);
     SAFE_DELETE(debugger);
+
+    SAFE_DELETE(disk);
+    SAFE_DELETE(tape);
+    SAFE_DELETE(snd);
+
+    SAFE_DELETE(gpu);
+    SAFE_DELETE(cpu);
+
+    SAFE_A_DELETE(RAMs);
 }
 
-bool zxALU::load(const char *name, int type) {
+bool zxALU::load(const char *path, int type) {
     bool ret = false;
     switch(type) {
         case ZX_CMD_IO_TRD:
-            // ret = disk->open(name);
-            break;
-        case ZX_CMD_IO_SCREEN:
-            // ret = openScreen(name);
+            ret = disk->openTRD(path);
             break;
         case ZX_CMD_IO_WAVE:
-            // ret = tape->openWAV(name);
+            ret = tape->openWAV(path);
             break;
         case ZX_CMD_IO_TAPE:
-            // ret = tape->openTAP(name);
-            // if(ret) ret = openZ80("tapLoader.zx");
+            ret = tape->openTAP(path);
+            if(ret) ret = openZ80("tapLoader.zx");
             break;
         case ZX_CMD_IO_STATE:
-            ret = openState(name);
+            ret = openState(path);
             break;
         case ZX_CMD_IO_Z80:
-            ret = openZ80(name);
+            ret = openZ80(path);
             break;
     }
     return ret;
 }
 
-bool zxALU::openState(const char *name) {
-    auto ptr = (uint8_t*)zxFile::readFile(name, &TMP_BUF[262144], false);
+bool zxALU::openState(const char *path) {
+    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[262144], false);
     if(!ptr) return false;
     // меняем модель
     changeModel(ptr[MODEL], *_MODEL, true);
@@ -158,7 +162,7 @@ bool zxALU::openState(const char *name) {
         ptr += size;
     }
     // восстанавливаем состояние ленты
-    // tape->loadState(ptr);
+    tape->loadState(ptr);
     // восстанавливаем страницы
     setPages();
     // загрузить имя сохраненной проги
@@ -166,7 +170,7 @@ bool zxALU::openState(const char *name) {
     return true;
 }
 
-bool zxALU::saveState(const char* nm) {
+bool zxALU::saveState(const char* path) {
     uint32_t size;
     auto buf = TMP_BUF;
     // сохраняем регистры
@@ -178,20 +182,20 @@ bool zxALU::saveState(const char* nm) {
         *(uint16_t*)buf = (uint16_t)size; buf += size + sizeof(uint16_t);
     }
     // сохраняем состояние ленты
-    // buf = tape->saveState(buf);
+    buf = tape->saveState(buf);
     // сохранить имя проги
     ssh_memcpy(&buf, name.c_str(), (size_t)(name.length() + 1));
-    return zxFile::writeFile(nm, TMP_BUF, buf - TMP_BUF, false);
+    return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, false);
 }
 
-bool zxALU::openZ80(const char *name) {
+bool zxALU::openZ80(const char *path) {
     size_t sz;
     HEAD1_Z80* head1 = nullptr;
     HEAD2_Z80* head2 = nullptr;
     HEAD3_Z80* head3 = nullptr;
     uint8_t model = MODEL_48K;
 
-    auto ptr = (uint8_t*)zxFile::readFile(name, &TMP_BUF[262144], true, &sz);
+    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[262144], true, &sz);
     if(!ptr) return false;
 
     int length = sizeof(HEAD1_Z80);
@@ -210,7 +214,7 @@ bool zxALU::openZ80(const char *name) {
             case 3: case 4: case 5: case 6: if(!isMod) model = MODEL_128K; break;
             case 9: model = MODEL_PENTAGON; break;
             case 10: model = MODEL_SCORPION; break;
-            default: debug("Неизвестное оборудование в %s!", name); return false;
+            default: debug("Неизвестное оборудование в %s!", path); return false;
         }
         head1 = &head2->head1;
         PC = head2->PC;
@@ -244,12 +248,12 @@ bool zxALU::openZ80(const char *name) {
                     break;
             }
             if(!isPage) {
-                debug("Неизвестная страница %i в openZ80(%s)!", numPage, name);
+                debug("Неизвестная страница %i в openZ80(%s)!", numPage, path);
                 return false;
             }
             auto page = &TMP_BUF[numPage * 16384];
             if(!unpackBlock(ptr, page, page + 16384, szSrc, szData != 65535, false)) {
-                debug("Ошибка при распаковке страницы %i в openZ80(%s)!", numPage, name);
+                debug("Ошибка при распаковке страницы %i в openZ80(%s)!", numPage, path);
                 return false;
             }
             ptr += szSrc;
@@ -257,7 +261,7 @@ bool zxALU::openZ80(const char *name) {
         }
     } else {
         if(!unpackBlock(ptr, TMP_BUF, &TMP_BUF[49152], sz, (head1->STATE1 & 32) == 32, true)) {
-            debug("Ошибка при распаковке openZ80(%s)!", name);
+            debug("Ошибка при распаковке openZ80(%s)!", path);
             return false;
         }
         // перераспределяем буфер 0->5, 1->2, 2->0
@@ -266,7 +270,7 @@ bool zxALU::openZ80(const char *name) {
         memcpy(&TMP_BUF[2 * 16384], &TMP_BUF[1 * 16384], 16384);
     }
     // меняем модель памяти и иинициализируем регистры
-    auto isZ80 = strcasecmp(name + strlen(name) - 4, ".z80") == 0;
+    auto isZ80 = strcasecmp(path + strlen(path) - 4, ".z80") == 0;
     changeModel(model, *_MODEL, isZ80);
     *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL; *cpu->_AF = head1->AF;
     *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY;
@@ -278,39 +282,35 @@ bool zxALU::openZ80(const char *name) {
     *cpu->_PC = PC;
     if(head2) {
         writePort(0xfd, 0x7f, head2->hardState);
-        //ssh_memcpy(zxSND::_AY, head2->sndRegs, 16);
+        memcpy(snd->_REGISTERS, head2->sndRegs, 16);
         writePort(0xfd, 0xff, head2->sndChipRegNumber);
     }
     if(head3 && length == 87) writePort(0xfd, 0x1f, head3->port1FFD);
     // копируем буфер
     memcpy(RAMs, TMP_BUF, 262144);
-    if(isZ80) programName(name);
     return true;
 }
 
-bool zxALU::save(const char *name, int type) {
+bool zxALU::save(const char *path, int type) {
     bool ret = false;
     switch(type) {
         case ZX_CMD_IO_WAVE:
-            // ret = tape->saveWAV(name);
+            ret = tape->saveWAV(path);
             break;
         case ZX_CMD_IO_TAPE:
-            // ret = tape->saveTAP(name);
-            break;
-        case ZX_CMD_IO_SCREEN:
-            // ret = saveScreen(name);
+            ret = tape->saveTAP(path);
             break;
         case ZX_CMD_IO_STATE:
-            ret = saveState(name);
+            ret = saveState(path);
             break;
         case ZX_CMD_IO_Z80:
-            ret = saveZ80(name);
+            ret = saveZ80(path);
             break;
     }
     return ret;
 }
 
-bool zxALU::saveZ80(const char *name) {
+bool zxALU::saveZ80(const char *path) {
     static uint8_t models[] = { 0, 0, 3, 9, 10 };
     static HEAD3_Z80 head;
 
@@ -332,8 +332,8 @@ bool zxALU::saveZ80(const char *name) {
     head2->length = 55;
     head.port1FFD = *_1FFD;
     head2->hardState = *_7FFD;
-    head2->sndChipRegNumber = 0;//*snd->_AY_REG;
-//    memcpy(head2->sndRegs, zxSND::_AY, 16);
+    head2->sndChipRegNumber = *snd->_CURRENT;
+    memcpy(head2->sndRegs, snd->_REGISTERS, 16);
     ssh_memzero(head2->sndRegs, 16);
     // формируем буфер из содержимого страниц
     ssh_memcpy(&buf, &head, sizeof(HEAD3_Z80));
@@ -348,7 +348,7 @@ bool zxALU::saveZ80(const char *name) {
             packPage(&buf, PAGE_RAM[i], (uint8_t)(i + 3));
         }
     }
-    return zxFile::writeFile(name, TMP_BUF, buf - TMP_BUF, true);
+    return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, true);
 }
 
 void zxALU::updateProps(int filter) {
@@ -357,15 +357,6 @@ void zxALU::updateProps(int filter) {
     blinkMsk = (1U << (blinkShift + 1)) - 1;
     // граница
     sizeBorder = (uint32_t)opts[ZX_PROP_BORDER_SIZE] * 8;
-    frameWidth = sizeBorder * 2 + 256;
-    frameHeight = sizeBorder * 2 + 192;
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    // настройка объекта текстуры
-    filter = filter != 0 ? GL_LINEAR : GL_NEAREST;
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
     auto params = &modelParams[*_MODEL * 4];
     auto turbo = opts[ZX_PROP_TURBO_MODE] ? 2 : 1;
@@ -377,8 +368,10 @@ void zxALU::updateProps(int filter) {
     stateRP = params[2] * periodCPU / 10;
     stateDP = params[3] * periodCPU / 10;
 
-//    snd->updateProps(periodCPU);
-//    tape->updateProps();
+    gpu->updateProps(sizeBorder, filter);
+    snd->updateProps(periodCPU);
+    tape->updateProps();
+    disk->updateProps();
 }
 
 static void execJoyKeys(int i, bool pressed) {
@@ -507,9 +500,9 @@ bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
 
 void zxALU::signalRESET(bool resetTape) {
     // сброс устройств
-//    if(resetTape) tape->reset();
-//    snd->reset();
-//    disk->reset();
+    if(resetTape) tape->reset();
+    snd->reset();
+    disk->reset();
     // очищаем ОЗУ
     ssh_memzero(RAMs, ZX_TOTAL_RAM);
     // очищаем регистры/порты
@@ -531,18 +524,7 @@ void zxALU::signalRESET(bool resetTape) {
 void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
     if(*_STATE & ZX_DEBUG) { if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_WPORT)) return; }
     if(*_STATE & ZX_TRDOS) {
-/*
-        switch(A0A7) {
-            case 0x1F: TRDOS_CMD = val; break;
-            case 0x3F: TRDOS_TRK = val; break;
-            case 0x5F: TRDOS_SEC = val; break;
-            case 0x7F: TRDOS_DAT = val; */
-/* disk->write(val) *//*
-;break;
-            case 0xFF: TRDOS_SYS = val; break;
-        }
-*/
-        // TR-DOS
+        disk->writePort(A0A7, val);
     } else if((A0A7 & 3) < 2) {
         if(A8A15 == 0x1F) {
             if(*_MODEL == MODEL_SCORPION) {
@@ -581,19 +563,19 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
                 *_ROM = (uint8_t)((val & 16) >> 4);
             }
             setPages();
-        } else if(A8A15 < 0xC0) {
-            // BFFD
-//            snd->writeAY(*zxSND::_AY_REG, val);
-        } else if(A8A15 >= 0xC0) {
-            // FFFD
-//            *zxSND::_AY_REG = (uint8_t)(val & 15);
+        } else if(A8A15 < 0xC0) { // BFFD
+            // записываем значение в текущий регистр
+            snd->writeCurrent(val);
+        } else if(A8A15 >= 0xC0) { // FFFD
+            // устанавливаем текущий регистр
+            *snd->_CURRENT = (uint8_t)(val & 15);
         }
     } else switch(A0A7) {
             case 0xFE:
                 // 0, 1, 2 - бордер, 3 MIC - при записи, 4 - бипер
                 *_FE = val;
                 colorBorder = val & 7U;
-//                tape->writePort(val);// 00011000
+                tape->writePort(val);
                 break;
             case 0x1F:
                 *_KEMPSTON = val;
@@ -605,7 +587,7 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
     if(*_STATE & ZX_DEBUG) { if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_RPORT)) return _FF; }
     switch(A0A7) {
         // звук AY
-//        case 0xFD: if(A8A15 == 0xff) return snd->ayRegs[*zxSND::_AY_REG]; break;
+        case 0xFD: if(A8A15 == 0xff) return snd->_REGISTERS[*snd->_CURRENT]; break;
         // джойстик
         case 0x1F: return *_KEMPSTON;
         // клавиатура | MIC
@@ -616,7 +598,7 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
                 if(A8A15 & (1 << i)) continue;
                 A0A7 &= opts[i + ZX_PROP_VALUES_SEMI_ROW];
             }
-            return A0A7/* | (tape->_FE8 << 3) */;
+            return A0A7 | tape->_MIC;
     }
     return _FF;
 }
@@ -631,24 +613,16 @@ void zxALU::setPages() {
 void zxALU::execute() {
     // отображение экрана, воспроизведение звука
     updateFrame();
-    if(opts[ZX_PROP_SND_LAUNCH]) {
-//        snd->execute();
-//        snd->play();
-    }
-    if(frameBuffer) {
-//        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frameWidth, frameHeight, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, frameWidth, frameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
-    }
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    snd->update();
+    gpu->updateFrame();
 }
 
 void zxALU::stepDebug() {
     // убрать отладчик - чтобы не сработала точка останова
     modifySTATE(0, ZX_DEBUG | ZX_HALT);
-    int ticks = 0;
     // перехват системных процедур
-//    auto ticks = tape->trap(*cpu->_PC);
-    ticks = cpu->step();
+    auto ticks = tape->trap(*cpu->_PC);
+    ticks += cpu->step();
     *_TICK += ticks;
     modifySTATE(ZX_DEBUG, 0);
 }
@@ -657,12 +631,11 @@ int zxALU::step(bool allow_int) {
     if(!opts[ZX_PROP_EXECUTE]) return 0;
     // проверить на точку останова для кода
     PC = *cpu->_PC;
-    if(*_STATE & ZX_DEBUG) { if(checkBPs(*cpu->_PC, ZX_BP_EXEC)) return 0; }
-    int ticks = 0;
+    if(*_STATE & ZX_DEBUG) { if(checkBPs(PC, ZX_BP_EXEC)) return 0; }
     // установить возможность прерывания
     modifySTATE(allow_int * ZX_INT, 0);
     // перехват системных процедур
-//    auto ticks = tape->trap(*cpu->_PC);
+    auto ticks = tape->trap(PC);
     // выполнение операции
     ticks += cpu->step();
     // проверка на прерывания
@@ -681,19 +654,18 @@ void zxALU::updateCPU(int todo, bool interrupt) {
         if (periodGPU > 0) {
             ticks = step(false);
             todo -= ticks;
-//                tape->control(ticks);
+            tape->control(ticks);
         }
         ticks = step(true);
-//            ticks = step(false);
         todo -= ticks;
-//            tape->control(ticks);
+        tape->control(ticks);
     }
     while (todo > 3) {
         ticks = step(false);
         // если сработала точка останова - возвращает 0
         if(!ticks) break;
         todo -= ticks;
-//            tape->control(ticks);
+        tape->control(ticks);
     }
     periodGPU = todo;
 }
@@ -701,7 +673,7 @@ void zxALU::updateCPU(int todo, bool interrupt) {
 void zxALU::updateFrame() {
     uint32_t line, i, tmp, c;
 
-    auto dest = frameBuffer;
+    auto dest = gpu->frameBuffer;
     if(!dest) return;
 
     auto isBlink = ((blink & blinkMsk) >> blinkShift) == 0;
@@ -849,86 +821,12 @@ bool zxALU::checkBPs(uint16_t address, uint8_t flg) {
     return res;
 }
 
-static GLuint createShader(GLenum type, const char* text) {
-    GLint compileStatus;
-    auto shaderId = glCreateShader(type);
-    if (shaderId == 0) return 0;
-    glShaderSource(shaderId, 1, &text, nullptr);
-    glCompileShader(shaderId);
-    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compileStatus);
-    if(compileStatus == 0) {
-        glDeleteShader(shaderId);
-        return 0;
-    }
-    return shaderId;
-}
-
-static GLuint createProgram(GLuint vShader, GLuint fShader) {
-    GLint linkStatus;
-    auto programId = glCreateProgram();
-    if (programId == 0) return 0;
-    glAttachShader(programId, vShader);
-    glAttachShader(programId, fShader);
-    glLinkProgram(programId);
-    glGetProgramiv(programId, GL_LINK_STATUS, &linkStatus);
-    if(linkStatus == 0) {
-        glDeleteProgram(programId);
-        return 0;
-    }
-    return programId;
-}
-
-void zxALU::initGL() {
-    static float vertices[] = {
-        -1.0f,  1.0f, 1.0f,   0.0f, 0.0f,
-        -1.0f, -1.0f, 1.0f,   0.0f, 1.0f,
-        1.0f,   1.0f, 1.0f,   1.0f, 0.0f,
-        1.0f,  -1.0f, 1.0f,   1.0f, 1.0f
-    };
-    static const char* vertShader = "attribute vec4 a_Position;\n"
-                                    "attribute vec2 a_Texture;\n"
-                                    "varying   vec2 v_Texture;\n\n"
-                                    "void main() {\n"
-                                    "    gl_Position = a_Position;\n"
-                                    "    v_Texture = a_Texture;\n}";
-            ;
-    static const char* fragShader = "precision mediump float;\n\n"
-                                    "uniform sampler2D u_TextureUnit;\n"
-                                    "varying vec2 v_Texture;\n\n"
-                                    "void main() {\n"
-                                    "    gl_FragColor = texture2D(u_TextureUnit, v_Texture);\n}";
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    // шейдеры
-    auto vShader  = createShader(GL_VERTEX_SHADER, vertShader);
-    auto fShader  = createShader(GL_FRAGMENT_SHADER, fragShader);
-    auto pid      = createProgram(vShader, fShader);
-    glUseProgram(pid);
-    // параметры шейдеров
-    auto aPositionLocation    = (GLuint)glGetAttribLocation(pid, "a_Position");
-    auto aTextureLocation     = (GLuint)glGetAttribLocation(pid, "a_Texture");
-    auto uTextureUnitLocation = (GLuint)glGetUniformLocation(pid, "u_TextureUnit");
-    // вершины
-    glVertexAttribPointer(aPositionLocation, 3, GL_FLOAT, 0, 20, &vertices[0]);
-    glEnableVertexAttribArray(aPositionLocation);
-    glVertexAttribPointer(aTextureLocation, 2, GL_FLOAT, 0, 20, &vertices[3]);
-    glEnableVertexAttribArray(aTextureLocation);
-    // текстура
-    glGenTextures(1, &texture);
-    if(texture) {
-        // юнит текстуры
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(uTextureUnitLocation, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-}
-
 const char *zxALU::programName(const char *nm) {
     if(nm && strlen(nm) > 0) {
         static char tmp_nm[64];
         // оставить только имя
-        auto s = strchr(nm, '/');
-        auto e = strchr(nm, '.');
+        auto s = strrchr(nm, '/');
+        auto e = strrchr(nm, '.');
         if(!e) e = (char*)(nm + strlen(nm));
         if(s) s++; else s = (char*)nm;
         memcpy(tmp_nm, s, e - s);

@@ -7,5 +7,16 @@
 class zxSound {
 public:
     zxSound();
-protected:
+    ~zxSound();
+
+    static uint8_t* _REGISTERS;
+    static uint8_t* _CURRENT;
+
+    void updateProps(uint8_t period);
+
+    void reset();
+
+    void writeCurrent(uint8_t value);
+
+    void update();
 };

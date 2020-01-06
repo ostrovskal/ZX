@@ -364,13 +364,13 @@ int zxCPU::step() {
             case O_EX:
                 switch(codeOps) {
                     case EX_AF:
-                    SWAP_REG(_AF, _AF + 4);
+                        SWAP_REG(_AF, _AF + 4);
                         break;
                     case EX_DE_HL:
-                    SWAP_REG(_DE, _HL);
+                        SWAP_REG(_DE, _HL);
                         break;
                     case EXX:
-                    SWAP_REG(_BC, _BC + 4);
+                        SWAP_REG(_BC, _BC + 4);
                         SWAP_REG(_DE, _DE + 4);
                         SWAP_REG(_HL, _HL + 4);
                         break;
@@ -388,7 +388,6 @@ int zxCPU::step() {
                     F5=бит 1 операции переданный байт + A
                  */
             case O_LDI:
-                v8Src = rm8(*_HL);
                 wm8(*_DE, v8Src);
                 *_DE += dir; *_HL += dir; *_BC -= 1;
                 flags = F3 | F5 | FH | FPV;
@@ -408,7 +407,7 @@ int zxCPU::step() {
                 res = v8Dst - v8Src; *_HL += dir; *_BC -= 1; fh = getFlag(FH);
                 fx = (uint8_t)((res - fh) & 8); fy = (uint8_t)((res - fh) & 2);
                 flags = FPV | F3 | F5; fn = 1; fpv = (uint8_t)(*_BC != 0);
-                if(fpv && rep) { *_PC -= 2; ticks = 21; }
+                if(fpv && rep && res) { *_PC -= 2; ticks = 21; }
                 break;
                 /*
                     SZ5*3***

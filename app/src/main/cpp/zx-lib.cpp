@@ -66,31 +66,38 @@ extern "C" {
         auto type = parseExtension(name);
         auto ret = (jboolean)(load ? ALU->load(name, type) : ALU->save(name, type));
         if(!ret) debug("Не удалось загрузить/записать <%s>!", name);
+        else if(type > ZX_CMD_IO_STATE) ALU->programName(name);
         debug("zxIO finish");
         return ret;
     }
 
-    void zxInit(JNIEnv *env, jobject, jobject asset, jstring name, jboolean error) {
-        auto prgName = env->GetStringUTFChars(name, nullptr);
-        info("zxInit name: %s error: %i", prgName, error);
+    void zxInit(JNIEnv *env, jobject, jobject asset, jstring savePath, jstring filesDir, jstring cacheDir, jboolean error) {
+        auto autoSavePath = env->GetStringUTFChars(savePath, nullptr);
+        info("zxInit savePath: %s error: %i", autoSavePath, error);
         TMP_BUF = new uint8_t[ZX_SIZE_TMP_BUF];
         ALU = new zxALU();
 
         auto amgr = AAssetManager_fromJava(env, asset);
         if(opts[ZX_PROP_FIRST_LAUNCH]) {
+            // инициализировать пути к системным папкам
+            FOLDER_FILES = env->GetStringUTFChars(filesDir, nullptr);
+            FOLDER_CACHE = env->GetStringUTFChars(cacheDir, nullptr);
             // перенести все игры из активов на диск
             std::string out("games/");
             std::string z80("Z80/");
             std::string tap("TAP/");
+            std::string trd("TRD/");
             std::string path("");
             zxFile::makeDir(zxFile::makePath("Z80", true).c_str());
             zxFile::makeDir(zxFile::makePath("TAP", true).c_str());
+            zxFile::makeDir(zxFile::makePath("TRD", true).c_str());
             auto dir = AAssetManager_openDir(amgr, "games");
             const char* file;
             while ((file = AAssetDir_getNextFileName(dir))) {
                 switch(parseExtension(file)) {
-                    case ZX_CMD_IO_Z80: path = z80 + file; break;
-                    case ZX_CMD_IO_TAPE: path = tap + file; break;
+                    case ZX_CMD_IO_Z80: path    = z80 + file; break;
+                    case ZX_CMD_IO_TAPE: path   = tap + file; break;
+                    case ZX_CMD_IO_TRD: path    = trd + file; break;
                     default: path = file; break;
                 }
                 copyAFile(amgr, (out + file).c_str(), path.c_str());
@@ -103,8 +110,8 @@ extern "C" {
         copyAFile(amgr, "labels.bin", nullptr, &labels);
         copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
-        if(!error) ALU->load(prgName, ZX_CMD_IO_STATE);
-        debug("zxInit finish");
+        if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
+        debug("zxInit finish filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props) {
@@ -181,8 +188,16 @@ extern "C" {
         return env->NewStringUTF(ALU->programName(env->GetStringUTFChars(name, nullptr)));
     }
 
+#ifdef DEBUG
+    const char* scmd[] = {
+            "CMD_MODEL", "CMD_PROPS", "CMD_RESET", "CMD_UPDATE_KEY", "CMD_INIT_GL", "CMD_POKE",
+            "CMD_ASSEMBLER", "CMD_TRACER", "CMD_QUICK_BP", "CMD_TRACE_X", "CMD_STEP_DEBUG",
+            "CMD_MOVE_PC", "CMD_JUMP"
+    };
+#endif
+
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
-        debug("zxCmd cmd: %i", cmd);
+        debug("zxCmd cmd: %s arg1: %i arg2: %i", scmd[cmd], arg1, arg2);
         int ret(0);
         switch(cmd) {
             default:                debug("Неизвестная комманда в zxCmd(%i)", cmd); break;
@@ -198,7 +213,7 @@ extern "C" {
             case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2, 10); break;
             case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
-            case ZX_CMD_INIT_GL:    ALU->initGL(); break;
+            case ZX_CMD_INIT_GL:    ALU->gpu->initGL(); break;
 
         }
         debug("zxCmd finish");
@@ -227,7 +242,7 @@ extern "C" {
     }
 
     static JNINativeMethod zxMethods[] = {
-            { "zxInit", "(Landroid/content/res/AssetManager;Ljava/lang/String;Z)V", (void*)&zxInit },
+            { "zxInit", "(Landroid/content/res/AssetManager;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V", (void*)&zxInit },
             { "zxShutdown", "()V", (void*)&zxShutdown },
             { "zxProps", "([B)V", (void*)&zxProps },
             { "zxGetProp", "(Ljava/lang/String;I)V", (void*)&zxGetProp },

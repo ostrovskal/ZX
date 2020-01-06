@@ -101,7 +101,7 @@ class ZxDebugger {
                 onNotifyParent = { _, event, data, sdata ->
                     when(event) {
                         ZxWnd.ZxMessages.ACT_DEBUGGER_LONG_CLOCK.ordinal    -> fromItem(data)
-                        ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal        -> update(0, ZX_LIST)
+                        ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal        -> this@ZxDebugger.update(0, ZX_LIST)
                         ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal-> asm.setText(sdata)
                     }
                 }
@@ -179,7 +179,6 @@ class ZxDebugger {
         }
         storyPC[++posPC] = data
         countPC = posPC
-        //"setStoryPC data: $data pos: $posPC count: $countPC list: ${storyPC.display()}".info()
     }
 
     private fun clickAction(view: View) {

@@ -2,7 +2,6 @@ package ru.ostrovskal.zx.forms
 
 import android.content.Context
 import android.graphics.Typeface
-import android.text.InputType
 import android.view.LayoutInflater
 import ru.ostrovskal.sshstd.Common.*
 import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
@@ -45,7 +44,6 @@ class ZxFormBreakPoints: Form() {
                             val pos = y * 2 + x
                             editEx(idsBp[pos], hintBp[pos], style_edit_zx) {
                                 maxLength = if (pos > 1) 3 else 5
-                                inputType = InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_CLASS_TEXT
                                 changeTextLintener = { _ ->
                                     if(!isInner) {
                                         if(pos == 1) isAddr2 = false

@@ -8,16 +8,18 @@ import android.os.Bundle
 import android.os.Message
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
+import ru.ostrovskal.sshstd.Common.MATCH
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
 import ru.ostrovskal.sshstd.Config
 import ru.ostrovskal.sshstd.forms.Form
 import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.ui.cellLayout
+import ru.ostrovskal.sshstd.ui.text
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.*
-import ru.ostrovskal.zx.ZxCommon.ZX_PROP_EXECUTE
-import ru.ostrovskal.zx.ZxCommon.ZX_RL
+import ru.ostrovskal.zx.ZxCommon.*
 
 @Suppress("unused")
 class ZxFormMain: Form() {
@@ -51,13 +53,13 @@ class ZxFormMain: Form() {
     }
 
     private fun updateLayout() {
-        if(ZxWnd.props[ZxCommon.ZX_PROP_SHOW_DEBUGGER].toBoolean) {
+        if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean) {
             zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 7)
             keyLyt?.visibility = View.GONE; debLyt?.visibility = View.VISIBLE
             debLyt?.apply { visibility = View.VISIBLE }
         } else {
-            val show = if (ZxWnd.props[ZxCommon.ZX_PROP_SHOW_KEY].toBoolean) View.VISIBLE else View.GONE
-            val heightKeyboard = if (show == View.VISIBLE) ZxWnd.props[ZxCommon.ZX_PROP_KEY_SIZE] else 0
+            val show = if (ZxWnd.props[ZX_PROP_SHOW_KEY].toBoolean) View.VISIBLE else View.GONE
+            val heightKeyboard = if (show == View.VISIBLE) ZxWnd.props[ZX_PROP_KEY_SIZE] else 0
             zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 15 - heightKeyboard)
             keyLyt?.apply {
                 visibility = show; debLyt?.visibility = View.GONE
@@ -75,8 +77,10 @@ class ZxFormMain: Form() {
             keyLyt = keyboard.layout(this).lps(0, 10, 11, 4)
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
-        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
-        wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL, delay = 100)
+        if(ZxWnd.props[ZX_PROP_SHOW_KEY].toBoolean)
+            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
+        if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean)
+            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL, delay = 100)
     }
 
     @SuppressLint("SetTextI18n")
@@ -99,7 +103,12 @@ class ZxFormMain: Form() {
             ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal   -> {
                 wnd.actionBar?.apply {
                     if(customView == null) {
-                        setCustomView(R.layout.actionbar_view)
+                        ui {
+                            val cvv = text(R.string.null_text, style_spinner_item_settings) {
+                                layoutParams = LinearLayout.LayoutParams(MATCH, MATCH)
+                            }
+                            customView = cvv
+                        }
                         displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM or ActionBar.DISPLAY_SHOW_HOME
                     }
                     (customView as? TextView)?.apply {
@@ -111,7 +120,7 @@ class ZxFormMain: Form() {
                             if (Config.isPortrait) {
                                 prgName
                             } else {
-                                val model = getString(ZxWnd.modelNames[ZxWnd.props[ZxCommon.ZX_PROP_MODEL_TYPE].toInt()])
+                                val model = getString(ZxWnd.modelNames[ZxWnd.props[ZX_PROP_MODEL_TYPE].toInt()])
                                 "$model - $prgName"
                             }
                         }

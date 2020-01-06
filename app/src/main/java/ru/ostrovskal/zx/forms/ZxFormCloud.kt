@@ -96,9 +96,9 @@ class ZxFormCloud : Form() {
                             var sep = ""
                             val name = file.name
                             when(validExt.indexOf(name.substring(name.indexOf('.')))) {
-                                0   -> sep = "tap/"
-                                1   -> sep = "z80/"
-                                2   -> sep = "trd/"
+                                0   -> sep = "TAP/"
+                                1   -> sep = "Z80/"
+                                2   -> sep = "TRD/"
                             }
                             dbx.download(file, folderFiles + sep + name)
                         }

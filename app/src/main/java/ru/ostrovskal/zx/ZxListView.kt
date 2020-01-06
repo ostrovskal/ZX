@@ -92,6 +92,7 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
                         mode %= 3
                         if (mode < ZX_DEBUGGER_MODE_PC) mode = ZX_DEBUGGER_MODE_DT
                         else if (mode > ZX_DEBUGGER_MODE_DT) mode = ZX_DEBUGGER_MODE_PC
+                        onNotifyParent?.invoke(this, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, 0, "")
                         update(0, ZX_LIST)
                         mDeltaX = 0
                     }
@@ -246,7 +247,6 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
                 // проверить на метку
                 val label = str.substringBefore('\n', "")
                 if (label.isNotBlank()) {
-                    "label $item $label".info()
                     (getChildAt(item) as? Text)?.text = label
                     itemAddr[item] = -1
                     item++

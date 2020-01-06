@@ -349,7 +349,7 @@ public final class ZxCommon {
             ATTR_SSH_TILE, 0,
             ATTR_PADDING_HORZ, R.dimen.paddingHorzEdit,
             ATTR_PADDING_VERT, R.dimen.paddingVertEdit,
-            ATTR_INPUT_TYPE, InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_CLASS_NUMBER,
+            ATTR_INPUT_TYPE, InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_CLASS_TEXT,
             ATTR_IME_OPTIONS, IME_FLAG_NO_EXTRACT_UI,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_EDIT | THEME,
             ATTR_SSH_PATCH9, R.string.patch9_edit

@@ -11,8 +11,8 @@ uint8_t*    opts        = nullptr;
 uint8_t*    labels      = nullptr;
 BREAK_POINT* bps        = nullptr;
 
-std::string FOLDER_FILES= "data/data/ru.ostrovskal.zx/files/";
-std::string FOLDER_CACHE= "data/data/ru.ostrovskal.zx/cache/";
+std::string FOLDER_FILES("");
+std::string FOLDER_CACHE("");
 
 // кэш адресов перехода и текущая позиция занесения в кэш
 uint16_t    cmdCache[512];

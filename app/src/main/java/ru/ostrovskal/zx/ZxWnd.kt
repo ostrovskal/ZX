@@ -26,6 +26,7 @@ import ru.ostrovskal.sshstd.ui.absoluteLayout
 import ru.ostrovskal.sshstd.ui.menuIcon
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.ZxCommon.*
+import java.io.File
 import java.io.FileNotFoundException
 import kotlin.experimental.and
 import kotlin.experimental.inv
@@ -108,7 +109,7 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_DEBUGGER_LABEL, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
                                                 R.integer.MENU_DEBUGGER_VALUE, R.integer.I_VALUE)
         @JvmStatic
-        external fun zxInit(asset: AssetManager, name: String, error: Boolean)
+        external fun zxInit(asset: AssetManager, savePath: String, filesDir: String, cacheDir: String, error: Boolean)
 
         @JvmStatic
         external fun zxProps(props: ByteArray)
@@ -192,7 +193,7 @@ class ZxWnd : Wnd() {
                 withContext(Dispatchers.IO) {
                     zxProps(props)
                     settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
-                    zxInit(assets, nameAutoSave, errors)
+                    zxInit(assets, nameAutoSave, folderFiles, folderCache, errors)
                 }
             }
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
@@ -343,8 +344,7 @@ class ZxWnd : Wnd() {
         val idx = (id - MENU_MRU_1) + 1
         var pos = idx
         try {
-            if(error) throw FileNotFoundException()
-            makeDirectories("", FOLDER_FILES, title).readBytes()
+            if(error || !File(folderFiles + title).isFile) throw FileNotFoundException()
             // найти такую же строку
             repeat(9) {
                 val i = it + 1

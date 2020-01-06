@@ -1,5 +1,6 @@
 package ru.ostrovskal.zx.forms
 
+import android.text.InputType
 import android.view.LayoutInflater
 import ru.ostrovskal.sshstd.Common.BTN_OK
 import ru.ostrovskal.sshstd.Common.style_form
@@ -30,10 +31,12 @@ class ZxFormPokes : Form() {
                     backgroundSet(style_form)
                     edit(R.id.edit1, R.string.hintAddress, style_edit_zx) {
                         maxLength = 5
+                        inputType = InputType.TYPE_CLASS_NUMBER
                         changeTextLintener = { enabledSet() }
                     }.lps(0, 0, 7, 2)
                     edit(R.id.edit2, R.string.hintValue, style_edit_zx) {
                         changeTextLintener = { enabledSet() }
+                        inputType = InputType.TYPE_CLASS_NUMBER
                         maxLength = 3
                     }.lps(7, 0, 5, 2)
                     button {

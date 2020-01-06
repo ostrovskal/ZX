@@ -9,6 +9,8 @@
 #include "zxDebugger.h"
 #include "zxTape.h"
 #include "zxSound.h"
+#include "zxDisk.h"
+#include "zxGPU.h"
 
 struct BREAK_POINT {
     // начальный адрес
@@ -21,7 +23,7 @@ struct BREAK_POINT {
     uint8_t val;
     // операция со значением
     uint8_t ops;
-    // флаги(тип: 0 - исполнение, 1 - запись в память, 2 - чтение из порта, 3 - запись в порт, 32 - неактивна)
+    // флаги(тип: 0 - исполнение, 1 - запись в память, 2 - чтение из порта, 3 - запись в порт)
     uint8_t flg;
 };
 
@@ -40,13 +42,10 @@ public:
     void writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val);
 
     // загрузка
-    bool load(const char* name, int type);
+    bool load(const char* path, int type);
 
     // запись
-    bool save(const char* name, int type);
-
-    // пресеты
-    //const char* presets(const char *name, int ops);
+    bool save(const char* path, int type);
 
     // обновление свойств
     void updateProps(int filter);
@@ -117,6 +116,9 @@ public:
     // процессор
     zxCPU* cpu;
 
+    // видеокарта
+    zxGPU* gpu;
+
     // ассемблер
     zxAssembler* assembler;
 
@@ -129,21 +131,22 @@ public:
     // иницмализация OpenGL ES
     void initGL();
 
+    // установка/получение имени текущей программы
     const char *programName(const char *name);
 
 protected:
 
     // загрузка состояния
-    bool openState(const char *name);
+    bool openState(const char *path);
 
     // загрузка файла в формате Z80
-    bool openZ80(const char *name);
+    bool openZ80(const char *path);
 
     // сохранение состояния
-    bool saveState(const char* name);
+    bool saveState(const char* path);
 
     // сохранение файла в формате Z80
-    bool saveZ80(const char *name);
+    bool saveZ80(const char *path);
 
     // исполнение инструкции процессора
     int step(bool allow_int);
@@ -163,15 +166,6 @@ protected:
     // текущее приращение ГПУ
     int periodGPU;
 
-    // габариты текстуры
-    GLsizei frameWidth, frameHeight;
-
-    // ИД текстуры
-    GLuint texture;
-
-    // буфер кадра
-    uint32_t* frameBuffer;
-
     // старое значение кнопок джойстика
     uint8_t joyOldButtons;
 
@@ -186,6 +180,9 @@ protected:
 
     // лента
     zxTape* tape;
+
+    // дисковод
+    zxDisk* disk;
 
     // имя проги
     std::string name;
