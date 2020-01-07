@@ -42,7 +42,7 @@ public:
     void writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val);
 
     // загрузка
-    bool load(const char* path, int type);
+    bool load(int disk, const char* path, int type);
 
     // запись
     bool save(const char* path, int type);
@@ -77,6 +77,9 @@ public:
     // выполнение при трассировке
     void stepDebug();
 
+    // установка/получение имени текущей программы
+    const char *programName(const char *name);
+
     // чтение из порта
     uint8_t readPort(uint8_t A0A7, uint8_t A8A15);
 
@@ -90,7 +93,7 @@ public:
     uint8_t* _MODEL;
 
     // адреса текущих страниц
-    static uint8_t *pageTRDOS, *pageROM, *pageRAM, *pageVRAM, *pageATTRIB;
+    static uint8_t *pageROM, *pageRAM, *pageVRAM, *pageATTRIB;
 
     // страницы озу
     static uint8_t* PAGE_RAM[16];
@@ -119,6 +122,9 @@ public:
     // видеокарта
     zxGPU* gpu;
 
+    // лента
+    zxTape* tape;
+
     // ассемблер
     zxAssembler* assembler;
 
@@ -128,11 +134,8 @@ public:
     // начало инструкции
     static uint16_t PC;
 
-    // иницмализация OpenGL ES
-    void initGL();
-
-    // установка/получение имени текущей программы
-    const char *programName(const char *name);
+    // пауза между загрузкой блоков
+    int pauseBetweenTapeBlocks;
 
 protected:
 
@@ -177,9 +180,6 @@ protected:
 
     // звуковая карта
     zxSound* snd;
-
-    // лента
-    zxTape* tape;
 
     // дисковод
     zxDisk* disk;

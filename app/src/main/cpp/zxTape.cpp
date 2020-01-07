@@ -37,7 +37,7 @@ void zxTape::addBlock(uint8_t *data, uint16_t size) {
             if(countBlocks < 128) {
                 countBlocks++;
             } else {
-                info("Превышен лимит TAP блоков!");
+                LOG_INFO("Превышен лимит (%i) TAP блоков!", countBlocks);
             }
             break;
         }
@@ -69,9 +69,11 @@ bool zxTape::load(uint8_t* ptr, bool unpacked) {
                 return false;
             data = TMP_BUF;
         }
-        info("load TAP len: %i", len);
         addBlock(data, size);
         ptr += len;
+    }
+    if(unpacked) {
+
     }
     return true;
 }
@@ -91,17 +93,18 @@ uint8_t* zxTape::save(int root, uint8_t* buf, bool packed) {
         ssh_memcpy(&buf, data, size);
     }
     *(uint16_t*)buf = 0; buf += sizeof(uint16_t);
+    if(packed) {
+        // параметры импульсов, если, например, мы грузили через них
+
+    }
     return buf;
 }
 
 bool zxTape::loadState(uint8_t *ptr) {
-    if(*(uint32_t*)ptr != 'epaT') return false;
-    ptr += sizeof(uint32_t);
     return load(ptr, true);
 }
 
 uint8_t *zxTape::saveState(uint8_t *ptr) {
-    *(uint32_t*)ptr = 'Tape'; ptr += sizeof(uint32_t);
     return save(currentBlock, ptr, true);
 }
 
@@ -331,19 +334,22 @@ void zxTape::trapSave() {
 }
 
 void zxTape::trapLoad() {
-    auto cpu    = ALU->cpu;
-    auto blk	= &blocks[currentBlock];
-    auto len 	= blk->size - 2;
-    auto data 	= blk->data + 1;
-    auto ix 	= *cpu->_IX;
-    info("trapLoad block: %i size: %i", currentBlock, len);
-    for(int i = 0; i < len; i++) ::wm8(realPtr((uint16_t)(ix + i)), data[i]);
-    *cpu->_DE -= len; *cpu->_IX += len;
+    auto cpu = ALU->cpu;
+    auto blk = &blocks[currentBlock];
+    auto len = blk->size - 2;
+    auto data = blk->data + 1;
+    auto ix = *cpu->_IX;
+    for (int i = 0; i < len; i++) ::wm8(realPtr((uint16_t) (ix + i)), data[i]);
+    LOG_DEBUG("trapLoad addr: %i size: %i", ix, len);
+    *cpu->_DE -= len;
+    *cpu->_IX += len;
     *cpu->_AF = 0x00B3;
     *cpu->_BC = 0x01B0;
     opts[_RH] = 0;
     opts[_RL] = data[len];
-    if(nextBlock()) updateImpulseBuffer(false);
+    if (nextBlock()) updateImpulseBuffer(false);
+    ALU->pauseBetweenTapeBlocks = 50;
+    modifySTATE(ZX_PAUSE, 0);
 }
 
 void zxTape::control(int ticks) {
@@ -371,20 +377,19 @@ int zxTape::trap(uint16_t pc) {
     if(pc < 16384) {
         // активность TR DOS
         if(pc == 15616 || pc == 15619) {
-            info("Перехват TRDOS");
-            ALU->save("trdLoader.zx", ZX_CMD_IO_Z80);
-            //(pageROM != PAGE_ROM[0] && *_MODEL > MODEL_128K) * ZX_TR_DOS
-            //modifySTATE(, ZX_TRDOS);
+            LOG_INFO("Перехват TRDOS addr: %i", pc);
+            if(ALU->pageROM != ALU->PAGE_ROM[0]) {
+                modifySTATE(ZX_TRDOS, 0);
+                ALU->setPages();
+            }
             return 4;
         }
+        bool success = false;
         if (pc == 1218) {
             if(isTrap) {
                 // перехват SAVE ""
                 trapSave();
-                auto psp = ALU->cpu->_SP;
-                *ALU->cpu->_PC = rm16(*psp);
-                *psp += 2;
-                return 4;
+                success = true;
             }
         } else if ((pc == 1366 || pc == 1388) && currentBlock < countBlocks) {
             if(isTrap) {
@@ -392,18 +397,74 @@ int zxTape::trap(uint16_t pc) {
                 auto size = blocks[currentBlock].size - 2;
                 auto de = *ALU->cpu->_DE;
                 if (de != size) {
-                    info("В перехватчике load "" недопустимый размер block: %i (DE: %i - BLOCK_SIZE: %i)!", currentBlock, de, size);
+                    LOG_INFO("В перехватчике LOAD отличаются блоки - block: %i (DE: %i - BLOCK_SIZE: %i)!", currentBlock, de, size);
+                    ALU->signalRESET(true);
                 } else {
                     trapLoad();
-                    // переносим на конец процедуры загрузки
-                    *ALU->cpu->_PC = 0x5e2;
+                    success = true;
                 }
             } else {
                 if (posImpulse >= lenImpulse)
                     updateImpulseBuffer(true);
             }
         }
+        if(success) {
+            auto psp = ALU->cpu->_SP;
+            *ALU->cpu->_PC = rm16(*psp);
+            *psp += 2;
+            return 4;
+        }
     }
     return 0;
+}
+
+/*
+Формат стандартного заголовочного блока Бейсика такой:
+1 байт  - флаговый, для блока заголовка всегда равен 0 (для блока данных за ним равен 255)
+1 байт  - тип Бейсик блока, 0 - бейсик программа, 1 - числовой массив, 2 - символьный массив, 3 - кодовый блок
+10 байт - имя блока
+2 байта - длина блока данных, следующего за заголовком (без флагового байта и байта контрольной суммы)
+2 байта - Параметр 1, для Бейсик-программы - номер стартовой строки Бейсик-программы, заданный параметром LINE (или число >=32768,
+            если стартовая строка не была задана.
+            Для кодового блока - начальный адрес блока в памяти.
+            Для массивов данных - 14й-байт хранит односимвольное имя массива
+2 байта - Параметр 2. Для Бейсик-программы - хранит размер собственно Бейсик-програмы, без инициализированных переменных,
+            хранящихся в памяти на момент записи Бейсик-программы.
+            Для остальных блоков содержимое этого параметра не значимо, и я почти уверен, что это не два байта ПЗУ.
+            Скорее всего, они просто не инициализируются при записи.
+1 байт - контрольная сумма заголовочного блока.
+*/
+// 0 - длина блока
+// 1 - контрольная сумма
+// 2 - флаг(0/255)
+// 3 - тип блока(0-3)
+// 4 - длина информационного блока
+// 5 - 2(0) - стартовая строка/ 2(3) - адрес/ 2(2) - имя массива
+// 6 - 2(0) - размер basic-проги
+const char* zxTape::getBlockData(int index, uint16_t *data) {
+    static char name[11];
+    memset(name, 32, 10);
+    memset(data, 255, 7 * 2);
+
+    if(index < countBlocks && index >= 0) {
+        auto addr = blocks[index].data;
+        auto size = blocks[index].size - 2;
+        data[0] = (uint16_t)size;
+        data[1] = addr[size + 1];
+        data[2] = addr[0];
+        if(data[2] == 0) {
+            data[3] = addr[1];
+            data[4] = *(uint16_t *) (addr + 12);
+            data[5] = *(uint16_t *) (addr + 14);
+            data[6] = *(uint16_t *) (addr + 16);
+            memcpy(name, &addr[2], 10);
+            for(int i = 9 ; i > 0; i--) {
+                auto ch = addr[2 + i];
+                if(ch != ' ') break;
+                name[i] = 0;
+            }
+        }
+    }
+    return name;
 }
 

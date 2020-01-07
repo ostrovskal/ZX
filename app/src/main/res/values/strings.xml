@@ -22,9 +22,11 @@
     <string name="menuDisk4" translatable="false">D:</string>
     <string name="menu48kk">Kompanion 48K</string>
     <string name="menu48k">Sinclair 48K</string>
+    <string name="menu48kn">New Sinclair 48K</string>
     <string name="menu128k">Sinclair 128K</string>
     <string name="menuPentagon">Pentagon 128K</string>
     <string name="menuScorpion">Scorpion 256K</string>
+    <string name="menuProfi">Profi</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Keyboard/Joystick</string>
     <string name="menuHexDec" translatable="false">Hex\\Dec</string>
@@ -111,4 +113,14 @@
     <string name="headBps">Break Points</string>
     <string name="menuTracer">Tracer…</string>
     <string name="headerTracer">TRACER</string>
+    <string name="settingsTapeCaption">CAPTION</string>
+    <string name="settingsTapeLine">LINE</string>
+    <string name="settingsTapeArray">ARRAY</string>
+    <string name="settingsTapeAddress">ADDRESS</string>
+    <string name="settingsTapeScreen">SCREEN</string>
+    <string name="settingsTapeBlock">BLOCK</string>
+    <string name="settingsTapeBytes">BYTES</string>
+    <string name="settingsTapeBasic">BASIC</string>
+    <string name="settingsTapeNumArray">N.ARRAY</string>
+    <string name="settingsTapeStringArray">S.ARRAY</string>
 </resources>

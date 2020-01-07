@@ -50,7 +50,6 @@ class ZxView(context: Context) : GLSurfaceView(context) {
                 ACT_INIT_SURFACE                                    -> {
                     update = true
                 }
-                ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal,
                 ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal          -> {
                     ZxWnd.zxCmd(ZX_CMD_PROPS, "filter".i, 0, "")
                 }
@@ -163,7 +162,9 @@ class ZxView(context: Context) : GLSurfaceView(context) {
     }
 
     fun updateJoy() {
-        val isv = if (ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean) View.VISIBLE else View.GONE
+        var show = !ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean
+        if(show) show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
+        val isv = if (show) View.VISIBLE else View.GONE
         val size = 80 + ZxWnd.props[ZX_PROP_JOY_SIZE].toInt() * 40
         val mx = wnd.main.measuredWidth
         val my = wnd.main.measuredHeight

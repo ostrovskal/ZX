@@ -25,7 +25,7 @@
     <string name="hintName">имя</string>
     <string name="headBps">Точки останова</string>
     <string name="headerIO">Операции</string>
-    <string name="downloadCloud">Скачивание…</string>
+    <string name="downloadCloud">Скачать…</string>
     <string name="connectCloud">Загрузка…</string>
     <string name="connectError">Не удалось подключиться к серверу. Проверьте свое интернет соединение!</string>
     <string name="hintAddress">адрес</string>
@@ -72,4 +72,16 @@
     <string name="menuTrace">Трассировка</string>
     <string name="menuTracer">Трассер…</string>
     <string name="headerTracer">Трассировщик</string>
+    <string name="settingsTapeCaption">ЗАГОЛОВОК</string>
+    <string name="settingsTapeLine">ЛИНИЯ</string>
+    <string name="settingsTapeArray">МАССИВ</string>
+    <string name="settingsTapeAddress">АДРЕС</string>
+    <string name="settingsTapeScreen">ЭКРАН</string>
+    <string name="settingsTapeBlock">БЛОК</string>
+    <string name="settingsTapeBytes">БАЙТЫ</string>
+    <string name="settingsTapeBasic">БЕЙСИК</string>
+    <string name="settingsTapeNumArray">Ч.МАССИВ</string>
+    <string name="settingsTapeStringArray">C.МАССИВ</string>
+    <string name="menu48kn">Новый Синклер 48К</string>
+    <string name="menuProfi">Профи</string>
 </resources>

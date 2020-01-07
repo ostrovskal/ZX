@@ -116,9 +116,11 @@ public final class ZxCommon {
 
     public final static int MENU_MODEL_48KK         = 1300;
     public final static int MENU_MODEL_48KS         = 1301;
-    public final static int MENU_MODEL_128K         = 1302;
-    public final static int MENU_MODEL_PENTAGON     = 1303;
-    public final static int MENU_MODEL_SCORPION     = 1304;
+    public final static int MENU_MODEL_48KSN        = 1302;
+    public final static int MENU_MODEL_128K         = 1303;
+    public final static int MENU_MODEL_PENTAGON     = 1304;
+    public final static int MENU_MODEL_SCORPION     = 1305;
+    public final static int MENU_MODEL_PROFI        = 1306;
 
     public final static int MENU_MRU_1              = 1400;
     public final static int MENU_MRU_2              = 1401;
@@ -197,15 +199,6 @@ public final class ZxCommon {
     public static final int ZX_PROPS_COUNT          = 410; // Размер буфера свойств
     public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_BPS - ZX_PROP_FIRST_LAUNCH) + 8; // Количество свойств
 
-    // Модели памяти
-/*
-    public static final int MODEL_48KK              = 0; // Компаньон 2.02 48К
-    public static final int MODEL_48K               = 1; // Синклер 48К
-    public static final int MODEL_128K              = 2; // Синклер 128К
-    public static final int MODEL_PENTAGON          = 3; // Пентагон 128К
-    public static final int MODEL_SCORPION          = 4; // Скорпион 256К
-*/
-
     // Варианты форматирования чисел
 //    public static final int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
 //    public static final int ZX_FV_CODE				= 2; // "3X ", "2X "
@@ -235,10 +228,13 @@ public final class ZxCommon {
     public static final int ZX_CMD_STEP_DEBUG       = 10; // Выполнение в отладчике
     public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
+    public static final int ZX_CMD_TAPE_COUNT       = 13; // Получение количества блоков ленты
+    public static final int ZX_CMD_SET_DISK         = 14; // Установка номера подключаемого диска
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
     public static final int ZX_DEBUGGER_MODE_DT     = 2; // Список данных
+    public static final int ZX_DEBUGGER_MODE_TR     = 3; // Список трасера
 
     private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 
@@ -412,6 +408,14 @@ public final class ZxCommon {
             ATTR_GRAVITY, Gravity.CENTER_VERTICAL,
             ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_NORMAL | THEME,
             ATTR_FONT, R.string.font_normal
+    };
+
+    public static final int[] style_text_tape = {
+            ATTR_SHADOW_TEXT, R.string.shadow_text,
+            ATTR_SIZE, R.dimen.normal,
+            ATTR_GRAVITY, Gravity.CENTER,
+            ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
+            ATTR_FONT, R.string.font_large
     };
 
     public static final int[] style_color_text_settings = {

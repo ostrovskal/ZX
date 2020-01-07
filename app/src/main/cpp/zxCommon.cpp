@@ -24,24 +24,26 @@ static uint8_t sym[] =  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 
 static uint8_t tbl[] =  { 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15, 14, 14, 14, 14, 14, 14, 12, 12 };
 static uint8_t valid[] ={ 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   1,  2,  3,  4,  5,  6,  7,  8,  9 };
 
-void info(const char* msg, ...) {
+void info1(const char* msg, const char* file, const char* func, int line, ...) {
+    static char buf[512];
+    sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
     va_list varArgs;
-    va_start(varArgs, msg);
-    __android_log_vprint(ANDROID_LOG_WARN, "ZX", msg, varArgs);
-    __android_log_print(ANDROID_LOG_WARN, "ZX", "\n");
+    va_start(varArgs, line);
+    __android_log_vprint(ANDROID_LOG_WARN, LOG_NAME, buf, varArgs);
+    __android_log_print(ANDROID_LOG_WARN, LOG_NAME, "\n");
     va_end(varArgs);
 }
 
 #ifdef DEBUG
-    void debug(const char* msg, ...) {
+    void debug1(const char* msg, const char* file, const char* func, int line, ...) {
+        static char buf[512];
+        sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
         va_list varArgs;
-        va_start(varArgs, msg);
-        __android_log_vprint(ANDROID_LOG_DEBUG, "ZX", msg, varArgs);
-        __android_log_print(ANDROID_LOG_DEBUG, "ZX", "\n");
+        va_start(varArgs, line);
+        __android_log_vprint(ANDROID_LOG_DEBUG, LOG_NAME, buf, varArgs);
+        __android_log_print(ANDROID_LOG_DEBUG, LOG_NAME, "\n");
         va_end(varArgs);
     }
-#else
-    void debug(const char* msg, ...) { }
 #endif
 
 // вернуть адрес памяти
@@ -162,7 +164,7 @@ char* ssh_ntos(void* v, int r, char** end) {
         case RADIX_BOL:
             memcpy(buf , (*(bool*)v) ? "true\0\0" : "false\0", 6);
             break;
-        default: debug("Неизвестная система счисления! %i", r); break;
+        default: LOG_DEBUG("Неизвестная система счисления! %i", r); break;
     }
     return buf;
 }
@@ -228,7 +230,7 @@ void* ssh_ston(const char* s, int r, const char** end) {
             else if(!strcasecmp(s, "false")) { s += 5; n = 0; }
             *(uint8_t*)&res = (uint8_t)n;
             break;
-        default: debug("Неизвестная система счисления! %i", r); break;
+        default: LOG_DEBUG("Неизвестная система счисления! %i", r); break;
     }
     if(end) *end = s;
     return &res;

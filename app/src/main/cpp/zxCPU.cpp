@@ -437,7 +437,7 @@ int zxCPU::step() {
                 res = *_B; flags = FH | FC | FPV;
                 if(fpv && rep) { *_PC -= 2; ticks = 21; }
                 break;
-            default: debug("found NONI(%i) from PC: %i", m->name, zxALU::PC);
+            default: LOG_DEBUG("found NONI(%i) from PC: %i", m->name, zxALU::PC);
         }
     }
     if(mskFlags) {

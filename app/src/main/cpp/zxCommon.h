@@ -7,8 +7,12 @@
 #include <jni.h>
 #include <android/log.h>
 #include <android/bitmap.h>
+
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
+
+#include <SLES/OpenSLES.h>
+#include <SLES/OpenSLES_Android.h>
 
 #include <limits.h>
 #include <cstring>
@@ -16,6 +20,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <string>
+#include <sys/time.h>
 
 #include "zxFile.h"
 #include "zxCPU.h"
@@ -34,9 +39,21 @@ extern uint8_t                          numBits[8];
 extern int                              currentCmdPos;
 extern int                              frequencies[3];
 
-constexpr int ZX_SIZE_TMP_BUF           = 524288;
 #define ZX_TOTAL_RAM                    262144
 #define CMD_CACHE(v)                    cmdCache[currentCmdPos] = v; currentCmdPos++; currentCmdPos &= 511;
+#define LOG_NAME                        "ZX"
+
+#ifdef DEBUG
+    #define LOG_DEBUG(m, ...)           debug1(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
+#else
+    #define LOG_DEBUG(m, ...)
+#endif
+
+#define LOG_INFO(m, ...)                info1(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
+
+#define SL_SUCCESS(f, m)                if(((f) != SL_RESULT_SUCCESS)) { info(m); return false; }
+
+constexpr int ZX_SIZE_TMP_BUF           = 524288;
 
 constexpr int ZX_BP_NONE                = 0; // не учитывается
 constexpr int ZX_BP_EXEC                = 1; // исполнение
@@ -58,16 +75,19 @@ enum ZX_STATE {
     ZX_HALT = 0x04, // останов. ждет прерывания
     ZX_TRDOS= 0x08, // режим диска
     ZX_BP   = 0x10, // сработала точка останова
-    ZX_DEBUG= 0x20  // режим отладки активирован
+    ZX_DEBUG= 0x20, // режим отладки активирован
+    ZX_PAUSE= 0x40  // пауза между загрузкой блоков TAP
 };
 
 // Позиция ПЗУ различных моделей
-constexpr int ZX_ROM_K48K				= 0;
-constexpr int ZX_ROM_48K				= 16384;
-constexpr int ZX_ROM_128K				= 32768;
-constexpr int ZX_ROM_PENTAGON			= 65536;
-constexpr int ZX_ROM_SCORPION			= 98304;
-constexpr int ZX_ROM_TRDOS              = 163840;
+constexpr int ZX_ROM_KOMPANION			= 0;
+constexpr int ZX_ROM_48 				= 16384;
+constexpr int ZX_ROM_48N 				= 32768;
+constexpr int ZX_ROM_128				= 49152;
+constexpr int ZX_ROM_PENTAGON			= 81920;
+constexpr int ZX_ROM_SCORPION			= 114688;
+constexpr int ZX_ROM_PROFI   			= 180224;
+constexpr int ZX_ROM_TRDOS              = 245760;
 
 // Разделяемые свойства
 // 0. Байтовые значения, вычисляемые во время работы программы
@@ -125,11 +145,14 @@ constexpr int ZX_PROP_BPS             = 192; // значения точек ос
 constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 
 // Модели памяти
-constexpr int MODEL_48KK              = 0; // Компаньон 2.02 48К
-constexpr int MODEL_48K               = 1; // Синклер 48К
-constexpr int MODEL_128K              = 2; // Синклер 128К
-constexpr int MODEL_PENTAGON          = 3; // Пентагон 128К
-constexpr int MODEL_SCORPION          = 4; // Скорпион 256К
+constexpr int MODEL_KOMPANION         = 0; // Компаньон 2.02 48К
+constexpr int MODEL_48                = 1; // Синклер 48К
+constexpr int MODEL_48N               = 2; // Новый синклер 48К
+constexpr int MODEL_128               = 3; // Синклер 128К
+constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
+constexpr int MODEL_SCORPION          = 5; // Скорпион 256К
+constexpr int MODEL_PROFI             = 6; // Profi 256К
+constexpr int MODEL_TRDOS             = 7; // TRDOS
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -171,8 +194,10 @@ constexpr int ZX_CMD_TRACER             = 7; // Запуск трасировщ�
 constexpr int ZX_CMD_QUICK_BP           = 8; // Быстрая установка точки останова
 constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
 constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
-constexpr int ZX_CMD_MOVE_PC            = 11; // Выполнение сдвига ПС
-constexpr int ZX_CMD_JUMP               = 12; // Получение адреса в памяти/адреса перехода в инструкции
+constexpr int ZX_CMD_MOVE_PC            = 11;// Выполнение сдвига ПС
+constexpr int ZX_CMD_JUMP               = 12;// Получение адреса в памяти/адреса перехода в инструкции
+constexpr int ZX_CMD_TAPE_COUNT         = 13;// Получение количества блоков ленты
+constexpr int ZX_CMD_SET_DISK           = 14;// Установка номера подключаемого диска
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
@@ -187,11 +212,10 @@ constexpr int ZX_DEBUGGER_MODE_DT       = 2; // Список данных
 
 // Комманды ввода/вывода
 constexpr int ZX_CMD_IO_STATE           = 0; // Загрузить/сохранить состояние
-constexpr int ZX_CMD_IO_SCREEN          = 1; // Загрузить/сохранить экран
-constexpr int ZX_CMD_IO_Z80             = 2; // Загрузить/сохранить снимок памяти
-constexpr int ZX_CMD_IO_TAPE            = 3; // Загрузить/сохранить ленту
-constexpr int ZX_CMD_IO_WAVE            = 4; // Загрузить/сохранить звук
-constexpr int ZX_CMD_IO_TRD             = 5; // Загрузить/сохранить образ диска
+constexpr int ZX_CMD_IO_Z80             = 1; // Загрузить/сохранить снимок памяти
+constexpr int ZX_CMD_IO_TAPE            = 2; // Загрузить/сохранить ленту
+constexpr int ZX_CMD_IO_WAVE            = 3; // Загрузить/сохранить звук
+constexpr int ZX_CMD_IO_TRD             = 4; // Загрузить/сохранить образ диска
 
 // Система счистления для преобразования строк/чисел
 constexpr int RADIX_DEC 				= 0;
@@ -208,8 +232,8 @@ constexpr int RADIX_BOL 				= 6;
 #define SWAP_REG(r1, r2)                { auto a = *(r1); auto b = *(r2); *(r1) = b; *(r2) = a; }
 
 // вывод отладочной информации
-void info(const char* msg, ...);
-void debug(const char* msg, ...);
+void info1(const char* msg, const char* file, const char* func, int line, ...);
+void debug1(const char* msg, const char* file, const char* func, int line, ...);
 
 // разбить строку на подстроки
 char __unused ** ssh_split(const char* str, const char* delim, int* count = nullptr);
@@ -262,11 +286,20 @@ inline uint16_t rm16(uint16_t address) { return (rm8(address) | (rm8((uint16_t) 
 
 // пишем в память 8 битное значение
 inline void wm8(uint8_t* address, uint8_t val) {
-    if (address >= ALU->ROMS && address < &ALU->ROMS[180224]) {
+    auto broms = ALU->ROMS;
+    auto eroms = &ALU->ROMS[262144];
+    if (address >= broms && address < eroms) {
         //log_info("запись в ПЗУ (PC: %i ADDRESS: %i VALUE: %i)", *zxCPU::_PC - 1, address - zxALU::pageROM, val);
         return;
     }
     *address = val;
+}
+
+// возвращает количество миллисекунд
+inline long long currentTimeMillis() {
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
 inline uint8_t* ssh_memset(void* ptr, int set, size_t count) {

@@ -54,15 +54,15 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
 
     // точка входа в данные
     @STORAGE
-    private var entryData                   = 0
+    @JvmField var entryData                 = 0
 
-    //
+    // количество строк в списке
     @JvmField var countItems                = 0
 
-    //
+    // количество элементов данных в строке
     @JvmField var countData                 = 0
 
-    //
+    // режим списка
     @STORAGE
     @JvmField var mode                  = ZX_DEBUGGER_MODE_PC
 
@@ -121,15 +121,11 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
         return delta != 0
     }
 
-    private val ids = listOf(R.id.spinner1, R.id.spinner2, R.id.spinner3, R.id.spinner4, R.id.spinner5,
-                                      R.id.spinner6, R.id.spinner7, R.id.spinner8, R.id.spinner9, R.id.spinner10,
-                                      R.id.spinner11, R.id.spinner12)
-    @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if(childCount < 2) {
             removeAllViews()
-            repeat(countItems) { addView(ItemView(ids[it], context)) }
+            repeat(countItems) { addView(ItemView(0, context)) }
             mCount = childCount
             onNotifyParent?.invoke(this, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, 0, "")
         }

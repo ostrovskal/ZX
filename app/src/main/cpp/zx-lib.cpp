@@ -3,13 +3,21 @@
 #include <android/asset_manager_jni.h>
 #include <android/asset_manager.h>
 
-static jobject objBmp = nullptr;
 static jobject objProps = nullptr;
+static int numDisk      = -1;
+
+#ifdef DEBUG
+const char* scmd[] = {
+        "CMD_MODEL", "CMD_PROPS", "CMD_RESET", "CMD_UPDATE_KEY", "CMD_INIT_GL", "CMD_POKE",
+        "CMD_ASSEMBLER", "CMD_TRACER", "CMD_QUICK_BP", "CMD_TRACE_X", "CMD_STEP_DEBUG",
+        "CMD_MOVE_PC", "CMD_JUMP", "CMD_TAPE_COUNT", "CMD_SET_DISK"
+};
+#endif
 
 static int parseExtension(const char* name) {
     auto l = strlen(name);
     const char* ext = (l > 2 ? name + (l - 3) : "123");
-    const char* lst[] = {".zx", "tga", "z80", "tap", "wav", "trd"};
+    const char* lst[] = {".zx", "z80", "tap", "wav", "trd"};
     int ret = 0;
     for(auto& e: lst) {
         if(!strcasecmp(ext, e)) break;
@@ -18,7 +26,7 @@ static int parseExtension(const char* name) {
     return ret;
 }
 
-static void copyAFile(AAssetManager* aMgr, const char* aPath, const char* path, uint8_t** buffer = nullptr) {
+static void copyAssetsFile(AAssetManager *aMgr, const char *aPath, const char *path, uint8_t **buffer = nullptr) {
     auto aFile = AAssetManager_open(aMgr, aPath, AASSET_MODE_UNKNOWN);
     bool result = false;
     if(aFile) {
@@ -32,7 +40,7 @@ static void copyAFile(AAssetManager* aMgr, const char* aPath, const char* path, 
             result = true;
         }
     }
-    if(!result) debug("Не удалось скопировать файл <%s>!", aPath);
+    if(!result) LOG_DEBUG("Не удалось найти файл <%s>!", aPath);
 }
 
 extern "C" {
@@ -40,7 +48,7 @@ extern "C" {
     int zxExecute(JNIEnv*, jclass) {
         ALU->execute();
         if(*ALU->_STATE & ZX_BP) {
-            debug("zx_bp %i", zxALU::PC);
+            LOG_DEBUG("zx_bp %i", zxALU::PC);
             modifySTATE(0, ZX_BP);
             return 2;
         }
@@ -48,34 +56,30 @@ extern "C" {
     }
 
     void zxShutdown(JNIEnv *env, jobject) {
-        info("zxShutdown");
-        if(objBmp) {
-            env->DeleteGlobalRef(objBmp);
-            objBmp = nullptr;
-        }
+        LOG_DEBUG("", nullptr)
         if(objProps) {
             env->DeleteGlobalRef(objProps);
             objProps = nullptr;
         }
-        debug("zxShutdown finish");
+        // Uninit GL
+        ALU->gpu->uninitGL();
     }
 
     jboolean zxIO(JNIEnv* env, jclass, jstring nm, jboolean load) {
-        auto name = env->GetStringUTFChars(nm, nullptr);
-        info("zxIO name: %s load: %i", name, load);
-        auto type = parseExtension(name);
-        auto ret = (jboolean)(load ? ALU->load(name, type) : ALU->save(name, type));
-        if(!ret) debug("Не удалось загрузить/записать <%s>!", name);
-        else if(type > ZX_CMD_IO_STATE) ALU->programName(name);
-        debug("zxIO finish");
+        auto path = env->GetStringUTFChars(nm, nullptr);
+        LOG_DEBUG("%s \"%s\"", load ? "load" : "save", path);
+        auto type = parseExtension(path);
+        auto ret = (jboolean)(load ? ALU->load(numDisk, path, type) : ALU->save(path, type));
+        if(!ret) LOG_DEBUG("Не удалось загрузить/записать <%s>!", path)
+        else if(type > ZX_CMD_IO_STATE) ALU->programName(path);
         return ret;
     }
 
     void zxInit(JNIEnv *env, jobject, jobject asset, jstring savePath, jstring filesDir, jstring cacheDir, jboolean error) {
-        auto autoSavePath = env->GetStringUTFChars(savePath, nullptr);
-        info("zxInit savePath: %s error: %i", autoSavePath, error);
-        TMP_BUF = new uint8_t[ZX_SIZE_TMP_BUF];
         ALU = new zxALU();
+
+        auto autoSavePath = env->GetStringUTFChars(savePath, nullptr);
+        LOG_DEBUG("savePath: %s error: %i", autoSavePath, error);
 
         auto amgr = AAssetManager_fromJava(env, asset);
         if(opts[ZX_PROP_FIRST_LAUNCH]) {
@@ -100,35 +104,33 @@ extern "C" {
                     case ZX_CMD_IO_TRD: path    = trd + file; break;
                     default: path = file; break;
                 }
-                copyAFile(amgr, (out + file).c_str(), path.c_str());
+                copyAssetsFile(amgr, (out + file).c_str(), path.c_str());
             }
             AAssetDir_close(dir);
             opts[ZX_PROP_FIRST_LAUNCH] = 0;
-            copyAFile(amgr, "tapLoader.zx", "tapLoader.zx");
-            copyAFile(amgr, "trdLoader.zx", "trdLoader.zx");
+            copyAssetsFile(amgr, "tapLoader.zx", "tapLoader.zx");
+            copyAssetsFile(amgr, "trdLoader.zx", "trdLoader.zx");
         }
-        copyAFile(amgr, "labels.bin", nullptr, &labels);
-        copyAFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
+        copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
+        copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
-        if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
-        debug("zxInit finish filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
+        if(!error) ALU->load(0, autoSavePath, ZX_CMD_IO_STATE);
+        LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props) {
-        info("zxProps");
+        LOG_DEBUG("", nullptr)
         if(!(objProps = env->NewGlobalRef(props))) {
-            info("NewGlobalRef(props) error!");
+            LOG_INFO("NewGlobalRef(props) error!", nullptr);
             abort();
         }
         opts = (uint8_t*) env->GetPrimitiveArrayCritical(props, nullptr);
         bps = (BREAK_POINT*)&opts[258];
         env->ReleasePrimitiveArrayCritical((jarray)props, opts, JNI_ABORT);
         ssh_memzero(opts, ZX_PROPS_COUNT);
-        debug("zxProps finish");
     }
 
     jstring zxSetProp(JNIEnv* env, jclass, jint idx) {
-        debug("zxSetProp idx: %i", idx);
         char* ret = nullptr;
         idx += ZX_PROP_FIRST_LAUNCH;
         uint32_t n = opts[idx];
@@ -147,13 +149,11 @@ extern "C" {
             n = bp->ops; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX)); *tmp++ = '#';
             n = bp->flg; ssh_strcpy(&tmp, ssh_ntos(&n, RADIX_HEX));
         }
-        debug("zxSetProp2 finish res: %s", ret);
         return env->NewStringUTF(ret);
     }
 
     void zxGetProp(JNIEnv* env, jclass, jstring key, jint idx) {
         auto kv = env->GetStringUTFChars(key, nullptr);
-        debug("zxGetProp kv: %s idx: %i", kv, idx);
         if(kv) {
             idx += ZX_PROP_FIRST_LAUNCH;
             if (idx < ZX_PROP_ACTIVE_DISK) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_BOL);
@@ -169,18 +169,15 @@ extern "C" {
                 bp->ops = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
                 bp->flg = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv);
             }
-            debug("zxGetProp finish");
         }
     }
 
     long zxInt(JNIEnv*, jclass, jint idx, jint mask, jboolean read, jint value) {
         auto ret = (long)(*(uint32_t*)(opts + idx));
         if(!read) {
-            debug("zxIntSave idx: %i value: %i", idx, value);
             ret &= ~mask; ret |= (value & mask);
             *(uint32_t*)(opts + idx) = (uint32_t)ret;
         }
-        debug("zxIntRead idx: %i value: %i", idx, ret);
         return (ret & mask);
     }
 
@@ -188,19 +185,10 @@ extern "C" {
         return env->NewStringUTF(ALU->programName(env->GetStringUTFChars(name, nullptr)));
     }
 
-#ifdef DEBUG
-    const char* scmd[] = {
-            "CMD_MODEL", "CMD_PROPS", "CMD_RESET", "CMD_UPDATE_KEY", "CMD_INIT_GL", "CMD_POKE",
-            "CMD_ASSEMBLER", "CMD_TRACER", "CMD_QUICK_BP", "CMD_TRACE_X", "CMD_STEP_DEBUG",
-            "CMD_MOVE_PC", "CMD_JUMP"
-    };
-#endif
-
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
-        debug("zxCmd cmd: %s arg1: %i arg2: %i", scmd[cmd], arg1, arg2);
+        LOG_DEBUG("%s(%i, %i)", scmd[cmd], arg1, arg2)
         int ret(0);
         switch(cmd) {
-            default:                debug("Неизвестная комманда в zxCmd(%i)", cmd); break;
             case ZX_CMD_POKE:       ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
             case ZX_CMD_UPDATE_KEY: ALU->updateKeys(arg1, arg2); break;
             case ZX_CMD_PROPS:      ALU->updateProps(arg1); break;
@@ -214,9 +202,9 @@ extern "C" {
             case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_INIT_GL:    ALU->gpu->initGL(); break;
-
+            case ZX_CMD_SET_DISK:   numDisk = arg1; break;
+            case ZX_CMD_TAPE_COUNT: ret = ALU->tape->countBlocks; break;
         }
-        debug("zxCmd finish");
         return ret;
     }
 
@@ -225,20 +213,18 @@ extern "C" {
     }
 
     jstring zxDebuggerString(JNIEnv* env, jclass, jint cmd, jint data, jint flags) {
-        auto ret = ALU->debugger->itemList(cmd, data, flags);
-        return env->NewStringUTF(ret);
+        return env->NewStringUTF(ALU->debugger->itemList(cmd, data, flags));
+    }
+
+    jstring zxTapeBlock(JNIEnv* env, jclass, jint idx, jshortArray data) {
+        auto arr = (uint16_t *) env->GetPrimitiveArrayCritical(data, nullptr);
+        auto name = ALU->tape->getBlockData(idx, arr);
+        env->ReleasePrimitiveArrayCritical((jarray)data, arr, JNI_ABORT);
+        return env->NewStringUTF(name);
     }
 
     jstring zxFormatNumber(JNIEnv* env, jclass, jint value, jint radix, jboolean force) {
-        auto ret = ssh_fmtValue(value, radix, force);
-        debug("zxFormatNumber value: %i type: %i ret: <%s>", value, radix, ret);
-        return env->NewStringUTF(ret);
-    }
-
-    jstring zxNumberToString(JNIEnv* env, jclass, jint value, jint radix) {
-        auto ret = ssh_ntos(&value, radix);
-        debug("zxNumberToString value: %i type: %i ret: <%s>", value, radix, ret);
-        return env->NewStringUTF(ret);
+        return env->NewStringUTF(ssh_fmtValue(value, radix, force));
     }
 
     static JNINativeMethod zxMethods[] = {
@@ -255,17 +241,19 @@ extern "C" {
             { "zxFormatNumber", "(IIZ)Ljava/lang/String;", (void*)&zxFormatNumber },
             { "zxDebuggerString", "(III)Ljava/lang/String;", (void*)&zxDebuggerString },
             { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },
-            { "zxNumberToString", "(II)Ljava/lang/String;", (void*)&zxNumberToString }
+            { "zxTapeBlock", "(I[S)Ljava/lang/String;", (void*)&zxTapeBlock }
     };
 
     JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *) {
         JNIEnv *env;
         if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK) {
-            info("GetEnv() error!");
+            LOG_INFO("GetEnv() error!", nullptr);
             abort();
         }
         auto wnd = env->FindClass("ru/ostrovskal/zx/ZxWnd");
-        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)) - 1);
+        env->RegisterNatives(wnd, zxMethods, (sizeof(zxMethods) / sizeof(JNINativeMethod)));
+
+        TMP_BUF = new uint8_t[ZX_SIZE_TMP_BUF];
 
         return JNI_VERSION_1_6;
     }

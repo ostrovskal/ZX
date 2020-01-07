@@ -17,6 +17,6 @@
     <dimen name="heightBps">295dp</dimen>
     <dimen name="debuggerTextList">10sp</dimen>
     <dimen name="paddingHorzDebEdit">3dp</dimen>
-    <dimen name="heightTracer">300dp</dimen>
-    <dimen name="widthTracer">300dp</dimen>
+    <dimen name="heightTracer">280dp</dimen>
+    <dimen name="widthTracer">400dp</dimen>
 </resources>

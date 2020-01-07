@@ -56,7 +56,7 @@ class ZxFormMain: Form() {
         if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean) {
             zxview?.layoutParams = CellLayout.LayoutParams(0, 0, 11, 7)
             keyLyt?.visibility = View.GONE; debLyt?.visibility = View.VISIBLE
-            debLyt?.apply { visibility = View.VISIBLE }
+            zxview?.updateJoy()
         } else {
             val show = if (ZxWnd.props[ZX_PROP_SHOW_KEY].toBoolean) View.VISIBLE else View.GONE
             val heightKeyboard = if (show == View.VISIBLE) ZxWnd.props[ZX_PROP_KEY_SIZE] else 0
@@ -88,7 +88,6 @@ class ZxFormMain: Form() {
         when(msg.action) {
             ZxWnd.ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal-> zxview?.updateTracer()
             ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal         -> zxview?.updateJoy()
-            ZxWnd.ZxMessages.ACT_UPDATE_SURFACE.ordinal,
             ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal,
             ZxWnd.ZxMessages.ACT_RESET.ordinal,
             ZxWnd.ZxMessages.ACT_MODEL.ordinal,
@@ -129,5 +128,9 @@ class ZxFormMain: Form() {
             }
         }
         return true
+    }
+
+    fun activeGL(active: Boolean) {
+        zxview?.apply { if(active) onResume() else onPause() }
     }
 }

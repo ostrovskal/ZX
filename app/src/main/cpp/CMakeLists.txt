@@ -66,5 +66,4 @@ target_link_libraries( # Specifies the target library.
         ${bmp-lib}
         ${a-lib}
         ${gl-lib}
-        ${gl2-lib}
-        )
+        ${gl2-lib})

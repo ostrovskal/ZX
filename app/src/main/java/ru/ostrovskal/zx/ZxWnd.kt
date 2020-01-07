@@ -26,6 +26,7 @@ import ru.ostrovskal.sshstd.ui.absoluteLayout
 import ru.ostrovskal.sshstd.ui.menuIcon
 import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.zx.ZxCommon.*
+import ru.ostrovskal.zx.forms.ZxFormMain
 import java.io.File
 import java.io.FileNotFoundException
 import kotlin.experimental.and
@@ -57,8 +58,6 @@ class ZxWnd : Wnd() {
         ACT_MODEL,
         // отображение диалога об ошибке
         ACT_IO_ERROR,
-        // обновление поверхности
-        ACT_UPDATE_SURFACE,
         // обновление фильтра
         ACT_UPDATE_FILTER,
         // обновление смены пропуска кадров
@@ -147,14 +146,22 @@ class ZxWnd : Wnd() {
         @JvmStatic
         external fun zxDebuggerString(cmd: Int, data: Int, flags: Int): String
 
+        @JvmStatic
+        external fun zxTapeBlock(block: Int, data: ShortArray): String
+
         fun read16(idx: Int) = ((props[idx].toInt() and 0xff) or ((props[idx + 1].toInt() and 0xff) shl 8))
 
         fun read8(idx: Int) = (props[idx].toInt() and 0xff)
-/*
-        @JvmStatic
-        external fun zxNumberToString(value: Int, fmt: Int): String
+    }
 
-*/
+    override fun onResume() {
+        super.onResume()
+        findForm<ZxFormMain>("main")?.activeGL(true)
+    }
+
+    override fun onPause() {
+        findForm<ZxFormMain>("main")?.activeGL(false)
+        super.onPause()
     }
 
     override fun onStop() {
@@ -282,8 +289,9 @@ class ZxWnd : Wnd() {
                 instanceForm(FORM_IO, "filter", ".trd")
             }
             MENU_MODEL_48KK, MENU_MODEL_48KS,
-            MENU_MODEL_128K, MENU_MODEL_PENTAGON,
-            MENU_MODEL_SCORPION                  -> {
+            MENU_MODEL_48KSN, MENU_MODEL_128K,
+            MENU_MODEL_PENTAGON, MENU_MODEL_SCORPION,
+            MENU_MODEL_PROFI                        -> {
                 props[ZX_PROP_MODEL_TYPE] = (id - MENU_MODEL_48KK).toByte()
                 hand?.send(RECEPIENT_FORM, ZxMessages.ACT_MODEL.ordinal)
             }

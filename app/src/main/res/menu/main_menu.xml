@@ -116,6 +116,10 @@
                     android:title="@string/menu48k"
                     android:showAsAction="never"/>
                 <item
+                    android:id="@integer/MENU_MODEL_48KSN"
+                    android:title="@string/menu48kn"
+                    android:showAsAction="never"/>
+                <item
                     android:id="@integer/MENU_MODEL_128K"
                     android:title="@string/menu128k"
                     android:showAsAction="never"/>
@@ -126,6 +130,10 @@
                 <item
                     android:id="@integer/MENU_MODEL_SCORPION"
                     android:title="@string/menuScorpion"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@integer/MENU_MODEL_PROFI"
+                    android:title="@string/menuProfi"
                     android:showAsAction="never"/>
             </group>
         </menu>

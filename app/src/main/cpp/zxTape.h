@@ -6,23 +6,6 @@
 
 #include "zxSound.h"
 
-/*
-Формат стандартного заголовочного блока Бейсика такой:
-1 байт  - флаговый, для блока заголовка всегда равен 0 (для блока данных за ним равен 255)
-1 байт  - тип Бейсик блока, 0 - бейсик программа, 1 - числовой массив, 2 - символьный массив, 3 - кодовый блок
-10 байт - имя блока
-2 байта - длина блока данных, следующего за заголовком (без флагового байта и байта контрольной суммы)
-2 байта - Параметр 1, для Бейсик-программы - номер стартовой строки Бейсик-программы, заданный параметром LINE (или число >=32768,
-            если стартовая строка не была задана.
-            Для кодового блока - начальный адрес блока в памяти.
-            Для массивов данных - 14й-байт хранит односимвольное имя массива
-2 байта - Параметр 2. Для Бейсик-программы - хранит размер собственно Бейсик-програмы, без инициализированных переменных,
-            хранящихся в памяти на момент записи Бейсик-программы.
-            Для остальных блоков содержимое этого параметра не значимо, и я почти уверен, что это не два байта ПЗУ.
-            Скорее всего, они просто не инициализируются при записи.
-1 байт - контрольная сумма заголовочного блока.
-*/
-
 class zxTape {
 public:
     struct TAPE_BLOCK {
@@ -39,7 +22,9 @@ public:
     };
 
     zxTape(zxSound* _snd) : _MIC(0), _BEEP(0), countBlocks(0), currentBlock(0), koef(0),
-                                    posImpulse(0), lenImpulse(0), sizeBufImpulse(0), bufImpulse(nullptr), snd(_snd), isTrap(false) { }
+                            posImpulse(0), lenImpulse(0), sizeBufImpulse(0), bufImpulse(nullptr), snd(_snd), isTrap(false) {
+        for(int i = 0 ; i < 128; i++) blocks[i].data = nullptr;
+    }
 
     ~zxTape() { reset(); }
 
@@ -73,11 +58,17 @@ public:
     // сброс
     void reset();
 
+    // вернуть с разбором, содержиое блока
+    const char* getBlockData(int index, uint16_t * data);
+
     // запись в порт
     void writePort(uint8_t value);
 
     uint8_t _MIC;
     uint8_t _BEEP;
+
+    // актуальное количество блоков
+    int countBlocks;
 
 protected:
 
@@ -102,26 +93,23 @@ protected:
     // пересоздание буфера импульсов
     void updateImpulseBuffer(bool force);
 
+    // перейти на следующий блок
+    bool nextBlock();
+
+    // добавление блока
+    void addBlock(uint8_t *data, uint16_t size);
+
     // вычисление размера буфера импульсов(приблизительно)
     size_t calcSizeBufferImpulse(bool isSkip);
 
     // общий загрузчик
     bool load(uint8_t *ptr, bool unpacked);
 
-    // перейти на следующий блок
-    bool nextBlock();
-
     // общий сохранитель:))
     uint8_t *save(int root, uint8_t *buf, bool packed);
 
-    // добавление блока
-    void addBlock(uint8_t *data, uint16_t size);
-
     // массив блоков
     TAPE_BLOCK blocks[128];
-
-    // актуальное количество блоков
-    int countBlocks;
 
     // индекс текущего блока
     int currentBlock;

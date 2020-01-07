@@ -2,14 +2,19 @@
 
 package ru.ostrovskal.zx.forms
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Color
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import ru.ostrovskal.sshstd.Common.*
 import ru.ostrovskal.sshstd.TileDrawable
 import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
 import ru.ostrovskal.sshstd.forms.Form
+import ru.ostrovskal.sshstd.layouts.CellLayout
 import ru.ostrovskal.sshstd.layouts.TabLayout
 import ru.ostrovskal.sshstd.objects.Theme
 import ru.ostrovskal.sshstd.ui.*
@@ -22,10 +27,14 @@ import ru.ostrovskal.zx.R
 import ru.ostrovskal.zx.ZxCommon.*
 import ru.ostrovskal.zx.ZxPreset
 import ru.ostrovskal.zx.ZxWnd
+import java.util.*
 
 @Suppress("unused")
 class ZxFormSettings : Form() {
     companion object {
+        private var countTapeBlocks             = 0
+
+        private val tapeTypes       = listOf("BASIC", "NumberArray", "StringArray", "Bytes")
         private val settingsAY      = listOf("ACB", "ABC", "NONE")
         private val settingsFreq    = listOf("44100", "22050", "11025")
 
@@ -86,7 +95,6 @@ class ZxFormSettings : Form() {
         val textsJoy = context.loadResource("settingsJoyTexts", "array", IntArray(0))
         var inner = false
         cellLayout(20, 20) {
-            text(R.string.settingsJoyType, style_text_settings).lps(0, 0, 3, 4)
             spinner(R.id.spinner1) {
                 adapter = ArrayListAdapter(context, Popup(), Item(), settingsJoyTypes)
                 itemClickListener = { _, _, p, _ ->
@@ -95,7 +103,7 @@ class ZxFormSettings : Form() {
                         (root as? TabLayout)?.apply {
                             currentContent.apply {
                                 repeat(5) {
-                                    byIdx<Spinner>(5 + it * 2).apply {
+                                    byIdx<Spinner>(it * 2 + 3).apply {
                                         selectionString = joyButtons[p * 5 + it]
                                         ZxWnd.props[ZX_PROP_JOY_KEYS + it] = selection.toByte()
                                         isEnabled = p == 4
@@ -105,8 +113,7 @@ class ZxFormSettings : Form() {
                         }
                     }
                 }
-            }.lps(2, 0, 7, 4)
-            text(R.string.settingsJoyPreset, style_text_settings).lps(10, 0, 10, 4)
+            }.lps(0, 0, 9, 4)
             spinner(R.id.spinner2) {
                 adapter = ArrayListAdapter(context, Popup(), Item(), ZxPreset.list())
                 mIsSelection = false
@@ -115,26 +122,26 @@ class ZxFormSettings : Form() {
                         inner = true
                         ZxPreset.load(text.toString())
                         (root as? TabLayout)?.apply {
-                            currentContent.byIdx<Spinner>(1).selection = ZxWnd.props[ZX_PROP_JOY_TYPE].toInt()
+                            currentContent.byIdx<Spinner>(0).selection = ZxWnd.props[ZX_PROP_JOY_TYPE].toInt()
                             repeat(8) {
-                                currentContent.byIdx<Spinner>(it * 2 + 5).selection = ZxWnd.props[ZX_PROP_JOY_KEYS + it].toInt()
+                                currentContent.byIdx<Spinner>(it * 2 + 3).selection = ZxWnd.props[ZX_PROP_JOY_KEYS + it].toInt()
                             }
                         }
                         inner = false
                     }
                 }
-            }.lps(13, 0, 7, 4)
+            }.lps(9, 0, 11, 4)
             repeat(2) { y ->
                 repeat(4) { x ->
                     val pos = y * 4 + x
-                    text(textsJoy[pos], style_text_settings).lps(x * 5 + 1, 4 + y * 7, 3, 3)
+                    text(textsJoy[pos], style_text_settings).lps(x * 5 + 1, 4 + y * 7, 4, 3)
                     spinner(idSpinners[pos]) {
                         adapter = ArrayListAdapter(context, Popup(), Item(), keyButtons)
                         selection = ZxWnd.props[ZX_PROP_JOY_KEYS + pos].toInt()
                         itemClickListener = { _, _, p, _ ->
                             ZxWnd.props[ZX_PROP_JOY_KEYS + pos] = p.toByte()
                         }
-                    }.lps(x * 5, 7 + y * 7, 4, 4)
+                    }.lps(x * 5, 7 + y * 7, 5, 4)
                 }
             }
         }
@@ -179,7 +186,19 @@ class ZxFormSettings : Form() {
     }
 
     private val tapePage: TabLayout.Content.() -> View = {
-        cellLayout(10, 10) {}
+        countTapeBlocks = ZxWnd.zxCmd(ZX_CMD_TAPE_COUNT, 0, 0, "")
+        cellLayout(10, 10) {
+            ribbon(R.id.ribbonMain, false, style_debugger_ribbon) {
+                adapter = TapeAdapter(context, TapeItem())
+                padding = 4.dp
+                backgroundSet(style_backgrnd_io)
+                selection = 0
+                itemClickListener = { _, _, p, _ ->
+                    selection = p
+                    //clickRibbon()
+                }
+            }.lps(0, 0, 10, 10)
+        }
     }
 
     private val screenPage: TabLayout.Content.() -> View = {
@@ -375,6 +394,97 @@ class ZxFormSettings : Form() {
     class Popup : UiComponent() {
         override fun createView(ui: UiCtx) = with(ui) {
             text(R.string.null_text, style_spinner_title_settings)
+        }
+    }
+
+    class TapeItem : UiComponent() {
+        override fun createView(ui: UiCtx) = ui.run {
+            cellLayout(10, 12) {
+                backgroundSet(style_spinner_item_settings)
+                // шапка - заголовок/данные/экран/блок
+                text(R.string.null_text, style_text_header) {
+                    backgroundSet {
+                        selectorWidth = 5f
+                        alpha = 192; gradient = xyInt; xyInt[0] = Color.BLACK; xyInt[1] = Color.BLUE
+                    }
+                }.lps(0, 0, 10, 2)
+                // длина
+                text(R.string.null_text, style_text_tape) { setTextSize(TypedValue.COMPLEX_UNIT_PX, 22f.dp) }.lps(0, 2, 10, 2)
+                // crc
+                text(R.string.null_text, style_text_tape).lps(0, 4, 10, 2)
+                // имя
+                text(R.string.null_text, style_text_tape) {
+                    textColor = Theme.integer(context, style.themeAttrValue(ATTR_SSH_COLOR_HEADER, ATTR_SSH_COLOR_HEADER or THEME))
+                }.lps(0, 6, 10, 2)
+                // тип
+                text(R.string.null_text, style_text_tape).lps(0, 8, 10, 2)
+                // параметер
+                text(R.string.null_text, style_text_tape).lps(0, 10, 10, 2)
+            }
+        }
+    }
+
+    inner class TapeAdapter(context: Context, item: UiComponent) : ArrayListAdapter<ViewGroup>(context, item, item, listOf()) {
+
+        private val block       = ShortArray(10) { 0 }
+        private val pblock      = ShortArray(10) { 0 }
+
+        override fun getCount() = countTapeBlocks
+
+        override fun getItemId(position: Int) = -1L
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            return createView(position, convertView, title, parent, false) ?: error("")
+        }
+
+        private fun typeBlock(blk: Int, flag: Int, addr: Int): Int {
+            return when(blk) {
+                0       -> R.string.settingsTapeBasic
+                1       -> R.string.settingsTapeNumArray
+                2       -> R.string.settingsTapeStringArray
+                else    -> if(flag == 0 && addr in 16384..22527) R.string.settingsTapeScreen else R.string.settingsTapeBytes
+            }
+        }
+        @SuppressLint("SetTextI18n")
+        override fun createView(position: Int, convertView: View?, resource: UiComponent, parent: ViewGroup, color: Boolean): View? {
+            return ((convertView ?: resource.createView(UiCtx(context))) as? CellLayout)?.apply {
+                val nameBlock = ZxWnd.zxTapeBlock(position, block)
+                ZxWnd.zxTapeBlock(position - 1, pblock)
+                val flag    = block[2].toInt()
+                val blk     = block[3].toInt()
+                val pflag   = pblock[2].toInt()
+                val pblk    = pblock[3].toInt()
+                byIdx<Text>(0).apply {
+                    var sflag = ""
+                    val caption = getString(when(flag) {
+                        0   -> R.string.settingsTapeCaption
+                        255 -> typeBlock(pblk, pflag, pblock[5].toInt())
+                        else-> { sflag = "($flag)"; R.string.settingsTapeBlock }
+                    })
+                    text = "$caption$sflag"
+                }
+                byIdx<Text>(1).text = (block[0].toInt() and 0xffff).toString()
+                byIdx<Text>(2).text = block[1].toString(16).toUpperCase(Locale.ROOT)
+                byIdx<Text>(3).text = ""
+                byIdx<Text>(4).text = ""
+                byIdx<Text>(5).text = ""
+                if(flag == 0) {
+                    byIdx<Text>(3).text = nameBlock
+                    byIdx<Text>(4).text = getString(typeBlock(blk, flag, block[5].toInt()))
+                    byIdx<Text>(5).text = (block[4].toInt() and 0xffff).toString()
+                } else if(flag == 255) {
+                    if(pflag == 0) {
+                        val param = (pblock[5].toInt() and 0xffff)
+                        val sblk = getString(when (pblk) {
+                            0    -> R.string.settingsTapeLine
+                            1, 2 -> R.string.settingsTapeArray
+                            else -> R.string.settingsTapeAddress
+                        })
+                        byIdx<Text>(5).text = "$sblk ($param)"
+                    }
+                }
+                layoutParams = LinearLayout.LayoutParams(110.dp, MATCH)
+            }
         }
     }
 }

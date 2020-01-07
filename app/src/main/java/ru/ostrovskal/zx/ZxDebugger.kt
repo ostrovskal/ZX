@@ -106,7 +106,7 @@ class ZxDebugger {
                     }
                 }
                 backgroundSet(style_backgrnd_io)
-                repeat(1) { addUiView(ZxListView.ItemView(R.id.button1, context).lps(MATCH, WRAP) ) }
+                addUiView(ZxListView.ItemView(R.id.button1, context).lps(MATCH, WRAP))
             }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3]))
             pos += 4
             // flags
@@ -138,7 +138,6 @@ class ZxDebugger {
             edit(R.id.edit11, R.string.null_text, style_debugger_edit) {
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
                 maxLength = 40
-                //setTextSize(TypedValue.COMPLEX_UNIT_PX, 14f.sp)
                 gravity = Gravity.CENTER_VERTICAL
             }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
         }
@@ -222,7 +221,20 @@ class ZxDebugger {
             DEBUGGER_ACT_SET_ASM   -> {
                 val txt = asm.text.toString()
                 if(list.mode == ZX_DEBUGGER_MODE_DT) {
-                    data = ZxWnd.zxStringToNumber(txt, 0)
+                    // address,value
+                    val addr = txt.substringBefore(',')
+                    if(addr != txt) {
+                        val value = txt.substringAfter(',')
+                        val a = ZxWnd.zxStringToNumber(addr, 0)
+                        val v = ZxWnd.zxStringToNumber(value, 0)
+                        ZxWnd.zxCmd(ZX_CMD_POKE, a, v, "")
+                        // если адрес лежит вне видимого диапазона - установить его
+                        data = list.entryData
+                        val finish = data + list.countData * list.countItems
+                        if(a < data || a > finish) data = a
+                    } else {
+                        data = ZxWnd.zxStringToNumber(addr, 0)
+                    }
                     flags = ZX_DSL
                 } else {
                     if(ZxWnd.zxCmd(ZX_CMD_ASSEMBLER, list.selItem, 0, txt) == 0) {
