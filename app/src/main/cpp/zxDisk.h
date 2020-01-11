@@ -13,14 +13,14 @@ constexpr int PORT_SYS  = 0xFF;
 class zxDisk {
 public:
     struct rs_type {
-        unsigned b0 : 1;
+        unsigned b0 : 1;// занят выполнением комманды
         unsigned b1 : 1;
         unsigned b2 : 1;
         unsigned b3 : 1;
         unsigned b4 : 1;
         unsigned b5 : 1;
         unsigned b6 : 1;
-        unsigned b7 : 1;
+        unsigned b7 : 1;// дисковод готов к работе
     };
 
     union unk {

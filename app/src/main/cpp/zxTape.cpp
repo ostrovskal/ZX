@@ -414,7 +414,7 @@ int zxTape::trap(uint16_t pc) {
             *psp += 2;
             return 4;
         }
-    }
+    } else modifySTATE(0, ZX_TRDOS);
     return 0;
 }
 

@@ -80,7 +80,7 @@
         <item>tracer,false</item>
         <item>hex,false</item>
         <item>debugger_label,false</item>
-        <item>debugger_code,false</item>
+        <item>debugger_code,true</item>
         <item>debugger_value,false</item>
 
         <item>unusedBool1,true</item>

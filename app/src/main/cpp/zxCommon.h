@@ -91,15 +91,15 @@ constexpr int ZX_ROM_TRDOS              = 245760;
 
 // Разделяемые свойства
 // 0. Байтовые значения, вычисляемые во время работы программы
-constexpr int ZX_PROP_JOY_TYPE        = 68; // Текущий тип джойстика
-constexpr int ZX_PROP_JOY_KEYS        = 69; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
-constexpr int ZX_PROP_JOY_CROSS_VALUE = 77; // Нажатые кнопки джойстика-крестовины
-constexpr int ZX_PROP_JOY_ACTION_VALUE= 78; // Нажатые кнопки джойстика-управления
-constexpr int ZX_PROP_KEY_CURSOR_MODE = 79; // Режим курсора (E, G, L, K т.п.)
-constexpr int ZX_PROP_KEY_MODE        = 80; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
-constexpr int ZX_PROP_VALUES_SEMI_ROW = 81; // Значения в полурядах клавиатуры (8) 93 - 100
-constexpr int ZX_PROP_VALUES_KEMPSTON = 89; // Значение для кемпстон-джойстика
-constexpr int ZX_PROP_JNI_RETURN_VALUE= 90; // Значение передаваемое из JNI
+constexpr int ZX_PROP_JOY_TYPE        = 70; // Текущий тип джойстика
+constexpr int ZX_PROP_JOY_KEYS        = 71; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
+constexpr int ZX_PROP_JOY_CROSS_VALUE = 79; // Нажатые кнопки джойстика-крестовины
+constexpr int ZX_PROP_JOY_ACTION_VALUE= 80; // Нажатые кнопки джойстика-управления
+constexpr int ZX_PROP_KEY_CURSOR_MODE = 81; // Режим курсора (E, G, L, K т.п.)
+constexpr int ZX_PROP_KEY_MODE        = 82; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
+constexpr int ZX_PROP_VALUES_SEMI_ROW = 83; // Значения в полурядах клавиатуры (8) 93 - 100
+constexpr int ZX_PROP_VALUES_KEMPSTON = 91; // Значение для кемпстон-джойстика
+constexpr int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
 constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 
 // 1. Булевы значения

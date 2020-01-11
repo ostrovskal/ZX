@@ -31,14 +31,13 @@ static void copyAssetsFile(AAssetManager *aMgr, const char *aPath, const char *p
     bool result = false;
     if(aFile) {
         auto aLen = (size_t) AAsset_getLength(aFile);
-        if(buffer) *buffer = new uint8_t[aLen];
-        auto aBuf = buffer != nullptr ? *buffer : TMP_BUF;
-        if(aLen < ZX_SIZE_TMP_BUF) {
-            AAsset_read(aFile, aBuf, aLen);
-            AAsset_close(aFile);
-            if (!buffer) zxFile::writeFile(path, TMP_BUF, aLen);
-            result = true;
-        }
+        auto aBuf = new uint8_t[aLen];
+        AAsset_read(aFile, aBuf, aLen);
+        AAsset_close(aFile);
+        if(!buffer) {
+            zxFile::writeFile(path, aBuf, aLen);
+            SAFE_A_DELETE(aBuf);
+        } else *buffer = aBuf;
     }
     if(!result) LOG_DEBUG("Не удалось найти файл <%s>!", aPath);
 }

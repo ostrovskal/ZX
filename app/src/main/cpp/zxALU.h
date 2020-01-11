@@ -93,7 +93,7 @@ public:
     uint8_t* _MODEL;
 
     // адреса текущих страниц
-    static uint8_t *pageROM, *pageRAM, *pageVRAM, *pageATTRIB;
+    static uint8_t *pageTRDOS, *pageROM, *pageRAM, *pageVRAM, *pageATTRIB;
 
     // страницы озу
     static uint8_t* PAGE_RAM[16];

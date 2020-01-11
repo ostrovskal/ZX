@@ -18,6 +18,7 @@ uint16_t* zxALU::_CALL(nullptr);
 uint16_t zxALU::PC(0);
 
 // актуальные страницы
+uint8_t* zxALU::pageTRDOS(nullptr);
 uint8_t* zxALU::pageROM(nullptr);
 uint8_t* zxALU::pageRAM(nullptr);
 uint8_t* zxALU::pageVRAM(nullptr);
@@ -629,7 +630,8 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
 }
 
 void zxALU::setPages() {
-    pageROM = (*_STATE & ZX_TRDOS) ? &ROMS[ZX_ROM_TRDOS] : (*_ROM == 100 ? PAGE_RAM[0] : PAGE_ROM[*_ROM]);
+    pageTRDOS = &ROMS[ZX_ROM_TRDOS];
+    pageROM = *_ROM == 100 ? PAGE_RAM[0] : PAGE_ROM[*_ROM];
     pageRAM = PAGE_RAM[*_RAM];
     pageVRAM = PAGE_RAM[*_VID];
     pageATTRIB = pageVRAM + 6144;
@@ -638,7 +640,7 @@ void zxALU::setPages() {
 void zxALU::execute() {
     // отображение экрана, воспроизведение звука
     updateFrame();
-    snd->update();
+    //snd->update();
     gpu->updateFrame();
 }
 

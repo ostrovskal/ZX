@@ -71,7 +71,7 @@ void zxDisk::writeData(uint8_t val) {
 }
 
 void zxDisk::writePort(uint8_t A0A7, uint8_t val) {
-    LOG_INFO("cmd: %i val: %i", A0A7, val);
+    LOG_INFO("port: %X val: %i", A0A7, val);
     switch(A0A7) {
         case PORT_CMD: writeCommand(val); break;
         case PORT_TRK: opts[TRDOS_TRK] = val; break;
@@ -82,25 +82,32 @@ void zxDisk::writePort(uint8_t A0A7, uint8_t val) {
 }
 
 uint8_t zxDisk::readPort(uint8_t A0A7) {
-    LOG_INFO("disk %i", A0A7);
+
+    uint8_t ret = 0xff;
 
     if(spin) vg_rs.bit.b1 = (uint8_t)(isDiskNoReady() ? 0 : (currentTimeMillis() % 200) < 20);
 
     switch(A0A7) {
         case PORT_CMD:
-            return (uint8_t)(isDiskNoReady() ? 0x80 : vg_rs.byte);
+            ret = (uint8_t)(isDiskNoReady() ? 0x80 : vg_rs.byte);
+            break;
         case PORT_TRK:
-            return opts[TRDOS_TRK];
+            ret = opts[TRDOS_TRK];
+            break;
         case PORT_SEC:
-            return opts[TRDOS_SEC];
+            ret = opts[TRDOS_SEC];
+            break;
         case PORT_DAT:
-            return readData();
+            ret = readData();
+            break;
         case PORT_SYS: {
             auto psys = opts[TRDOS_SYS];
-            return (currentTimeMillis() < cmd_done) ? (uint8_t)(psys & ~0x40) : psys;
+            ret = (currentTimeMillis() < cmd_done) ? (uint8_t)(psys & ~0x40) : psys;
+            break;
         }
     }
-    return 0xff;
+    LOG_INFO("port: %X ret: %i", A0A7, ret);
+    return ret;
 }
 
 uint8_t zxDisk::readData() {

@@ -275,8 +275,10 @@ class ZxWnd : Wnd() {
                 // спрятать/показать элемент клавы
                 // вытащить/спрятать элемент отладчика
                 val isDebugger = updatePropsMenuItem(item)
+/*
                 menu.findItem(R.integer.MENU_KEYBOARD)?.isVisible = !isDebugger
                 menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = isDebugger
+*/
             }
             MENU_DEBUGGER_LABEL, MENU_PROPS_TRACER,
             MENU_DEBUGGER_CODE, MENU_DEBUGGER_VALUE,
