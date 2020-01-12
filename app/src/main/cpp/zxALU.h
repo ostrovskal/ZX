@@ -42,7 +42,7 @@ public:
     void writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val);
 
     // загрузка
-    bool load(int disk, const char* path, int type);
+    bool load(const char* path, int type);
 
     // запись
     bool save(const char* path, int type);

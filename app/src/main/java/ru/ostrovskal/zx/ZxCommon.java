@@ -229,7 +229,6 @@ public final class ZxCommon {
     public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
     public static final int ZX_CMD_TAPE_COUNT       = 13; // Получение количества блоков ленты
-    public static final int ZX_CMD_SET_DISK         = 14; // Установка номера подключаемого диска
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП

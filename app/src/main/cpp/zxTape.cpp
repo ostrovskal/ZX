@@ -351,19 +351,11 @@ bool zxTape::trapLoad() {
         auto cpu = ALU->cpu;
         auto de = *cpu->_DE;
         auto ix = *cpu->_IX;
-        if (de != len) {
-            LOG_INFO("В перехватчике LOAD отличаются блоки - block: %i (DE: %i != SIZE: %i)!", currentBlock, de, len);
-//                    ALU->signalRESET(true);
-        }
-        if (de > len) len = *cpu->_DE;
+        if (de != len) LOG_INFO("В перехватчике LOAD отличаются блоки - block: %i (DE: %i != SIZE: %i)!", currentBlock, de, len);
+        if (de < len) len = *cpu->_DE;
         for (int i = 0; i < len; i++) ::wm8(realPtr((uint16_t) (ix + i)), data[i]);
-        LOG_DEBUG("trapLoad addr: %i size: %i", ix, len);
-        *cpu->_DE -= len;
-        *cpu->_IX += len;
-        *cpu->_AF = 0x00B3;
-        *cpu->_BC = 0x01B0;
-        opts[_RH] = 0;
-        opts[_RL] = data[len];
+        LOG_DEBUG("trapLoad PC: %i load: %i type: %i addr: %i size: %i", zxALU::PC, *cpu->_F & 1, *cpu->_A, ix, len);
+        *cpu->_F |= 1;
         if (nextBlock()) updateImpulseBuffer(false);
         ALU->pauseBetweenTapeBlocks = 50;
         modifySTATE(ZX_PAUSE, 0);

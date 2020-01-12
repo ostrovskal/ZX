@@ -237,7 +237,6 @@ class ZxWnd : Wnd() {
             menu.findItem(menuItems[idx])?.let {
                 menuIcon(it, style_zx_toolbar) {
                     tile = resources.getInteger(menuItems[idx + 1])
-                    //resolveTile(tile, bounds)
                     setBounds(0, 0, 40.dp, 40.dp)
                 }
             }

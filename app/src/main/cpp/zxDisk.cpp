@@ -5,18 +5,33 @@
 #include "zxCommon.h"
 #include "zxDisk.h"
 
+// SYS
+// чтение:
+// 6 - DRQ      - сигнал, отражающий запрос данных микроконтроллером
+// 7 - INTRQ    - сигнал окончания выполнения команды
+// запись:
+// 0, 1         - выбор дисковода A,B,C,D
+// 2            - аппаратный сброс
+// 3            - этот разряд блокирует сигнал HLT микроконтроллера, для нормальной работы в нем должна быть записана единица
+// 4            - выбор магнитной головки. Содержимое этого разряда напрямую транслируется в дисковод.
+//                  // 0 - соответствует первой магнитной головке или нижней стороне дискеты
+//                  // 1 — второй магнитной головке или верхней стороне
+// 5(6?)        - выбор плотности записи. Сброс разряда заставляет микроконтроллер работать по методу частотной модуляции (FM),
+                    // установка — по методу модифицированной частотной модуляции (MFM)
+
+
 // временный буфер диска
 static uint8_t tmpBufDisk[16384];
 
 zxDisk::DISK& zxDisk::currentDisk() {
-    return disks[opts[TRDOS_DSK] & 3];
+    return disks[opts[TRDOS_OUT] & 3];
 }
 
 void zxDisk::seekDelay(uint8_t dst_track) {
     auto sub = dst_track - currentDisk().track;
     dir = sub > 0;
     cmd_done = currentTimeMillis() + 20 * abs(sub);
-    opts[TRDOS_SYS] = (uint8_t)(isDiskNoReady() ? 0x80 : 0x40);
+    opts[TRDOS_IN] = (uint8_t)(isDiskNoReady() ? 0x40 : 0x80);
 /*
     if(isDiskNoReady()) vg_portFF_in = 0x80;
     else vg_portFF_in = 0x80;
@@ -62,12 +77,12 @@ void zxDisk::writeData(uint8_t val) {
     lenWrite--;
     posWrite++;
     if(lenWrite == 0) {
-        opts[TRDOS_SYS] = 0x80;
+        opts[TRDOS_IN] = 0x80;
         vg_rs.byte = 0;
         vg_rs.bit.b0 = 0; // Busy
         vg_rs.bit.b1 = 0; // DRQ copy
     }
-    else opts[TRDOS_SYS] = 0x40;
+    else opts[TRDOS_IN] = 0x40;
 }
 
 void zxDisk::writePort(uint8_t A0A7, uint8_t val) {
@@ -77,7 +92,7 @@ void zxDisk::writePort(uint8_t A0A7, uint8_t val) {
         case PORT_TRK: opts[TRDOS_TRK] = val; break;
         case PORT_SEC: opts[TRDOS_SEC] = val; break;
         case PORT_DAT: opts[TRDOS_DAT] = val; writeData(val); break;
-        case PORT_SYS: opts[TRDOS_DSK] = val; break;
+        case PORT_SYS: opts[TRDOS_OUT] = val; break;
     }
 }
 
@@ -101,7 +116,7 @@ uint8_t zxDisk::readPort(uint8_t A0A7) {
             ret = readData();
             break;
         case PORT_SYS: {
-            auto psys = opts[TRDOS_SYS];
+            auto psys = opts[TRDOS_IN];
             ret = (currentTimeMillis() < cmd_done) ? (uint8_t)(psys & ~0x40) : psys;
             break;
         }
@@ -117,10 +132,10 @@ uint8_t zxDisk::readData() {
         if (opts[TRDOS_SEC] > 16) opts[TRDOS_SEC] = 1;
         posRead++;
         if (posRead == lenRead) {
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             vg_rs.byte = 0;
         } else {
-            opts[TRDOS_SYS] = 0x40;
+            opts[TRDOS_IN] = 0x40;
             vg_rs.bit.b0 = 1; // Busy
             vg_rs.bit.b1 = 1; // DRQ copy
         }
@@ -129,10 +144,10 @@ uint8_t zxDisk::readData() {
 }
 
 void zxDisk::writeCommand(uint8_t val) {
-    side = (opts[TRDOS_DSK] >> 4) ^ 1;
+    side = (opts[TRDOS_OUT] >> 4) ^ 1;
     // interrupt
     if ((val & 0xF0) == 0xD0) {
-        opts[TRDOS_SYS] = 0x80;
+        opts[TRDOS_IN] = 0x80;
         setFlagsSeeks();
         return;
     }
@@ -177,29 +192,29 @@ void zxDisk::writeCommand(uint8_t val) {
     // io_readsec
     if((val & 0xE0) == 0x80) {
         vg_rs.byte = 0x81;
-        opts[TRDOS_SYS] = 0x40;
+        opts[TRDOS_IN] = 0x40;
         spin = 0;
         if(isDiskNoReady()) {
             vg_rs.byte = 0x90;
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             return;
         }
         if((opts[TRDOS_SEC] == 0) || (opts[TRDOS_SEC] > 16)) {
             // sector not found
             vg_rs.byte |= 0x10;
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             return;
         }
         if(!file.open(currentDisk().filename, zxFile::open_read)) {
             vg_rs.byte = 0x90;
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             return;
         }
         auto pointer = (currentDisk().track * 2 + side) * 256 * 16 + (opts[TRDOS_SEC] - 1) * 256;
         if(file.set_pos(pointer, SEEK_SET) != pointer) {
             file.close();
             vg_rs.byte |= 0x10; // sector not found
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             return;
         }
         if(val & 0x10) {
@@ -226,7 +241,7 @@ void zxDisk::writeCommand(uint8_t val) {
             else {
                 file.close();
                 vg_rs.byte |= 0x10; // sector not found
-                opts[TRDOS_SYS] = 0x80;
+                opts[TRDOS_IN] = 0x80;
             }
         }
         return;
@@ -235,7 +250,7 @@ void zxDisk::writeCommand(uint8_t val) {
     if((val & 0xFB) == 0xC0) {
         static uint8_t six_bytes[6];
         vg_rs.byte = 0x81;
-        opts[TRDOS_SYS] = 0x40;
+        opts[TRDOS_IN] = 0x40;
         six_bytes[0] = currentDisk().track;
         six_bytes[1] = 0;
         six_bytes[2] = opts[TRDOS_SEC];
@@ -252,21 +267,21 @@ void zxDisk::writeCommand(uint8_t val) {
     // io_writesec
     if((val & 0xE0) == 0xA0) {
         vg_rs.byte = 0x81;
-        opts[TRDOS_SYS] = 0x40;
+        opts[TRDOS_IN] = 0x40;
         spin = 0;
         if(currentDisk().ro) {
             vg_rs.byte = 0x60;
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             return;
         }
         if(isDiskNoReady()) {
             vg_rs.byte = 0x90;
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             return;
         }
-        if((opts[TRDOS_SEC] == 0)||(opts[TRDOS_SEC] > 16)) {
+        if((opts[TRDOS_SEC] == 0) || (opts[TRDOS_SEC] > 16)) {
             vg_rs.byte |= 0x10; // sector not found
-            opts[TRDOS_SYS] = 0x80;
+            opts[TRDOS_IN] = 0x80;
             return;
         }
         posWrite = (currentDisk().track * 2 + side) * 256 * 16 + (opts[TRDOS_SEC] - 1) * 256;

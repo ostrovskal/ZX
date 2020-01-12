@@ -197,7 +197,6 @@ constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отла
 constexpr int ZX_CMD_MOVE_PC            = 11;// Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12;// Получение адреса в памяти/адреса перехода в инструкции
 constexpr int ZX_CMD_TAPE_COUNT         = 13;// Получение количества блоков ленты
-constexpr int ZX_CMD_SET_DISK           = 14;// Установка номера подключаемого диска
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //

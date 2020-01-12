@@ -124,11 +124,11 @@ zxALU::~zxALU() {
     SAFE_A_DELETE(RAMs);
 }
 
-bool zxALU::load(int dsk, const char *path, int type) {
+bool zxALU::load(const char *path, int type) {
     bool ret = false;
     switch(type) {
         case ZX_CMD_IO_TRD:
-            ret = disk->openTRD(dsk, path);
+            ret = disk->openTRD(opts[ZX_PROP_ACTIVE_DISK], path);
             break;
         case ZX_CMD_IO_WAVE:
             ret = tape->openWAV(path);
@@ -934,8 +934,7 @@ const char *zxALU::programName(const char *nm) {
 int zxALU::trap() {
     if(PC < 16384) {
         // активность TR DOS
-        if(PC == 15616 || PC == 15619) {
-            LOG_INFO("Перехват TRDOS addr: %i", PC);
+        if(PC >= 15616 && PC <= 15871) {
             if(pageROM != PAGE_ROM[0]) {
                 *_STATE |= ZX_TRDOS;
                 setPages();
@@ -944,7 +943,7 @@ int zxALU::trap() {
         }
         bool success = false;
         if (PC == 1218) success = tape->trapSave();
-        else if (PC == 1366 || PC == 1388) success = tape->trapLoad();
+        else if (PC == 1366 || PC == 1378) success = tape->trapLoad();
         if(success) {
             auto psp = cpu->_SP;
             *cpu->_PC = rm16(*psp);

@@ -4,7 +4,6 @@
 #include <android/asset_manager.h>
 
 static jobject objProps = nullptr;
-static int numDisk      = -1;
 
 #ifdef DEBUG
 const char* scmd[] = {
@@ -68,7 +67,7 @@ extern "C" {
         auto path = env->GetStringUTFChars(nm, nullptr);
         LOG_DEBUG("%s \"%s\"", load ? "load" : "save", path);
         auto type = parseExtension(path);
-        auto ret = (jboolean)(load ? ALU->load(numDisk, path, type) : ALU->save(path, type));
+        auto ret = (jboolean)(load ? ALU->load(path, type) : ALU->save(path, type));
         if(!ret) LOG_DEBUG("Не удалось загрузить/записать <%s>!", path)
         else if(type > ZX_CMD_IO_STATE) ALU->programName(path);
         return ret;
@@ -113,7 +112,7 @@ extern "C" {
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
         copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
-        if(!error) ALU->load(0, autoSavePath, ZX_CMD_IO_STATE);
+        if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
         LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
 
@@ -200,7 +199,6 @@ extern "C" {
             case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_INIT_GL:    ALU->gpu->initGL(); break;
-            case ZX_CMD_SET_DISK:   numDisk = arg1; break;
             case ZX_CMD_TAPE_COUNT: ret = ALU->tape->countBlocks; break;
         }
         return ret;
