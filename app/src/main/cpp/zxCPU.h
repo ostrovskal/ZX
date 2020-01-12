@@ -11,8 +11,6 @@ extern "C" {
     void wm8(uint8_t* address, uint8_t val);
 };
 
-extern uint8_t flags_cond[8];
-
 enum MNEMONIC_REGS {
     _RC, _RE, _RL, _RF, _RS, _RB, _RD, _RH, _RA, _RI, _RR, _RPHL,
     // 12
@@ -139,9 +137,6 @@ protected:
     // пишем в память 8 бит
     void wm8(uint16_t address, uint8_t val);
 
-    // проверить на наличие флага
-    bool isFlag(uint8_t num) { return ((*_F & flags_cond[num]) ? 1 : 0) == (num & 1); }
-
     // получить значение флага
     inline uint8_t getFlag(uint8_t fl) { return (uint8_t)(*_F & fl); }
 
@@ -152,7 +147,7 @@ protected:
     void special(uint16_t vSrc, uint8_t v8Dst, uint8_t v8Src);
 
     // выполенение сдвига
-    uint8_t rotate(uint8_t value, bool isCB);
+    void rotate(uint8_t value, bool isCB);
 
     // флаги
     uint8_t fc, fn, fpv, fx, fh, fy, fz, fs;

@@ -121,6 +121,7 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
         return delta != 0
     }
 
+    @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if(childCount < 2) {
@@ -278,6 +279,7 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
             background = selector
             selItem = indexToAddr(idx)
         }
+        onNotifyParent?.invoke(this@ZxListView, ZxWnd.ZxMessages.ACT_DEBUGGER_SELECT_ITEM.ordinal, selItem, "")
         return 0
     }
 

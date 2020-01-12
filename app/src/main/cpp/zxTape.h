@@ -7,6 +7,7 @@
 #include "zxSound.h"
 
 class zxTape {
+    friend class zxALU;
 public:
     struct TAPE_BLOCK {
         TAPE_BLOCK() : data(nullptr), size(0) { }
@@ -67,8 +68,13 @@ public:
     uint8_t _MIC;
     uint8_t _BEEP;
 
+    // индекс текущего блока
+    int currentBlock;
+
     // актуальное количество блоков
     int countBlocks;
+
+    uint8_t readPort();
 
 protected:
 
@@ -85,10 +91,10 @@ protected:
     void makeImpulse(double count, uint8_t *buf, int &len);
 
     // перехватчик SAVE ""
-    void trapSave();
+    bool trapSave();
 
     // перехватчик LOAD ""
-    void trapLoad();
+    bool trapLoad();
 
     // пересоздание буфера импульсов
     void updateImpulseBuffer(bool force);
@@ -110,9 +116,6 @@ protected:
 
     // массив блоков
     TAPE_BLOCK blocks[128];
-
-    // индекс текущего блока
-    int currentBlock;
 
     // количество миллисекунд для пропуска
     double skipMillis;

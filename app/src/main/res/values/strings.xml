@@ -20,10 +20,10 @@
     <string name="menuDisk2" translatable="false">B:</string>
     <string name="menuDisk3" translatable="false">C:</string>
     <string name="menuDisk4" translatable="false">D:</string>
-    <string name="menu48kk">Kompanion 48K</string>
-    <string name="menu48k">Sinclair 48K</string>
-    <string name="menu48kn">New Sinclair 48K</string>
-    <string name="menu128k">Sinclair 128K</string>
+    <string name="menuKompanion">Kompanion 48K</string>
+    <string name="menuSinclair48">Sinclair 48K</string>
+    <string name="menuSinclair48n">Sinclair2006 48K</string>
+    <string name="menuSinclair128">Sinclair 128K</string>
     <string name="menuPentagon">Pentagon 128K</string>
     <string name="menuScorpion">Scorpion 256K</string>
     <string name="menuProfi">Profi</string>

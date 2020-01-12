@@ -185,7 +185,6 @@ extern "C" {
     }
 
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
-        LOG_DEBUG("%s(%i, %i)", scmd[cmd], arg1, arg2)
         int ret(0);
         switch(cmd) {
             case ZX_CMD_POKE:       ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;

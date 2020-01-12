@@ -48,8 +48,8 @@ void info1(const char* msg, const char* file, const char* func, int line, ...) {
 
 // вернуть адрес памяти
 uint8_t* realPtr(uint16_t address) {
-    if(address < 16384) return (*zxALU::_STATE & ZX_TRDOS) ? &zxALU::pageTRDOS[address] : &zxALU::pageROM[address];
-    else if(address < 32768) return &zxALU::pageVRAM[address - 16384];
+    if(address < 16384) return &zxALU::pageROM[address];
+    else if(address < 32768) return &zxALU::PAGE_RAM[5][address - 16384];
     else if(address < 49152) return &zxALU::PAGE_RAM[2][address - 32768];
     return &zxALU::pageRAM[address - 49152];
 }

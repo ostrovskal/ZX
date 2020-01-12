@@ -129,30 +129,30 @@ enum MNEMONIC_FLAGS {
 #define SET_X(x)        { x, _BT, O_SET, _T(2, 8), C_SET }
 
 
-#define F_ADSBC16   FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_ADSB8     FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_XOR       FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_OR        FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_AND       FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_CP        FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_NEG       FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_ROTX      FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_INI       FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_OTI       FS | FZ | FH | FPV | FN | FC | F3 | F5
-#define F_IR        FS | FZ | FH | FPV | FN | F3 | F5
-#define F_ID        FS | FZ | FH | FPV | FN | F3 | F5
-#define F_IN        FS | FZ | FH | FPV | FN | F3 | F5
-#define F_BIT       FS | FZ | FH | FPV | FN | F3 | F5
-#define F_RLRD      FS | FZ | FH | FPV | FN | F3 | F5
-#define F_F_PC      FS | FZ | FH | FPV | FN | F3 | F5
-#define F_CPI       FS | FZ | FH | FPV | FN | F3 | F5
-#define F_DAA       FS | FZ | FH | FPV | FC | F3 | F5
-#define F_ADD16     FH | FN | FC | F3 | F5
-#define F_CCF       FH | FN | FC | F3 | F5
-#define F_SCF       FH | FN | FC | F3 | F5
-#define F_ROT       FH | FN | FC | F3 | F5
-#define F_LDI       FH | FPV | FN | F3 | F5
-#define F_CPL       FH | FN | F3 | F5
+#define F_ADSBC16   FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_ADSB8     FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_XOR       FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_OR        FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_AND       FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_CP        FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_NEG       FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_ROTX      FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_INI       FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_OTI       FS | FZ | F5 | FH | F3 | FPV | FN | FC
+#define F_IR        FS | FZ | F5 | FH | F3 | FPV | FN
+#define F_ID        FS | FZ | F5 | FH | F3 | FPV | FN
+#define F_IN        FS | FZ | F5 | FH | F3 | FPV | FN
+#define F_BIT       FS | FZ | F5 | FH | F3 | FPV | FN
+#define F_RLRD      FS | FZ | F5 | FH | F3 | FPV | FN
+#define F_F_PC      FS | FZ | F5 | FH | F3 | FPV | FN
+#define F_CPI       FS | FZ | F5 | FH | F3 | FPV | FN
+#define F_DAA       FS | FZ | F5 | FH | F3 | FPV | FC
+#define F_ADD16     F5 | FH | F3 | FN | FC
+#define F_CCF       F5 | FH | F3 | FN | FC
+#define F_SCF       F5 | FH | F3 | FN | FC
+#define F_ROT       F5 | FH | F3 | FN | FC
+#define F_LDI       F5 | FH | F3 | FPV | FN
+#define F_CPL       F5 | FH | F3 | FN
 
 #define STK_NONI    { _N_, _N_, 255, _T(2, 8), C_ED_NONI }
 
@@ -470,7 +470,7 @@ enum MnemonicStd {
     OR_B, OR_C, OR_D, OR_E, OR_H, OR_L, OR_PHL, OR_A,
     CP_B, CP_C, CP_D, CP_E, CP_H, CP_L, CP_PHL, CP_A,/* 192 */
     RET_NZ, POP_BC, JP_NZ, JP_NN, CALL_NZ, PUSH_BC, ADD_A_N, RST0, RET_Z, RET, JP_Z, PREF_CB, CALL_Z, CALL_NN, ADC_A_N, RST8, RET_NC,
-    POP_DE, JP_NC, OUT_PN_A, CALL_NC, PUSH_DE, SUB_N, RST16, RET_C, EXX, JP_C, IN_A_PN, CALL_C, PREF_DD, SBC_A_N, RST24, RET_PO,
+    POP_DE, JP_NC, OUT_N_A, CALL_NC, PUSH_DE, SUB_N, RST16, RET_C, EXX, JP_C, IN_A_N, CALL_C, PREF_DD, SBC_A_N, RST24, RET_PO,
     POP_HL, JP_PO, EX_PSP_HL, CALL_PO, PUSH_HL, AND_N, RST32, RET_PE, JP_HL, JP_PE, EX_DE_HL, CALL_PE, PREF_ED, XOR_N, RST40, RET_P,
     POP_AF, JP_P, DI, CALL_P, PUSH_AF, OR_N, RST48, RET_M, LD_SP_HL, JP_M, EI, CALL_M, PREF_FD, CP_N, RST56,
 };

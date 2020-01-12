@@ -154,6 +154,9 @@ protected:
     // исполнение инструкции процессора
     int step(bool allow_int);
 
+    // перехватчик
+    int trap();
+
     // содержимое портов
     uint8_t *_KEMPSTON, *_1FFD, *_7FFD, *_FE;
 

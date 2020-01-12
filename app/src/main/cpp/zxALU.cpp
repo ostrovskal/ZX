@@ -331,7 +331,7 @@ bool zxALU::save(const char *path, int type) {
 }
 
 bool zxALU::saveZ80(const char *path) {
-    static uint8_t models[] = { 0, 0, 3, 9, 10 };
+    static uint8_t models[] = { 0, 0, 0, 3, 9, 10, 3 };
     static HEAD3_Z80 head;
 
     auto head2 = &head.head2;
@@ -372,6 +372,7 @@ bool zxALU::saveZ80(const char *path) {
 }
 
 void zxALU::updateProps(int filter) {
+    pageTRDOS = &ROMS[ZX_ROM_TRDOS];
     // скорость мерцания
     blinkShift = opts[ZX_PROP_BLINK_SPEED];
     blinkMsk = (1U << (blinkShift + 1)) - 1;
@@ -514,6 +515,59 @@ bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
         ssh_memzero(PAGE_ROM, sizeof(PAGE_ROM));
         for (int i = 0; i < pagesROM; i++) PAGE_ROM[i] = (rom + i * 16384);
     }
+    uint8_t src[] = {
+            LD_A_N, 1,
+            LD_BC_NN, 255, 255,
+            PUSH_BC,
+            POP_AF,
+            CCF,
+            INC_A,
+            LD_DE_NN, 3, 4,
+            LD_HL_NN, 5, 6,
+            IN_A_N, 2,
+            PREF_ED, IN_A_BC,
+            PREF_ED, IN_B_BC,
+            PREF_ED, IN_C_BC,
+            PREF_ED, IN_D_BC,
+            PREF_ED, IN_E_BC,
+            PREF_ED, IN_H_BC,
+            PREF_ED, IN_L_BC,
+            PREF_DD, LD_HL_NN, 0, 0,
+            PREF_DD, LD_H_PHL, 0,
+            PREF_DD, LD_L_PHL, 0,
+            JR_N, 2,
+            PREF_DD, EXX,
+            PREF_DD, EX_PSP_HL,
+            PREF_DD, EX_PSP_HL,
+            PREF_DD, EXX,
+            PREF_DD, INC_H,
+            PREF_DD, INC_L,
+            PREF_DD, ADD_A_H,
+            PREF_DD, ADD_A_L,
+            PREF_DD, ADD_A_D,
+            PREF_DD, ADD_A_E,
+            PREF_DD, LD_D_H,
+            PREF_DD, LD_E_L,
+            PREF_DD, DEC_HL,
+            PREF_DD, LD_C_L,
+            PREF_DD, LD_B_H,
+            PREF_DD, LD_L_H,
+            LD_HL_NN, 0, 64,
+            LD_BC_NN, 0, 27,
+            PUSH_HL,
+            PUSH_BC,
+            INC_PHL,
+            INC_HL,
+            DEC_BC,
+            LD_A_C,
+            OR_B,
+            JR_NZ, 249,
+            POP_BC,
+            POP_HL,
+            JP_NN, 6, 0
+                     };
+    auto dst = &PAGE_ROM[*_ROM][0];
+    //memcpy(dst, src, sizeof(src));
     signalRESET(resetTape);
     return result;
 }
@@ -545,53 +599,6 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
     if(*_STATE & ZX_DEBUG) { if(checkBPs((A0A7 | (A8A15 << 8)), ZX_BP_WPORT)) return; }
     if(*_STATE & ZX_TRDOS) {
         disk->writePort(A0A7, val);
-    } else if((A0A7 & 3) < 2) {
-        if(A8A15 == 0x1F) {
-            if(*_MODEL == MODEL_SCORPION) {
-                // 1FFD
-                // 0 -> 1 - RAM0(!!), 0 - see bit 1 etc
-                // 1 -> 1 - ROM 2, 0 - ROM from 0x7FFD
-                // 4 -> 1 - RAM SCORPION, 0 - from 0x7FFD
-                // A0, A2, A5, A12 = 1; A1, A14, A15 = 0
-                *_1FFD = val;
-                if (val & 1) *_ROM = 100;
-                else {
-                    if (val & 2) *_ROM = 2;
-                    else *_ROM = (uint8_t) ((*_7FFD & 16) >> 4);
-                }
-                *_RAM = (uint8_t) ((*_7FFD & 7) + (uint8_t) ((val & 16) >> 1));
-                LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
-                setPages();
-            }
-        } else if(A8A15 < 0x80) {
-            // 7FFD
-            // 1, 2, 4 - страница 0-7
-            // 8 - экран 5/7
-            // 16 - ПЗУ 0 - 128К 1 - 48К
-            // 32 - блокировка
-            // A0, A2, A5, A12, A14 = 1; A1, A15 = 0
-            if (*_MODEL < MODEL_128) return;
-            if(*_7FFD & 32) return;
-            *_7FFD = val;
-            *_VID = (uint8_t)((val & 8) ? 7 : 5);
-            *_RAM = (uint8_t)(val & 7);
-            if(*_MODEL == MODEL_SCORPION) {
-                if(!(*_1FFD & 2)) *_ROM = (uint8_t)((val & 16) >> 4);
-                *_RAM += (uint8_t)((*_1FFD & 16) >> 1);
-                LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
-            } else {
-                *_ROM = (uint8_t)((val & 16) >> 4);
-            }
-            setPages();
-        } else if(A8A15 < 0xC0) { // BFFD
-            // записываем значение в текущий регистр
-            snd->write(*snd->_CURRENT, val);
-            //LOG_DEBUG("AY VAL (%X%X(%i)", A8A15, A0A7, val);
-        } else if(A8A15 >= 0xC0) { // FFFD
-            // устанавливаем текущий регистр
-            *snd->_CURRENT = (uint8_t)(val & 15);
-            //LOG_DEBUG("AY REG (%X%X(%i)", A8A15, A0A7, val);
-        }
     } else {
         switch(A0A7) {
             case 0xFE:
@@ -603,7 +610,58 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             case 0x1F:
                 *_KEMPSTON = val;
                 break;
-            default: LOG_DEBUG("UNKNOWN (%X%X(%i)", A8A15, A0A7, val);
+            default:
+                switch(A8A15) {
+                    case 0x1F:
+                        if(*_MODEL == MODEL_SCORPION) {
+                            // 1FFD
+                            // 0 -> 1 - RAM0(!!), 0 - see bit 1 etc
+                            // 1 -> 1 - ROM 2, 0 - ROM from 0x7FFD
+                            // 4 -> 1 - RAM SCORPION, 0 - from 0x7FFD
+                            // A0, A2, A5, A12 = 1; A1, A14, A15 = 0
+                            *_1FFD = val;
+                            if (val & 1) *_ROM = 100;
+                            else {
+                                if (val & 2) *_ROM = 2;
+                                else *_ROM = (uint8_t) ((*_7FFD & 16) >> 4);
+                            }
+                            *_RAM = (uint8_t) ((*_7FFD & 7) + (uint8_t) ((val & 16) >> 1));
+                            LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
+                            setPages();
+                        }
+                        break;
+                    case 0x7F:
+                        // 7FFD
+                        // 1, 2, 4 - страница 0-7
+                        // 8 - экран 5/7
+                        // 16 - ПЗУ 0 - 128К 1 - 48К
+                        // 32 - блокировка
+                        // A0, A2, A5, A12, A14 = 1; A1, A15 = 0
+                        if (*_MODEL < MODEL_128) return;
+                        if(*_7FFD & 32) return;
+                        *_7FFD = val;
+                        *_VID = (uint8_t)((val & 8) ? 7 : 5);
+                        *_RAM = (uint8_t)(val & 7);
+                        if(*_MODEL == MODEL_SCORPION) {
+                            if(!(*_1FFD & 2)) *_ROM = (uint8_t)((val & 16) >> 4);
+                            *_RAM += (uint8_t)((*_1FFD & 16) >> 1);
+                            LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
+                        } else {
+                            *_ROM = (uint8_t)((val & 16) >> 4);
+                        }
+                        setPages();
+                        break;
+                    case 0xBF:
+                        // записываем значение в текущий регистр
+                        snd->write(*snd->_CURRENT, val);
+                        //LOG_DEBUG("AY VAL (%X%X(%i)", A8A15, A0A7, val);
+                        break;
+                    case 0xFF:
+                        // устанавливаем текущий регистр
+                        *snd->_CURRENT = (uint8_t)(val & 15);
+                        //LOG_DEBUG("AY REG (%X%X(%i)", A8A15, A0A7, val);
+                        break;
+                }
         }
     }
 }
@@ -613,25 +671,29 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
     if(*_STATE & ZX_TRDOS) return disk->readPort(A0A7);
     switch(A0A7) {
         // звук AY
-        case 0xFD: if(A8A15 == 0xff) return snd->_REGISTERS[*snd->_CURRENT]; break;
+        case 0xFD:
+            if(A8A15 != 0xff) break;
+            return snd->_REGISTERS[*snd->_CURRENT];
         // джойстик
-        case 0x1F: return *_KEMPSTON;
+        case 0x1F:
+            return *_KEMPSTON;
+        case 0xFC:
+            return _FF;
         // клавиатура | MIC
-//        case 0xFC:// TODO: компаньон
         case 0xFE:
-            A0A7 = 255;
+            // 0,1,2,3,4 - клавиши полуряда, 6 - EAR, 5,7 - не используется
+            A0A7 = 31;
             for(int i = 0; i < 8; i++) {
                 if(A8A15 & (1 << i)) continue;
                 A0A7 &= opts[i + ZX_PROP_VALUES_SEMI_ROW];
             }
-            return A0A7 | tape->_MIC;
+            return A0A7 | tape->readPort();
     }
     return _FF;
 }
 
 void zxALU::setPages() {
-    pageTRDOS = &ROMS[ZX_ROM_TRDOS];
-    pageROM = *_ROM == 100 ? PAGE_RAM[0] : PAGE_ROM[*_ROM];
+    pageROM = *_STATE & ZX_TRDOS ? pageTRDOS : (*_ROM == 100 ? PAGE_RAM[0] : PAGE_ROM[*_ROM]);
     pageRAM = PAGE_RAM[*_RAM];
     pageVRAM = PAGE_RAM[*_VID];
     pageATTRIB = pageVRAM + 6144;
@@ -648,7 +710,7 @@ void zxALU::stepDebug() {
     // убрать отладчик - чтобы не сработала точка останова
     modifySTATE(0, ZX_DEBUG | ZX_HALT);
     // перехват системных процедур
-    auto ticks = tape->trap(*cpu->_PC);
+    auto ticks = trap();
     ticks += cpu->step();
     *_TICK += ticks;
     modifySTATE(ZX_DEBUG, 0);
@@ -662,7 +724,7 @@ int zxALU::step(bool allow_int) {
     // установить возможность прерывания
     modifySTATE(allow_int * ZX_INT, 0);
     // перехват системных процедур
-    auto ticks = tape->trap(PC);
+    auto ticks = trap();
     // выполнение операции
     ticks += cpu->step();
     // проверка на прерывания
@@ -713,7 +775,7 @@ void zxALU::updateFrame() {
     auto szBorder = sizeBorder >> 1;
     auto colours = (uint32_t*)&opts[ZX_PROP_COLORS];
 
-    _FF = 0xff;
+//    _FF = 0xff;
     colorBorder = (uint8_t)(*_FE & 7);
 
     updateCPU(stateUP, true);
@@ -867,6 +929,35 @@ const char *zxALU::programName(const char *nm) {
         name = tmp_nm;
     }
     return name.c_str();
+}
+
+int zxALU::trap() {
+    if(PC < 16384) {
+        // активность TR DOS
+        if(PC == 15616 || PC == 15619) {
+            LOG_INFO("Перехват TRDOS addr: %i", PC);
+            if(pageROM != PAGE_ROM[0]) {
+                *_STATE |= ZX_TRDOS;
+                setPages();
+            }
+            return 4;
+        }
+        bool success = false;
+        if (PC == 1218) success = tape->trapSave();
+        else if (PC == 1366 || PC == 1388) success = tape->trapLoad();
+        if(success) {
+            auto psp = cpu->_SP;
+            *cpu->_PC = rm16(*psp);
+            *psp += 2;
+            return 4;
+        }
+    } else {
+        if(*_STATE & ZX_TRDOS) {
+            *_STATE &= ~ZX_TRDOS;
+            setPages();
+        }
+    }
+    return 0;
 }
 
 #pragma clang diagnostic pop

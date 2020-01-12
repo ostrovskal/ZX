@@ -16,17 +16,19 @@
     <string name="menuFilter">Фильтрация</string>
     <string name="menuTape">Захват ленты</string>
     <string name="menuDebugger">Отладчик</string>
-    <string name="menu48kk">Компаньон 48K</string>
-    <string name="menu48k">Синклер 48K</string>
-    <string name="menu128k">Синклер 128K</string>
+    <string name="menuKompanion">Компаньон 48K</string>
+    <string name="menuSinclair48">Синклер 48K</string>
+    <string name="menuSinclair48n">Синклер2006 48К</string>
+    <string name="menuSinclair128">Синклер 128K</string>
     <string name="menuPentagon">Пентагон 128K</string>
     <string name="menuScorpion">Скорпион 256K</string>
+    <string name="menuProfi">Профи</string>
     <string name="menuKeyJoy">Клавиатура/Джойстик</string>
     <string name="hintName">имя</string>
     <string name="headBps">Точки останова</string>
     <string name="headerIO">Операции</string>
-    <string name="downloadCloud">Скачать…</string>
-    <string name="connectCloud">Загрузка…</string>
+    <string name="downloadCloud">Скачивание…</string>
+    <string name="connectCloud">Соединение…</string>
     <string name="connectError">Не удалось подключиться к серверу. Проверьте свое интернет соединение!</string>
     <string name="hintAddress">адрес</string>
     <string name="hintAddress1">начальный адрес</string>
@@ -82,6 +84,4 @@
     <string name="settingsTapeBasic">БЕЙСИК</string>
     <string name="settingsTapeNumArray">Ч.МАССИВ</string>
     <string name="settingsTapeStringArray">C.МАССИВ</string>
-    <string name="menu48kn">Новый Синклер 48К</string>
-    <string name="menuProfi">Профи</string>
 </resources>

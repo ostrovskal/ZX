@@ -13,7 +13,9 @@
 static uint8_t tbl_parity[256];
 
 uint8_t*  zxCPU::regs[36];
-uint8_t flags_cond[8] = {FZ, FZ, FC, FC, FPV, FPV, FS, FS};
+
+static uint8_t flags_vals[9] = { 0, FZ, FZ, FC, FC, FPV, FPV, FS, FS };
+static uint8_t flags_cond[9] = { 0, 0, 64, 0, 1, 0, 4, 0, 128 };
 
 static void makeTblParity() {
     for(int a = 0; a < 256; a++) {
@@ -72,7 +74,7 @@ int zxCPU::signalINT() {
         incrementR();
         switch(*_IM) {
             case 0: case 1: call(0x38); return 13;
-            case 2: call(rm16((uint16_t)((*_I << 8) | 254))); return 19;
+            case 2: call(rm16((uint16_t)((*_I << 8) | 255))); return 19;
         }
     }
     return 0;
@@ -153,7 +155,7 @@ int zxCPU::step() {
         codeOps = rm8PC();
         m = &mnemonics[codeOps + offset];
         if(m->ops != O_PREF) { isExecute = false; break; }
-        ticks += m->tiks;
+        ticks += m->tiks & 31;
         switch(codeOps) {
             case PREF_CB: offset = 256; break;
             case PREF_ED: prefix = 0; offset = 512; break;
@@ -182,7 +184,8 @@ int zxCPU::step() {
         rep = codeOps & 16;
         v8Dst = *_A; v8Src = rm8(*_HL);
     } else if(ops >= O_JMP) {
-        isExecute = (mskFlags && !isFlag((uint8_t)(mskFlags - 1)));
+        // проверить на наличие флага
+        isExecute = mskFlags && ((*_F & flags_vals[mskFlags]) != flags_cond[mskFlags]);
         mskFlags = 0;
     }
 
@@ -190,20 +193,24 @@ int zxCPU::step() {
         switch(ops) {
             case O_ASSIGN:
                 // LD DST, SRC/NN
-                if (regDst & _R16) *(uint16_t *) dst = vSrc;
+                if (regDst & _R16) {
+                    *(uint16_t *) dst = vSrc;
+                }
                 else {
-                    // LD DST,SRC/N
+                    // LD DST, SRC/N
                     *dst = v8Src;
                     if (mskFlags) {
                         // LD A_I/A_R - SZ503*0-
                         resetPV = true; flags = FH | FPV;
-                        res = v8Src; fh = fn = 0; fpv = *_IFF2;
+                        res = v8Src; fh = fn = fc = 0; fpv = *_IFF2;
                     }
                 }
                 break;
             case O_LOAD:
                 // LD DST, [NN]
-                if (regDst & _R16) *(uint16_t *) dst = rm16(vSrc);
+                if (regDst & _R16) {
+                    *(uint16_t *) dst = rm16(vSrc);
+                }
                 else {
                     if (regSrc == _RPHL) {
                         // LD DST, [HL/IX/IY + D]
@@ -231,7 +238,7 @@ int zxCPU::step() {
                 if (regDst & _R16) {
                     if(ops == O_ADD) opts[RTMP] = (uint8_t)(vDst >> 8);
                     *(uint16_t*)dst = _fc = (uint16_t)(n32 = fn ? (vDst - vSrc) : (vDst + vSrc));
-                    flags = FC | FZ; _FC16(n32); _FZ(_fc); fch = 0;
+                    flags = FC | FZ; _FC16(n32); _FZ(_fc); fch = fs = fpv = 0;
                     v8Dst = (uint8_t) (vDst >> 8); v8Src = (uint8_t) (vSrc >> 8); res = (uint8_t) (_fc >> 8);
                 } else {
                     // SZ5H3V0C / SZ5H3V1C
@@ -247,7 +254,7 @@ int zxCPU::step() {
                     // SZ5H3V0- / SZ5H3V1-
                     res = (v8Dst + (int8_t)cb8);
                     if (regDst == _RPHL) wm8(vDst, res); else *dst = res;
-                    fn = (uint8_t)(cb8 == 255);
+                    fn = (uint8_t)(cb8 == 255); fc = 0;
                 }
                 break;
             case O_XOR:
@@ -269,8 +276,9 @@ int zxCPU::step() {
                 break;
                 // SZ503P0-
             case O_IN:
+                // IN A, NA/IN DST, CB
                 *dst = res = ALU->readPort(v8Src, regSrc == _RC ? *_B : v8Dst);
-                if(mskFlags) { flags = FPV | FH; fh = fn = 0; _FP(res); }
+                if(mskFlags) { flags = FPV | FH; fh = fn = fc = 0; _FP(res); }
                 break;
             case O_OUT:
                 ALU->writePort(v8Src, regSrc == _RC ? *_B : v8Dst, v8Dst);
@@ -308,7 +316,7 @@ int zxCPU::step() {
                 ticks += 6;
                 break;
             case O_ROT:
-                res = rotate(isPrefCB ? cb8 : v8Dst, codeOps > 64);
+                rotate(isPrefCB ? cb8 : v8Dst, offset == 256);
                 if(isPrefCB) { wm8(vSrc, res); if(regDst == _RPHL) break; }
                 if(regDst == _RPHL) wm8(vDst, res); else *dst = res;
                 break;
@@ -327,7 +335,7 @@ int zxCPU::step() {
             case O_BIT:
                 // *Z513*0-
                 if(isPrefCB) v8Dst = cb8;
-                _FZ(v8Dst & v8Src); fpv = fz; fn = 0; fh = 1;
+                _FZ(v8Dst & v8Src); fpv = fz; fn = fc = 0; fh = 1;
                 flags = FS | FZ | FH | FPV | F3 | F5;
                 fs = (uint8_t)(v8Src == 128 && !fz);
                 if(ticks > 15) {
@@ -393,7 +401,8 @@ int zxCPU::step() {
                 flags = F3 | F5 | FH | FPV;
                 fh = fn = 0; fpv = (uint8_t)(*_BC != 0);
                 fx = (uint8_t)((v8Src + v8Dst) & 8);
-                fy = (uint8_t)((v8Src + v8Dst) & 2);
+                fy = (uint8_t)(((v8Src + v8Dst) & 2) << 4);
+                fs = fz = fc = 0;
                 if(rep && fpv) { *_PC -= 2; ticks = 21; }
                 break;
                 /*
@@ -405,8 +414,8 @@ int zxCPU::step() {
                 */
             case O_CPI:
                 res = v8Dst - v8Src; *_HL += dir; *_BC -= 1; fh = getFlag(FH);
-                fx = (uint8_t)((res - fh) & 8); fy = (uint8_t)((res - fh) & 2);
-                flags = FPV | F3 | F5; fn = 1; fpv = (uint8_t)(*_BC != 0);
+                fx = (uint8_t)((res - fh) & 8); fy = (uint8_t)(((res - fh) & 2) << 4);
+                flags = FPV | F3 | F5; fn = fc = 1; fpv = (uint8_t)(*_BC != 0);
                 if(fpv && rep && res) { *_PC -= 2; ticks = 21; }
                 break;
                 /*
@@ -442,13 +451,35 @@ int zxCPU::step() {
     }
     if(mskFlags) {
         auto flg = mskFlags & ~flags;
-        if(flg & FS) _FS(res);
-        if(flg & FZ) _FZ(res);
-        if(flg & F5) fy = (uint8_t)(res & 32);
-        if(flg & FH) _FH(v8Dst, v8Src, res, fch, fn);
-        if(flg & F3) fx = (uint8_t)(res & 8);
-        if(flg & FPV) _FV(v8Dst, v8Src, res, fch, fn);
-        if(flg & FC) _FC(_fc);
+        if(flg & FS) {
+            _FS(res);
+        }
+        if(flg & FZ) {
+            _FZ(res);
+        }
+        if(flg & F5) {
+            fy = (uint8_t)(res & 32);
+        }
+        if(flg & FH) {
+            _FH(v8Dst, v8Src, res, fch, fn);
+        }
+        if(flg & F3) {
+            fx = (uint8_t)(res & 8);
+        }
+        if(flg & FPV) {
+            _FV(v8Dst, v8Src, res, fch, fn);
+        }
+        if(flg & FC) {
+            _FC(_fc);
+        }
+        if(fs != 1 && fs != 0) LOG_INFO("S: %i", fs);
+        if(fz != 1 && fz != 0) LOG_INFO("Z: %i", fz);
+        if(fy != 32 && fy != 0) LOG_INFO("FY: %i", fy);
+        if(fh != 1 && fh != 0) LOG_INFO("H: %i", fh);
+        if(fx != 8 && fx != 0) LOG_INFO("FX: %i", fx);
+        if(fpv != 1 && fpv != 0) LOG_INFO("FPV: %i", fpv);
+        if(fn != 1 && fn != 0) LOG_INFO("N: %i", fn);
+        if(fc != 1 && fc != 0) LOG_INFO("CY: %i", fc);
         uint8_t f = fc | (fn << 1) | (fpv << 2) | fx | (fh << 4) | fy | (fz << 6) | (fs << 7);
         *_F &= ~mskFlags;
         *_F |= (f & mskFlags);
@@ -473,35 +504,35 @@ void zxCPU::special(uint16_t vDst, uint8_t v8Dst, uint8_t v8Src) {
         case IN_F_PC:
             // SZ503P0-
             res = ALU->readPort(*_C, *_B);
-            flags = FH | FPV; fh = fn = 0; _FP(res);
+            flags = FH | FPV; fh = fn = fc = 0; _FP(res);
             break;
         case RLD:
             // SZ503P0-
             wm8(vDst, (uint8_t) ((v8Dst << 4) | (v8Src & 15)));
             *_A = res = (uint8_t)((v8Src & 240) | ((v8Dst & 240) >> 4));
-            flags = FPV | FH; fh = fn = 0; _FP(res);
+            flags = FPV | FH; fh = fn = fc = 0; _FP(res);
             break;
         case RRD:
             // SZ503P0-
             wm8(vDst, (uint8_t)((v8Dst >> 4) | (v8Src << 4)));
             *_A = res = (uint8_t)((v8Src & 240) | (v8Dst & 15));
-            flags = FPV | FH; fh = fn = 0; _FP(res);
+            flags = FPV | FH; fh = fn = fc = 0; _FP(res);
             break;
         case CPL:
             // --*1*-1-
             res = *_A = ~*_A;
-            flags = FH; fn = fh = 1;
+            flags = FH; fn = fh = 1; fs = fz = fc = fpv = 0;
             break;
         case CCF:
             // --***-0C
             res = *_A;
             fc = (uint8_t)((fh = getFlag(FC)) == 0);
-            flags = FH | FC; fn = 0;
+            flags = FH | FC; fn = fs = fz = fpv = 0;
             break;
         case SCF:
             // --*0*-01
             res = *_A;
-            flags = FH | FC; fh = fn = 0; fc = 1;
+            flags = FH | FC; fh = fn = fs = fz = fpv = 0; fc = 1;
             break;
         case DAA:
             // SZ5*3P-*
@@ -519,7 +550,7 @@ void zxCPU::special(uint16_t vDst, uint8_t v8Dst, uint8_t v8Src) {
                 res += (fn ? -96 : 96);
                 fc = 1;
             } else fc = 0;
-            *_A = res; flags = FH | FPV | FC; _FP(res);
+            *_A = res; flags = FH | FPV | FC; _FP(res); fn = 0;
             break;
         case EI: case DI:
             *_IFF1 = *_IFF2 = (uint8_t) ((codeOps & 8) >> 3);
@@ -538,12 +569,12 @@ void zxCPU::special(uint16_t vDst, uint8_t v8Dst, uint8_t v8Src) {
     }
 }
 
-uint8_t zxCPU::rotate(uint8_t value, bool isCB) {
+void zxCPU::rotate(uint8_t value, bool isCB) {
     // --503-0C / SZ503P0C
     fh = fn = 0; flags = FH | FC;
     auto ofc = getFlag(FC);
     fc = (uint8_t)((value & ((codeOps & 8) ? 1 : 128)) != 0);
-    auto nvalue = ((codeOps & 8) ? value >> 1 : value << 1);
+    res = ((codeOps & 8) ? value >> 1 : value << 1);
     switch(codeOps & 56) {
         // RLC c <- 7 <----- 0 <- 7
         case 0: value = fc; break;
@@ -553,17 +584,16 @@ uint8_t zxCPU::rotate(uint8_t value, bool isCB) {
         case 16: value = ofc; break;
         // RR c -> 7 -------> 0 -> c
         case 24: value = (ofc << 7); break;
-        // SLA c <- 7 <---------- 0 <- 0
-        // SRL 0 -> 7 ------------> 0 -> c
+        // SLA c <- 7 <---------- 0 <-
+        // SRL -> 7 ------------> 0 -> c
         case 32: case 56: value = 0; break;
         // SRA 7 -> 7 ------------> 0 -> c
         case 40: value &= 128; break;
-        // SLL c <- 7 <----------0 <- 1
+        // SLL c <- 7 <---------- 0 <- 1
         case 48: value = 1; break;
     }
-    value |= nvalue;
-    if(isCB) { flags |= FPV; _FP(value); }
-    return value;
+    res |= value;
+    if(isCB) { flags |= FPV; _FP(res); } else { fs = fz = fpv = 0; }
 }
 
 #pragma clang diagnostic pop

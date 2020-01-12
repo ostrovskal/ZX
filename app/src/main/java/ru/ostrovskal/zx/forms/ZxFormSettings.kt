@@ -350,8 +350,8 @@ class ZxFormSettings : Form() {
 
     private fun defaultJoy(content: View, reset: Boolean) {
         if(reset) ZxWnd.props[ZX_PROP_JOY_TYPE] = 0
-        content.byIdx<Spinner>(1).selection = ZxWnd.props[ZX_PROP_JOY_TYPE].toInt()
-        content.byIdx<Spinner>(3).selectionString = ZxWnd.zxProgramName("")
+        content.byIdx<Spinner>(0).selection = ZxWnd.props[ZX_PROP_JOY_TYPE].toInt()
+        content.byIdx<Spinner>(1).selectionString = ZxWnd.zxProgramName("")
     }
 
     private fun defaultSound(content: View, settings: Array<String>, reset: Boolean) {

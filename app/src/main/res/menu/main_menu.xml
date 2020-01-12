@@ -109,19 +109,19 @@
             <group android:checkableBehavior="single">
                 <item
                     android:id="@integer/MENU_MODEL_48KK"
-                    android:title="@string/menu48kk"
+                    android:title="@string/menuKompanion"
                     android:showAsAction="never" />
                 <item
                     android:id="@integer/MENU_MODEL_48KS"
-                    android:title="@string/menu48k"
+                    android:title="@string/menuSinclair48"
                     android:showAsAction="never"/>
                 <item
                     android:id="@integer/MENU_MODEL_48KSN"
-                    android:title="@string/menu48kn"
+                    android:title="@string/menuSinclair48n"
                     android:showAsAction="never"/>
                 <item
                     android:id="@integer/MENU_MODEL_128K"
-                    android:title="@string/menu128k"
+                    android:title="@string/menuSinclair128"
                     android:showAsAction="never"/>
                 <item
                     android:id="@integer/MENU_MODEL_PENTAGON"

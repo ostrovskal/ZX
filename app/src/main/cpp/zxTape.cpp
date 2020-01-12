@@ -59,7 +59,7 @@ bool zxTape::load(uint8_t* ptr, bool unpacked) {
     reset();
 
     while(true) {
-        uint16_t size = *(uint16_t*)ptr; ptr += sizeof(uint16_t);
+        uint16_t size = *(uint16_t*)ptr; ptr += 2;
         if(size < 2) break;
         auto data = ptr;
         auto len = size;
@@ -69,6 +69,12 @@ bool zxTape::load(uint8_t* ptr, bool unpacked) {
                 return false;
             data = TMP_BUF;
         }
+/*
+        if(data[1] == 0) {
+            data[14] = 0;
+            data[15] = 128;
+        }
+*/
         addBlock(data, size);
         ptr += len;
     }
@@ -317,39 +323,56 @@ void zxTape::makeImpulseBuffer(uint8_t* buf, int idx, int& len) {
     }
 }
 
-void zxTape::trapSave() {
-    auto cpu    = ALU->cpu;
-    auto a 	    = *cpu->_A;
-    auto len    = (uint16_t)(*cpu->_DE + 2);
-    auto ix     = *cpu->_IX;
+bool zxTape::trapSave() {
+    if(!isTrap) return false;
 
-    TMP_BUF[0]  = a;
-    for(int i = 0; i < len - 2; i++) {
-        auto b = rm8((uint16_t)(ix + i));
+    auto cpu = ALU->cpu;
+    auto a = *cpu->_A;
+    auto len = (uint16_t) (*cpu->_DE + 2);
+    auto ix = *cpu->_IX;
+
+    TMP_BUF[0] = a;
+    for (int i = 0; i < len - 2; i++) {
+        auto b = rm8((uint16_t) (ix + i));
         a ^= b;
         TMP_BUF[i + 1] = b;
     }
     TMP_BUF[len - 1] = a;
     addBlock(TMP_BUF, len);
+    return true;
 }
 
-void zxTape::trapLoad() {
-    auto cpu = ALU->cpu;
-    auto blk = &blocks[currentBlock];
-    auto len = blk->size - 2;
-    auto data = blk->data + 1;
-    auto ix = *cpu->_IX;
-    for (int i = 0; i < len; i++) ::wm8(realPtr((uint16_t) (ix + i)), data[i]);
-    LOG_DEBUG("trapLoad addr: %i size: %i", ix, len);
-    *cpu->_DE -= len;
-    *cpu->_IX += len;
-    *cpu->_AF = 0x00B3;
-    *cpu->_BC = 0x01B0;
-    opts[_RH] = 0;
-    opts[_RL] = data[len];
-    if (nextBlock()) updateImpulseBuffer(false);
-    ALU->pauseBetweenTapeBlocks = 50;
-    modifySTATE(ZX_PAUSE, 0);
+bool zxTape::trapLoad() {
+    if (isTrap && currentBlock < countBlocks) {
+        auto blk = &blocks[currentBlock];
+        auto len = blk->size - 2;
+        auto data = blk->data + 1;
+
+        auto cpu = ALU->cpu;
+        auto de = *cpu->_DE;
+        auto ix = *cpu->_IX;
+        if (de != len) {
+            LOG_INFO("В перехватчике LOAD отличаются блоки - block: %i (DE: %i != SIZE: %i)!", currentBlock, de, len);
+//                    ALU->signalRESET(true);
+        }
+        if (de > len) len = *cpu->_DE;
+        for (int i = 0; i < len; i++) ::wm8(realPtr((uint16_t) (ix + i)), data[i]);
+        LOG_DEBUG("trapLoad addr: %i size: %i", ix, len);
+        *cpu->_DE -= len;
+        *cpu->_IX += len;
+        *cpu->_AF = 0x00B3;
+        *cpu->_BC = 0x01B0;
+        opts[_RH] = 0;
+        opts[_RL] = data[len];
+        if (nextBlock()) updateImpulseBuffer(false);
+        ALU->pauseBetweenTapeBlocks = 50;
+        modifySTATE(ZX_PAUSE, 0);
+        return true;
+    } else {
+        if (posImpulse >= lenImpulse)
+            updateImpulseBuffer(true);
+    }
+    return false;
 }
 
 void zxTape::control(int ticks) {
@@ -371,51 +394,6 @@ bool zxTape::nextBlock() {
     currentBlock++;
     if(currentBlock >= countBlocks) reset();
     return currentBlock < countBlocks;
-}
-
-int zxTape::trap(uint16_t pc) {
-    if(pc < 16384) {
-        // активность TR DOS
-        if(pc == 15616 || pc == 15619) {
-            LOG_INFO("Перехват TRDOS addr: %i", pc);
-            if(ALU->pageROM != ALU->PAGE_ROM[0]) {
-                modifySTATE(ZX_TRDOS, 0);
-                ALU->setPages();
-            }
-            return 4;
-        }
-        bool success = false;
-        if (pc == 1218) {
-            if(isTrap) {
-                // перехват SAVE ""
-                trapSave();
-                success = true;
-            }
-        } else if ((pc == 1366 || pc == 1388) && currentBlock < countBlocks) {
-            if(isTrap) {
-                // перехват LOAD ""
-                auto size = blocks[currentBlock].size - 2;
-                auto de = *ALU->cpu->_DE;
-                if (de != size) {
-                    LOG_INFO("В перехватчике LOAD отличаются блоки - block: %i (DE: %i - BLOCK_SIZE: %i)!", currentBlock, de, size);
-                    ALU->signalRESET(true);
-                } else {
-                    trapLoad();
-                    success = true;
-                }
-            } else {
-                if (posImpulse >= lenImpulse)
-                    updateImpulseBuffer(true);
-            }
-        }
-        if(success) {
-            auto psp = ALU->cpu->_SP;
-            *ALU->cpu->_PC = rm16(*psp);
-            *psp += 2;
-            return 4;
-        }
-    } else modifySTATE(0, ZX_TRDOS);
-    return 0;
 }
 
 /*
@@ -466,5 +444,9 @@ const char* zxTape::getBlockData(int index, uint16_t *data) {
         }
     }
     return name;
+}
+
+uint8_t zxTape::readPort() {
+    return 0;
 }
 

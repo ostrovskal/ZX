@@ -103,6 +103,7 @@ class ZxDebugger {
                         ZxWnd.ZxMessages.ACT_DEBUGGER_LONG_CLOCK.ordinal    -> fromItem(data)
                         ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal        -> this@ZxDebugger.update(0, ZX_LIST)
                         ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal-> asm.setText(sdata)
+                        ZxWnd.ZxMessages.ACT_DEBUGGER_SELECT_ITEM.ordinal   -> enabledButtons()
                     }
                 }
                 backgroundSet(style_backgrnd_io)

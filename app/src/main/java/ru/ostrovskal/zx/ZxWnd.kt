@@ -69,7 +69,9 @@ class ZxWnd : Wnd() {
         // установка текста инструкции
         ACT_DEBUGGER_ASSEMBLER_TEXT,
         // включение/выключение кнопки трассера
-        ACT_UPDATE_TRACER_BUTTON
+        ACT_UPDATE_TRACER_BUTTON,
+        // выделение элемента в списке отладчика
+        ACT_DEBUGGER_SELECT_ITEM
     }
 
     // главная разметка
@@ -95,7 +97,8 @@ class ZxWnd : Wnd() {
             props[ZX_CPU_STATE] = state or add
         }
 
-        val modelNames              = listOf(R.string.menu48kk, R.string.menu48k, R.string.menu128k, R.string.menuPentagon, R.string.menuScorpion)
+        val modelNames              = listOf(   R.string.menuKompanion, R.string.menuSinclair48, R.string.menuSinclair48,
+                                                        R.string.menuSinclair128, R.string.menuPentagon, R.string.menuScorpion, R.string.menuProfi)
 
         val props                            = ByteArray(ZX_PROPS_COUNT)
 
