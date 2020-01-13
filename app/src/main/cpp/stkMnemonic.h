@@ -2,6 +2,8 @@
 // Created by Сергей on 01.12.2019.
 //
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma once
 
 enum ZX_CODE_BUTTON {
@@ -121,9 +123,9 @@ enum MNEMONIC_FLAGS {
 #define LD_HL_Y(y)      { _RPHL, y, O_SAVE, _T(1, 7), C_LD }
 #define LD_X_HL(x)      { x, _RPHL, O_LOAD, _T(1, 7), C_LD }
 
-#define ROT_X(x, c)     { x, _N_, O_ROT, _T(2, 8), c, F_ROTX }
-#define ROT_PX(c)       { _RPHL, _N_, O_ROT, _T(2, 8), c, F_ROTX }
+#define ROT_PX(c)       { _RPHL, _N_, O_ROT, _T(2, 15), c, F_ROTX }
 
+#define ROT_X(x, c)     { x, _N_, O_ROT, _T(2, 8), c, F_ROTX }
 #define BIT_X(x)        { x, _BT, O_BIT, _T(2, 8), C_BIT, F_BIT }
 #define RES_X(x)        { x, _BT, O_RES, _T(2, 8), C_RES }
 #define SET_X(x)        { x, _BT, O_SET, _T(2, 8), C_SET }
@@ -354,7 +356,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         { _RB,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_B_BC = 64
-        { _RB,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_PC_B
+        { _RB,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_B
         { _RHL, _RBC,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_BC
         { _C16, _RBC,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_BC
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG
@@ -362,7 +364,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0
         { _RI,  _RA,    O_ASSIGN,_T(2, 9), C_LD            },  // LD_I_A
         { _RC,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_C_BC
-        { _RC,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_PC_C
+        { _RC,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_C
         { _RHL, _RBC,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_BC
         { _RBC, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_BC_PNN
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_1
@@ -370,7 +372,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0_1
         { _RR,  _RA,    O_ASSIGN,_T(2, 9), C_LD            },  // LD_R_A
         { _RD,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_D_BC
-        { _RD,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_PC_D
+        { _RD,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_D
         { _RHL, _RDE,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_DE
         { _C16, _RDE,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_DE
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_2
@@ -378,7 +380,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM1
         { _RA,  _RI,    O_ASSIGN,_T(2, 9), C_LD,   F_IR    },  // LD_A_I
         { _RE,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_E_BC
-        { _RE,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_PC_E
+        { _RE,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_E
         { _RHL, _RDE,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_DE
         { _RDE, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_DE_PNN
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_3
@@ -386,7 +388,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM2
         { _RA,  _RR,    O_ASSIGN,_T(2, 9), C_LD,   F_IR    },  // LD_A_R
         { _RH,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_H_BC
-        { _RH,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_PC_H
+        { _RH,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_H
         { _RHL, _RHL,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_HL
         { _C16, _RHL,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_HL1
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_4
@@ -394,7 +396,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0_2
         { _RPHL,_RA,    O_SPEC, _T(2, 18), C_RRD,  F_RLRD  },  // RRD
         { _RL,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_L_BC
-        { _RL,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_PC_L
+        { _RL,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_L
         { _RHL, _RHL,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_HL
         { _RHL, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_HL1_PNN
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_5
@@ -402,21 +404,21 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0_3
         { _RPHL,_RA,    O_SPEC, _T(2, 18), C_RLD,  F_RLRD  },  // RLD
         { _N_,  _N_,    O_SPEC, _T(2, 12), C_IN,   F_F_PC  },  // IN_F_PC
-        { _N_,  _N_,    O_SPEC, _T(2, 12), C_OUT           },  // OUT_PC_0
+        { _N_,  _N_,    O_SPEC, _T(2, 12), C_OUT           },  // OUT_BC_0
         { _RHL, _RSP,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_SP
         { _C16, _RSP,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_SP
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_6
         { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_4
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM1_1
-        { _RHL, _RA,    O_SPEC, _T(2, 8),  C_NOP           },  // NOP_1=119
+        { _N_,  _N_,    O_SPEC, _T(2, 8),  C_NOP           },  // NOP_1=119
         { _RA,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_A_BC
-        { _RA,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_PC_A
+        { _RA,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_A
         { _RHL, _RSP,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_SP
         { _RSP, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_SP_PNN
         { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_7
         { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_5
         { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM2_1
-        { _RHL, _RA,    O_SPEC, _T(2, 8),  C_NOP           },  // NOP_2 = 127
+        { _N_,  _N_,    O_SPEC, _T(2, 8),  C_NOP           },  // NOP_2 = 127
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
@@ -511,10 +513,10 @@ enum MnemonicCB {
 };
 
 enum MnemonicED {
-    IN_B_BC = 64, OUT_PC_B, SBC_HL_BC, LD_PNN_BC, NEG, RETN, IM0, LD_I_A, IN_C_BC, OUT_PC_C, ADC_HL_BC, LD_BC_PNN, NEG_1, RETI,
-    IM0_1, LD_R_A, IN_D_BC, OUT_PC_D, SBC_HL_DE, LD_PNN_DE, NEG_2, RET_0, IM1, LD_A_I, IN_E_BC, OUT_PC_E, ADC_HL_DE, LD_DE_PNN,
-    NEG_3, RET_1, IM2, LD_A_R, IN_H_BC, OUT_PC_H, SBC_HL_HL, LD_PNN_HL1, NEG_4, RET_2, IM0_2, RRD, IN_L_BC, OUT_PC_L, ADC_HL_HL,
-    LD_HL1_PNN, NEG_5, RET_3, IM0_3, RLD, IN_F_PC, OUT_PC_0, SBC_HL_SP, LD_PNN_SP, NEG_6, RET_4, IM1_1, NOP_1, IN_A_BC, OUT_PC_A,
+    IN_B_BC = 64, OUT_BC_B, SBC_HL_BC, LD_PNN_BC, NEG, RETN, IM0, LD_I_A, IN_C_BC, OUT_BC_C, ADC_HL_BC, LD_BC_PNN, NEG_1, RETI,
+    IM0_1, LD_R_A, IN_D_BC, OUT_BC_D, SBC_HL_DE, LD_PNN_DE, NEG_2, RET_0, IM1, LD_A_I, IN_E_BC, OUT_BC_E, ADC_HL_DE, LD_DE_PNN,
+    NEG_3, RET_1, IM2, LD_A_R, IN_H_BC, OUT_BC_H, SBC_HL_HL, LD_PNN_HL1, NEG_4, RET_2, IM0_2, RRD, IN_L_BC, OUT_PC_L, ADC_HL_HL,
+    LD_HL1_PNN, NEG_5, RET_3, IM0_3, RLD, IN_F_BC, OUT_BC_0, SBC_HL_SP, LD_PNN_SP, NEG_6, RET_4, IM1_1, NOP_1, IN_A_BC, OUT_BC_A,
     ADC_HL_SP, LD_SP_PNN, NEG_7, RET_5, IM2_1, NOP_2, LDI = 160, CPI, INI, OUTI, LDD = 168, CPD, IND, OUTD,
     LDIR = 176, CPIR, INIR, OTIR, LDDR = 184, CPDR, INDR, OTDR
 };
@@ -532,3 +534,5 @@ enum MnemonicED {
 // ADD R, PNN
 // SUB RP, PNN
 // SUB R, PNN
+
+#pragma clang diagnostic pop

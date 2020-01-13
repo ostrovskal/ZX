@@ -291,7 +291,7 @@ class ZxFormSettings : Form() {
         return ui {
             linearLayout {
                 cellLayout(10, 16) {
-                    formHeader(R.string.settingsHead)
+                    formHeader(R.string.headSettings)
                     backgroundSet(style_form) { alpha = 192 }
                     root = tabLayout(sizeCaption = 18, style = style_tab_settings) {
                         caption.apply {

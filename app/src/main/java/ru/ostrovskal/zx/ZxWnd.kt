@@ -68,8 +68,6 @@ class ZxWnd : Wnd() {
         ACT_DEBUGGER_LONG_CLOCK,
         // установка текста инструкции
         ACT_DEBUGGER_ASSEMBLER_TEXT,
-        // включение/выключение кнопки трассера
-        ACT_UPDATE_TRACER_BUTTON,
         // выделение элемента в списке отладчика
         ACT_DEBUGGER_SELECT_ITEM
     }
@@ -107,7 +105,7 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_MODEL, R.integer.I_MODEL, R.integer.MENU_RESET, R.integer.I_RESET, R.integer.MENU_RESTORE, R.integer.I_RESTORE, R.integer.MENU_EXIT, R.integer.I_EXIT,
                                                 R.integer.MENU_PROPS_SOUND, R.integer.I_SOUND, R.integer.MENU_PROPS_TAPE, R.integer.I_CASSETE, R.integer.MENU_PROPS_FILTER, R.integer.I_FILTER, R.integer.MENU_PROPS_TURBO, R.integer.I_TURBO,
                                                 R.integer.MENU_PROPS_EXECUTE, R.integer.I_COMPUTER, R.integer.MENU_PROPS_DEBUGGER, R.integer.I_DEBUGGER, R.integer.MENU_DEBUGGER1, R.integer.I_DEBUGGER,
-                                                R.integer.MENU_PROPS_TRACER, R.integer.I_TRACER, R.integer.MENU_MRU, R.integer.I_MRU, R.integer.MENU_POKES, R.integer.I_POKES,
+                                                R.integer.MENU_MRU, R.integer.I_MRU, R.integer.MENU_POKES, R.integer.I_POKES,
                                                 R.integer.MENU_DEBUGGER_LABEL, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
                                                 R.integer.MENU_DEBUGGER_VALUE, R.integer.I_VALUE)
         @JvmStatic
@@ -233,7 +231,7 @@ class ZxWnd : Wnd() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         // установить иконки на элементы меню
-        for(idx in 0 until 46 step 2) {
+        for(idx in 0 until 44 step 2) {
             menu.findItem(menuItems[idx])?.let {
                 menuIcon(it, style_zx_toolbar) {
                     tile = resources.getInteger(menuItems[idx + 1])
@@ -255,7 +253,7 @@ class ZxWnd : Wnd() {
             when (resources.getInteger(item.itemId)) {
                 MENU_MODEL      -> getItem(props[ZX_PROP_MODEL_TYPE].toInt()).isChecked = true
                 MENU_DISKS      -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
-                MENU_PROPS      -> repeat(7) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
+                MENU_PROPS      -> repeat(6) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
                 MENU_MRU        -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
                 MENU_DEBUGGER1  -> repeat(3) { getItem(it).isChecked = props[menuProps[it + 9]].toBoolean }
             }
@@ -265,7 +263,6 @@ class ZxWnd : Wnd() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(val id = resources.getInteger(item.itemId)) {
-            MENU_TRACER                             -> instanceForm(FORM_TRACCER)
             MENU_POKES                              -> instanceForm(FORM_POKES)
             MENU_CLOUD                              -> instanceForm(FORM_LOADING)
             MENU_IO                                 -> instanceForm(FORM_IO, "filter", ".z80,.tap,.tga")
@@ -277,16 +274,13 @@ class ZxWnd : Wnd() {
                 // спрятать/показать элемент клавы
                 // вытащить/спрятать элемент отладчика
                 val isDebugger = updatePropsMenuItem(item)
-/*
                 menu.findItem(R.integer.MENU_KEYBOARD)?.isVisible = !isDebugger
                 menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = isDebugger
-*/
             }
-            MENU_DEBUGGER_LABEL, MENU_PROPS_TRACER,
-            MENU_DEBUGGER_CODE, MENU_DEBUGGER_VALUE,
-            MENU_PROPS_KEYBOARD, MENU_PROPS_SOUND,
-            MENU_PROPS_TURBO, MENU_PROPS_TAPE,
-            MENU_PROPS_EXECUTE                      -> updatePropsMenuItem(item)
+            MENU_DEBUGGER_LABEL, MENU_DEBUGGER_CODE,
+            MENU_DEBUGGER_VALUE, MENU_PROPS_KEYBOARD,
+            MENU_PROPS_SOUND, MENU_PROPS_TURBO,
+            MENU_PROPS_TAPE, MENU_PROPS_EXECUTE     -> updatePropsMenuItem(item)
             MENU_DISK_A, MENU_DISK_B,
             MENU_DISK_C, MENU_DISK_D                -> {
                 props[ZX_PROP_ACTIVE_DISK] = (id - MENU_DISK_A).toByte()
@@ -345,8 +339,6 @@ class ZxWnd : Wnd() {
         }
         if(id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL)
-        if(id == MENU_PROPS_TRACER)
-            hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal)
         if(id == MENU_PROPS_EXECUTE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
         return isChecked

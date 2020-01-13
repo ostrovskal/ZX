@@ -24,7 +24,7 @@ static uint8_t sym[] =  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 
 static uint8_t tbl[] =  { 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15, 14, 14, 14, 14, 14, 14, 12, 12 };
 static uint8_t valid[] ={ 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   1,  2,  3,  4,  5,  6,  7,  8,  9 };
 
-void info1(const char* msg, const char* file, const char* func, int line, ...) {
+void info(const char* msg, const char* file, const char* func, int line, ...) {
     static char buf[512];
     sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
     va_list varArgs;
@@ -34,17 +34,15 @@ void info1(const char* msg, const char* file, const char* func, int line, ...) {
     va_end(varArgs);
 }
 
-#ifdef DEBUG
-    void debug1(const char* msg, const char* file, const char* func, int line, ...) {
-        static char buf[512];
-        sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
-        va_list varArgs;
-        va_start(varArgs, line);
-        __android_log_vprint(ANDROID_LOG_DEBUG, LOG_NAME, buf, varArgs);
-        __android_log_print(ANDROID_LOG_DEBUG, LOG_NAME, "\n");
-        va_end(varArgs);
-    }
-#endif
+void debug(const char* msg, const char* file, const char* func, int line, ...) {
+    static char buf[512];
+    sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
+    va_list varArgs;
+    va_start(varArgs, line);
+    __android_log_vprint(ANDROID_LOG_DEBUG, LOG_NAME, buf, varArgs);
+    __android_log_print(ANDROID_LOG_DEBUG, LOG_NAME, "\n");
+    va_end(varArgs);
+}
 
 // вернуть адрес памяти
 uint8_t* realPtr(uint16_t address) {
@@ -227,7 +225,7 @@ void* ssh_ston(const char* s, int r, const char** end) {
             break;
         case RADIX_BOL:
             if(!strcasecmp(s, "true")) { s += 4; n = 1; }
-            else if(!strcasecmp(s, "false")) { s += 5; n = 0; }
+            else { s += strlen(s); n = 0; }
             *(uint8_t*)&res = (uint8_t)n;
             break;
         default: LOG_DEBUG("Неизвестная система счисления! %i", r); break;
@@ -236,33 +234,19 @@ void* ssh_ston(const char* s, int r, const char** end) {
     return &res;
 }
 
-char __unused ** ssh_split(const char* str, const char* delim, int* count) {
-    static char* tmp[32];
-    int c = 0;
-    auto ld = strlen(delim);
-    while(*str) {
-        auto nstr = strstr((char*)str, delim);
-        tmp[c++] = (char*)str;
-        if(nstr) *nstr = 0; else break;
-        str = nstr + ld;
-    }
-    if(count) *count = c;
-    return tmp;
-}
-
-static const char* fmtTypes[]	= { "3X", "2X", "3X ", "2X ",
-                                     "5(X)", "4(#X)", "3(X)", "2(#X)",
-                                     "3X)", "2#X)",
-                                     "5X", "4X",
-                                     "5X", "4#X", "3X", "2#X",
-                                     "5[X]", "4[#X]",
-                                     "3{X}", "2{#X}",
-                                     "5{X}", "4{#X}",
-                                     "0X", "0#X",
-                                     "0X", "0X"
-};
-
 char* ssh_fmtValue(int value, int offs, bool hex) {
+    static const char* fmtTypes[]	= { "3X", "2X", "3X ", "2X ",
+                                         "5(X)", "4(#X)", "3(X)", "2(#X)",
+                                         "3X)", "2#X)",
+                                         "5X", "4X",
+                                         "5X", "4#X", "3X", "2#X",
+                                         "5[X]", "4[#X]",
+                                         "3{X}", "2{#X}",
+                                         "5{X}", "4{#X}",
+                                         "0X", "0#X",
+                                         "0X", "0X"
+    };
+
     static char buffer[32];
     char ch;
     char* end = nullptr;

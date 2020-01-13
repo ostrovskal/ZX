@@ -27,7 +27,7 @@ class ZxFormPokes : Form() {
         return ui {
             linearLayout {
                 root = cellLayout(12, 6, 1.dp) {
-                    formHeader(R.string.pokeHead)
+                    formHeader(R.string.headPoke)
                     backgroundSet(style_form)
                     edit(R.id.edit1, R.string.hintAddress, style_edit_zx) {
                         maxLength = 5

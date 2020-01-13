@@ -65,9 +65,6 @@ public:
     // установка актуальных страниц
     void setPages();
 
-    // запуск/отключение трассера
-    void tracer(int start);
-
     // проверить на срабатывании точки останова
     bool checkBPs(uint16_t address, uint8_t flg);
 
@@ -112,9 +109,6 @@ public:
 
     // буфер ОЗУ
     uint8_t* RAMs;
-
-    // файл трассировщика
-    zxFile ftracer;
 
     // процессор
     zxCPU* cpu;

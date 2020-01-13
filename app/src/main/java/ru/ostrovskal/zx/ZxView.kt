@@ -8,10 +8,11 @@ import android.view.SurfaceHolder
 import android.view.View
 import ru.ostrovskal.sshstd.Common.ACT_INIT_SURFACE
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
-import ru.ostrovskal.sshstd.layouts.AbsoluteLayout
-import ru.ostrovskal.sshstd.utils.*
+import ru.ostrovskal.sshstd.utils.action
+import ru.ostrovskal.sshstd.utils.i
+import ru.ostrovskal.sshstd.utils.send
+import ru.ostrovskal.sshstd.utils.toBoolean
 import ru.ostrovskal.sshstd.widgets.Controller
-import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.zx.ZxCommon.*
 import java.lang.Thread.sleep
 import javax.microedition.khronos.egl.EGLConfig
@@ -85,17 +86,6 @@ class ZxView(context: Context) : GLSurfaceView(context) {
         queueEvent(RunnableParams(Message.obtain().apply { what = ACT_INIT_SURFACE} ) )
     }
 
-    // кнопка записи трассера
-    private val butTracer = Tile(context, style_key_button).apply {
-        layoutParams = AbsoluteLayout.LayoutParams(70.dp, 25.dp, 0, 0)
-        visibility = View.GONE
-        tileIcon = 15
-        setOnClickListener {
-            tileIcon = if (tileIcon == 15) 16 else 15
-            ZxWnd.zxCmd(ZX_CMD_TRACER, tileIcon and 16, 0, "")
-        }
-    }
-
     // крестовина
     private val joyCross = Controller(context, R.id.joyCross, false, style_zxCross).apply {
         setControllerMap(jCross)
@@ -111,7 +101,6 @@ class ZxView(context: Context) : GLSurfaceView(context) {
     override fun onDetachedFromWindow() {
         wnd.main.removeView(joyCross)
         wnd.main.removeView(joyAction)
-        wnd.main.removeView(butTracer)
         super.onDetachedFromWindow()
     }
 
@@ -121,11 +110,9 @@ class ZxView(context: Context) : GLSurfaceView(context) {
             if (indexOfChild(joyCross) == -1) {
                 addView(joyCross)
                 addView(joyAction)
-                addView(butTracer)
             }
         }
         updateJoy()
-        updateTracer()
     }
 
     private fun updateState() {
@@ -134,16 +121,6 @@ class ZxView(context: Context) : GLSurfaceView(context) {
             if (result != 0) {
                 wnd.hand?.send(RECEPIENT_FORM, result, a1 = ZxWnd.read16(ZX_CPU_PC), a2 = ZX_ALL)
             }
-        }
-    }
-
-    fun updateTracer() {
-        butTracer.visibility = if (ZxWnd.props[ZX_PROP_TRACER].toBoolean) {
-            butTracer.tileIcon = if (ZxWnd.props[ZX_PROP_LAUNCH_TRACCER].toBoolean) 16 else 15
-            View.VISIBLE
-        } else {
-            ZxWnd.zxCmd(ZX_CMD_TRACER, 0, 0, "")
-            View.GONE
         }
     }
 

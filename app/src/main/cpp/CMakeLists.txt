@@ -57,6 +57,13 @@ find_library( # Sets the name of the path variable.
         # you want CMake to locate.
         android)
 
+find_library( # Sets the name of the path variable.
+        sl-lib
+
+        # Specifies the name of the NDK library that
+        # you want CMake to locate.
+        OpenSLES)
+
 target_link_libraries( # Specifies the target library.
         zx-lib
 
@@ -66,4 +73,5 @@ target_link_libraries( # Specifies the target library.
         ${bmp-lib}
         ${a-lib}
         ${gl-lib}
+        ${sl-lib}
         ${gl2-lib})

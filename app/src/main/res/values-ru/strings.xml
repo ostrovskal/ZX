@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <string name="menuOpenSave">Открыть/Сохранить…</string>
-    <string name="menuSettings">Настройки…</string>
+    <string name="menuSettings">Установки…</string>
     <string name="menuProperties">Свойства…</string>
     <string name="menuSelectDisk">Выбрать диск…</string>
     <string name="menuSound">Звук</string>
-    <string name="menuPokes">Pokes…</string>
     <string name="menuMru">Последние…</string>
     <string name="menuReset">Сброс</string>
     <string name="menuRestore">Восстановить</string>
@@ -23,21 +23,37 @@
     <string name="menuPentagon">Пентагон 128K</string>
     <string name="menuScorpion">Скорпион 256K</string>
     <string name="menuProfi">Профи</string>
+    <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Клавиатура/Джойстик</string>
-    <string name="hintName">имя</string>
+    <string name="menuLabel">Метки</string>
+    <string name="menuCode">Код</string>
+    <string name="menuValue">Содержимое</string>
+
+    <string name="headerIO">Менеджер</string>
+    <string name="headSettings">Установки</string>
     <string name="headBps">Точки останова</string>
-    <string name="headerIO">Операции</string>
-    <string name="downloadCloud">Скачивание…</string>
-    <string name="connectCloud">Соединение…</string>
-    <string name="connectError">Не удалось подключиться к серверу. Проверьте свое интернет соединение!</string>
-    <string name="hintAddress">адрес</string>
-    <string name="hintAddress1">начальный адрес</string>
-    <string name="hintAddress2">конечный адрес</string>
-    <string name="hintMask">маска</string>
-    <string name="hintValue">значение</string>
-    <string name="settingsHead">Установки</string>
+
+    <string name="cloudDownload">Скачивание…</string>
+    <string name="cloudConnect">Соединение…</string>
+    <string name="cloudConnectError">Не удалось подключиться к серверу. Проверьте свое интернет соединение!</string>
+
+    <string name="ioLoadError">Не удалось выполнить загрузку. Файл поврежден!</string>
+    <string name="ioSaveError">Не удалось выполнить запись. Неизвестный формат файла!</string>
+
+    <string name="hintName">name</string>
+    <string name="hintAddress">address</string>
+    <string name="hintAddress1">begin address</string>
+    <string name="hintAddress2">finish address</string>
+    <string name="hintMask">mask</string>
+    <string name="hintValue">value</string>
+
     <string name="settingsJoyType">Тип</string>
     <string name="settingsJoyPreset">Образцы</string>
+    <string name="settingsJoyLeft">ВЛЕВО</string>
+    <string name="settingsJoyRight">ВПРАВО</string>
+    <string name="settingsJoyUp">ВВЕРХ</string>
+    <string name="settingsJoyDown">ВНИЗ</string>
+
     <string name="settingsColorBlack">ЧЁРНЫЙ</string>
     <string name="settingsColorBlue">СИНИЙ</string>
     <string name="settingsColorRed">КРАСНЫЙ</string>
@@ -54,26 +70,15 @@
     <string name="settingsColorLCyan">СВ. ГОЛУБОЙ</string>
     <string name="settingsColorLYellow">СВ. ЖЁЛТЫЙ</string>
     <string name="settingsColorLWhite">СВ. БЕЛЫЙ</string>
-    <string name="settingsJoyLeft">ВЛЕВО</string>
-    <string name="settingsJoyRight">ВПРАВО</string>
-    <string name="settingsJoyUp">ВВЕРХ</string>
-    <string name="settingsJoyDown">ВНИЗ</string>
+
     <string name="settingsSound8Bit">8 Бит</string>
     <string name="settingsSoundBeeper">Бипер</string>
-    <string name="settingsSoundAY">AY</string>
     <string name="settingsSoundSave">Запись</string>
     <string name="settingsSndVolAY">Громкость AY</string>
     <string name="settingsSndVolBP">Громкость бипера</string>
     <string name="settingsSndFreq">Частота</string>
     <string name="settingsSndTypeAY">Стерео AY</string>
-    <string name="ioLoadError">Не удалось выполнить загрузку. Файл поврежден!</string>
-    <string name="ioSaveError">Не удалось выполнить запись. Неизвестный формат файла!</string>
-    <string name="menuLabel">Метки</string>
-    <string name="menuCode">Код</string>
-    <string name="menuValue">Содержимое</string>
-    <string name="menuTrace">Трассировка</string>
-    <string name="menuTracer">Трассер…</string>
-    <string name="headerTracer">Трассировщик</string>
+
     <string name="settingsTapeCaption">ЗАГОЛОВОК</string>
     <string name="settingsTapeLine">ЛИНИЯ</string>
     <string name="settingsTapeArray">МАССИВ</string>
@@ -84,4 +89,5 @@
     <string name="settingsTapeBasic">БЕЙСИК</string>
     <string name="settingsTapeNumArray">Ч.МАССИВ</string>
     <string name="settingsTapeStringArray">C.МАССИВ</string>
+
 </resources>

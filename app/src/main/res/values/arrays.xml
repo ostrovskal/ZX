@@ -67,22 +67,22 @@
         <item>trap_tape,true</item>
         <item>show_joy,false</item>
         <item>show_key,true</item>
-        <item>launch_traccer,false</item>
         <item>turbo_mode,false</item>
         <item>snd_launch,true</item>
         <item>snd_bp,true</item>
         <item>snd_ay,false</item>
         <item>snd_8bit,false</item>
         <item>snd_save,false</item>
-        <item>#errors,false</item>
         <item>execute,true</item>
-        <item>debugger,false</item>
-        <item>tracer,false</item>
         <item>hex,false</item>
+        <item>debugger,false</item>
         <item>debugger_label,false</item>
         <item>debugger_code,true</item>
         <item>debugger_value,false</item>
 
+        <item>unusedBool1,true</item>
+        <item>unusedBool1,true</item>
+        <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
@@ -154,6 +154,7 @@
         <item>#mru10,Empty</item>
 
         <item>filter,true</item>
+        <item>#errors,false</item>
     </string-array>
 
     <array name="forms">
@@ -185,11 +186,6 @@
         <item>@string/clazz_bps</item>
         <item>0</item>
         <item>@string/tag_bps</item>
-        <item>0</item>
-
-        <item>@string/clazz_traccer</item>
-        <item>0</item>
-        <item>@string/tag_traccer</item>
         <item>0</item>
     </array>
 </resources>

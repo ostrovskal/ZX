@@ -5,10 +5,12 @@
 #include "zxCommon.h"
 #include "zxSound.h"
 
-uint8_t* zxSound::_REGISTERS(nullptr);
-uint8_t* zxSound::_CURRENT(nullptr);
+#define SND_TICKS_PER_FRAME_44100_CONST	882
+#define SND_TICKS_PER_FRAME_22050_CONST	441
+#define SND_TICKS_PER_FRAME_11025_CONST	220
 
-static int sndTicks[3] = {SND_TICKS_PER_FRAME_1_CONST, SND_TICKS_PER_FRAME_2_CONST, SND_TICKS_PER_FRAME_4_CONST};
+static int sndTicks[3] = {SND_TICKS_PER_FRAME_44100_CONST, SND_TICKS_PER_FRAME_22050_CONST, SND_TICKS_PER_FRAME_11025_CONST};
+uint8_t zxSound::regs[17];
 
 static uint16_t volTable[] = {
         0x0000 / 2, 0x0344 / 2, 0x04BC / 2, 0x06ED / 2,
@@ -20,15 +22,22 @@ static uint16_t volTable[] = {
 static uint8_t eshape[] = {
         0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255,
         0, 1, 255, 255, 0, 1, 255, 255, 0, 1, 255, 255, 0, 1, 255, 255,
-        1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1,
+        1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 
         1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1
 };
 
-zxSound::zxSound() : nSamplers(0), updateStep(0), beepVal(0), beeperVolume(12), ayVolume(50), isAY(true), isBeeper(true), isInitSL(false) {
-    _REGISTERS = &opts[AY_AFINE];
-    _CURRENT = &opts[AY_REG];
+zxSound::zxSound() : nSamplers(0), updateStep(0), beepVal(0), beeperVolume(12), ayVolume(50),
+                     engineObj(nullptr), mixObj(nullptr), playerObj(nullptr),
+                     engine(nullptr), player(nullptr), bufferQueue(nullptr),
+                    isAY(true), isBeeper(true), isInitSL(false) {
+    cont = att = alt = hold = up = holded = 0;
     ssh_memzero(soundBuffer, sizeof(soundBuffer));
     ssh_memzero(beeperBuffer, sizeof(beeperBuffer));
+    ssh_memzero(regs, sizeof(regs));
+}
+
+zxSound::~zxSound() {
+
 }
 
 void zxSound::updateProps(uint8_t period) {
@@ -39,29 +48,37 @@ void zxSound::updateProps(uint8_t period) {
 
     freq            = frequencies[opts[ZX_PROP_SND_FREQUENCY]];
     stereoAY        = opts[ZX_PROP_SND_TYPE_AY];
-    updateStep      = (uint32_t)(((double)SND_STEP * (double)freq * (double)8) / (double)(freq * bits * 2) * 2.0); // 1773400
+//    updateStep      = (uint32_t)(((double)SND_STEP * (double)freq * (double)8) / (double)(freq * bits * 2) * 2.0); // 1773400
+    updateStep      = (unsigned int)(((double)SND_STEP * (double)44100 * (double)8) / (double)1773400 * (double)2);
 
     isBeeper        = opts[ZX_PROP_SND_BP];
     isAY            = opts[ZX_PROP_SND_AY];
 
-    // delayCPU = 10 => 100%
-    double delitel = TIMER_CONST * 100.0 / ((double)period / 10.0) * 100.0;
-    double koef = delitel / (double)TIMER_CONST;
+    // ACB = 0, ABC = 1, MONO = 2
 
-    for(int i = 0; i < 2; i++) {
+    //divider = TIMER_CONST * 100 / emulator_speed;// 19
+    double divider = 19.0;
+    double koef = divider / (double)TIMER_CONST;
+
+    for(int i = 0; i < 3; i++) {
         SND_TICKS_PER_FRAME[i] = (int)((double)sndTicks[i] * koef);
         if(SND_TICKS_PER_FRAME[i] > SND_TICKS_PER_FRAME_MAX) SND_TICKS_PER_FRAME[i] = SND_TICKS_PER_FRAME_MAX;
     }
+
+    LOG_INFO("bvol: %i ayvol: %i freq: %i stereoAy: %i step: %i isb: %i iay: %i bits: %i ticks: %i",
+            beeperVolume, ayVolume, freq, stereoAY, updateStep, isBeeper, isAY, bits,  SND_TICKS_PER_FRAME[0]);
 }
 
 void zxSound::reset() {
     nSamplers = 0;
     // аплитуда по трем каналам в 0
-    opts[AY_AVOL] = opts[AY_BVOL] = opts[AY_CVOL] = 0;
+    regs[AVOL] = regs[BVOL] = regs[CVOL] = 0;
 }
 
 void zxSound::write(uint8_t reg, uint8_t value) {
-    _REGISTERS[reg] = value;
+    LOG_INFO("r: %i v: %i", reg, value);
+    opts[reg] = value;
+    reg -= AY_AFINE;
     if(nSamplers < SND_ARRAY_LEN) {
         SAMPLER[nSamplers].tcounter = *zxALU::_TICK;
         SAMPLER[nSamplers].reg = reg;
@@ -71,72 +88,72 @@ void zxSound::write(uint8_t reg, uint8_t value) {
 }
 
 void zxSound::applyRegister(uint8_t reg, uint8_t val) {
-    if(reg <= AY_ESHAPE) _REGISTERS[reg] = val;
+    if(reg <= ESHAPE) regs[reg] = val;
     switch(reg) {
-        case AY_AFINE:
-        case AY_ACOARSE:
-            opts[AY_ACOARSE] &= 0x0f;
-            channelA.genPeriod = (opts[AY_AFINE] + 256 * opts[AY_ACOARSE]) * updateStep / SND_STEP;
-            if(!channelA.genPeriod) channelA.genPeriod = updateStep / SND_STEP;
+        case AFINE:
+        case ACOARSE:
+            regs[ACOARSE] &= 0x0f;
+            channelA.period = (regs[AFINE] + 256 * regs[ACOARSE]) * updateStep / SND_STEP;
+            if(!channelA.period) channelA.period = updateStep / SND_STEP;
             break;
-        case AY_BFINE:
-        case AY_BCOARSE:
-            opts[AY_BCOARSE] &= 0x0f;
-            channelB.genPeriod = (opts[AY_BFINE] + 256 * opts[AY_BCOARSE]) * updateStep / SND_STEP;
-            if(!channelB.genPeriod) channelB.genPeriod = updateStep / SND_STEP;
+        case BFINE:
+        case BCOARSE:
+            regs[BCOARSE] &= 0x0f;
+            channelB.period = (regs[BFINE] + 256 * regs[BCOARSE]) * updateStep / SND_STEP;
+            if(!channelB.period) channelB.period = updateStep / SND_STEP;
             break;
-        case AY_CFINE:
-        case AY_CCOARSE:
-            opts[AY_CCOARSE] &= 0x0f;
-            channelC.genPeriod = (opts[AY_CFINE] + 256 * opts[AY_CCOARSE]) * updateStep / SND_STEP;
-            if(!channelC.genPeriod) channelC.genPeriod = updateStep / SND_STEP;
+        case CFINE:
+        case CCOARSE:
+            regs[CCOARSE] &= 0x0f;
+            channelC.period = (regs[CFINE] + 256 * regs[CCOARSE]) * updateStep / SND_STEP;
+            if(!channelC.period) channelC.period = updateStep / SND_STEP;
             break;
-        case AY_AVOL:
-            opts[AY_AVOL] &= 0x1f;
+        case AVOL:
+            regs[AVOL] &= 0x1f;
             break;
-        case AY_BVOL:
-            opts[AY_BVOL] &= 0x1f;
+        case BVOL:
+            regs[BVOL] &= 0x1f;
             break;
-        case AY_CVOL:
-            opts[AY_CVOL] &= 0x1f;
+        case CVOL:
+            regs[CVOL] &= 0x1f;
             break;
-        case AY_ENABLE:
-            channelA.isChannel = (bool)(opts[AY_ENABLE] & 1);
-            channelB.isChannel = (bool)(opts[AY_ENABLE] & 2);
-            channelC.isChannel = (bool)(opts[AY_ENABLE] & 4);
-            channelA.isNoise =	 (bool)(opts[AY_ENABLE] & 8);
-            channelB.isNoise =	 (bool)(opts[AY_ENABLE] & 16);
-            channelC.isNoise =	 (bool)(opts[AY_ENABLE] & 32);
+        case ENABLE:
+            channelA.isEnable = (bool)(regs[ENABLE] & 1);
+            channelB.isEnable = (bool)(regs[ENABLE] & 2);
+            channelC.isEnable = (bool)(regs[ENABLE] & 4);
+            channelA.isNoise  =	(bool)(regs[ENABLE] & 8);
+            channelB.isNoise  =	(bool)(regs[ENABLE] & 16);
+            channelC.isNoise  =	(bool)(regs[ENABLE] & 32);
             break;
-        case AY_NOISEPER:
-            opts[AY_NOISEPER] &= 0x1f;
-            periodN = opts[AY_NOISEPER] * updateStep / SND_STEP;
+        case NOISEPER:
+            regs[NOISEPER] &= 0x1f;
+            periodN = regs[NOISEPER] * updateStep / SND_STEP;
             if(periodN == 0) periodN = updateStep / SND_STEP;
             break;
-        case AY_EFINE:
-        case AY_ECOARSE:
-            periodE = ((opts[AY_EFINE] + 256 * opts[AY_ECOARSE])) * updateStep / SND_STEP;
+        case EFINE:
+        case ECOARSE:
+            periodE = ((regs[EFINE] + 256 * regs[ECOARSE])) * updateStep / SND_STEP;
             if(periodE == 0) periodE = updateStep / SND_STEP / 2;
             break;
-        case AY_ESHAPE: {
-            opts[AY_ESHAPE] &= 0x0f;
-            auto pshape = &eshape[opts[AY_ESHAPE] * 4];
+        case ESHAPE: {
+            regs[ESHAPE] &= 0x0f;
+            auto pshape = &eshape[regs[ESHAPE] * 4];
             cont = pshape[0]; att = pshape[1];
-            if(opts[AY_ESHAPE] > 7) { alt = pshape[2]; hold = pshape[3]; }
+            if(regs[ESHAPE] > 7) { alt = pshape[2]; hold = pshape[3]; }
             envelopeCounter = 0;
             envVolume = (uint8_t)(att ? 0 : 15);
             up = att;
             holded = 0;
             break;
         }
-        case SND_BEEPER:
-            if(isBeeper) beepVal = (uint16_t)(val ? volTable[beeperVolume] : 0);
+        case BEEPER:
+            beepVal = (uint16_t)(val ? volTable[beeperVolume] : 0);
             break;
     }
 }
 
 void zxSound::envelopeStep() {
-    if(holded == 1) return;
+    if(holded) return;
 
     if((alt ? periodE : (periodE * 2)) > envelopeCounter)
         envelopeCounter++;
@@ -152,199 +169,138 @@ void zxSound::envelopeStep() {
         } else {
             if(envVolume > 0) envVolume--;
             else {
-                if(cont == 0) {
-                    holded = 1;
-                } else if(hold) {
-                    if(alt) envVolume = 15;
-                    holded = 1;
-                } else {
-                    if(alt) up = 1;
-                    else envVolume = 15;
-                }
+                if(cont == 0) { holded = 1; }
+                else if(hold) { if(alt) envVolume = 15; holded = 1; }
+                else { if(alt) up = 1; else envVolume = 15; }
             }
         }
     }
 }
 
-void zxSound::mix(uint16_t* buf, int num, int offs, int count, ...) {
-    va_list ap;
-
-    va_start(ap, count);
-    for(int i = 0; i < count; i++) mixing_ch[i] = va_arg(ap, uint16_t*);
-    for(int i = 0; i < SND_TICKS_PER_FRAME[num]; i++) {
-        buf[i * 2 + offs] = 0;
-        for(int j = 0; j < count; j++) buf[i * 2 + offs] += mixing_ch[j][i << num] / count;
-    }
-    va_end(ap);
-}
-
-void zxSound::AY_CHANNEL::gen(int i, int period, uint8_t volume, int ch_vol) {
-    if(genCounter >= genPeriod) genCounter = 0;
-    bool tone = genCounter < (genPeriod / 2);
-    genCounter++;
-    if(noiseCounter >= period) { noiseCounter = 0; rnd = rand(); }
-    bool noise = (bool)(rnd & 1);
-    noiseCounter++;
-    auto tmp = (((tone | isChannel) & (noise | isNoise)) | !genPeriod);
-    channelData[i] = (uint16_t)(tmp ? (_REGISTERS[ch_vol] & 0x10) ? volTable[volume] : volTable[_REGISTERS[ch_vol]] : 0);
+void zxSound::AY_CHANNEL::gen(int i, int periodN, uint8_t volume, int ch_vol) {
+    if(counter >= period) counter = 0;
+    bool tone = counter < (period / 2);
+    counter++;
+    if(noise >= periodN) { noise = 0; rnd = rand(); }
+    bool noice = (bool)(rnd & 1);
+    noise++;
+    auto tmp = (((tone | isEnable) & (noice | isNoise)) | !period);
+    data[i] = tmp ? ((regs[ch_vol] & 0x10) ? volTable[volume] : volTable[regs[ch_vol]]) : (uint16_t)0;
 }
 
 void zxSound::update() {
     if(!isInitSL) initSL();
 
-    if(!isAY) return;
+    //if(!isAY) return;
 
+    // заполняем позицию
+    auto tcounter = *zxALU::_TICK;
+    auto tick = SND_TICKS_PER_FRAME[0];
     if(nSamplers > 0) {
-        if(*zxALU::_TICK == 0) *zxALU::_TICK = 1;
-        for(int i = 0; i < nSamplers; i++) SAMPLER[i].pos = (SND_TICKS_PER_FRAME[0] - 1) * SAMPLER[i].tcounter / *zxALU::_TICK;
+        if (tcounter == 0) tcounter = 1;
+        auto t = tick - 1;
+        for (int i = 0; i < nSamplers; i++) SAMPLER[i].pos = t * SAMPLER[i].tcounter / tcounter;
     }
     // Генерим звук
     int j = 0;
-    for(int i = 0; i < SND_TICKS_PER_FRAME[0]; i++) {
+    for(int i = 0; i < tick; i++) {
         if(nSamplers > 0) {
-            while(i == SAMPLER[j].pos) {
+            while (i == SAMPLER[j].pos) {
                 applyRegister(SAMPLER[j].reg, SAMPLER[j].val);
-                SAMPLER[j].pos = SND_TICKS_PER_FRAME[0];
+                SAMPLER[j].pos = tick;
                 j++;
-                if(j >= SND_ARRAY_LEN) break;
+                if (j >= SND_ARRAY_LEN) break;
             }
         }
         envelopeStep();
-        channelA.gen(i, periodN, envVolume, AY_AVOL);
-        channelB.gen(i, periodN, envVolume, AY_BVOL);
-        channelC.gen(i, periodN, envVolume, AY_CVOL);
+        channelA.gen(i, periodN, envVolume, AVOL);
+        channelB.gen(i, periodN, envVolume, BVOL);
+        channelC.gen(i, periodN, envVolume, CVOL);
         beeperBuffer[i] = beepVal;
     }
-    // Микшируем и записываем
+    // Микшируем и проигрываем
     uint16_t* sndBuf= soundBuffer;
-    uint16_t* bufA  = channelA.channelData;
-    uint16_t* bufB  = channelB.channelData;
-    uint16_t* bufC  = channelC.channelData;
+    ssh_memzero(soundBuffer, sizeof(soundBuffer));
+
+    uint16_t* bufA  = channelA.data;
+    uint16_t* bufB  = channelB.data;
+    uint16_t* bufC  = channelC.data;
     switch(stereoAY) {
         default:
-            mix(sndBuf, freq, 0, 4, bufA, bufB, bufC, beeperBuffer);
-            mix(sndBuf, freq, 1, 4, bufA, bufB, bufC, beeperBuffer);
+            mix(sndBuf, 4, bufA, bufB, bufC, beeperBuffer);
             break;
         case AY_STEREO_ABC:
-            mix(sndBuf, freq, 0, 3, bufA, bufB, beeperBuffer);
-            mix(sndBuf, freq, 1, 3, bufC, bufB, beeperBuffer);
+            mix(sndBuf, 3, bufA, bufC, beeperBuffer);
             break;
         case AY_STEREO_ACB:
-            mix(sndBuf, freq, 0, 3, bufA, bufC, beeperBuffer);
-            mix(sndBuf, freq, 1, 3, bufB, bufC, beeperBuffer);
+            mix(sndBuf, 3, bufA, bufB, beeperBuffer);
             break;
     }
+
     nSamplers = 0;
     *zxALU::_TICK = 0;
-    play();
+
+    if(bufferQueue) {
+        //(*bufferQueue)->Clear(bufferQueue); //Очищаем очередь на случай, если там что-то было. Можно опустить, если хочется, чтобы очередь реально была очередью
+        (*bufferQueue)->Enqueue(bufferQueue, soundBuffer, SND_TICKS_PER_FRAME[0]);
+    }
 }
 
-void zxSound::play() {
-/*
-    char* memory = new char[len];
-    memcpy(memory, buffer, len);
+// выходной буфер, количество буферов для смещивания
+void zxSound::mix(uint16_t* buf, int count, ...) {
+    static uint16_t* mixing_ch[4];
+    va_list ap;
 
-    WAVEHDR* curBuf(&bufs[nCurrent]);
-    WAVEHDR* oldBuf((nCurrent < (NUM_BUFFERS - 1)) ? &bufs[nCurrent + 1] : &bufs[0]);
-    ssh_memzero(curBuf, sizeof(WAVEHDR));
-    curBuf->lpData = memory;
-    curBuf->dwBufferLength = len;
-    curBuf->dwFlags = 0;
-    curBuf->dwLoops = 0;
-    waveOutPrepareHeader(hsnd, curBuf, sizeof(WAVEHDR));
-    waveOutWrite(hsnd, curBuf, sizeof(WAVEHDR));
-    while(waveOutUnprepareHeader(hsnd, oldBuf, sizeof(WAVEHDR)) == WAVERR_STILLPLAYING) Sleep(15);
-    SAFE_A_DELETE(oldBuf);
-	nCurrent++;
-	if(nCurrent >= NUM_BUFFERS) nCurrent = 0;
-
-*/
-
-/*
-	SLObjectItf outputMixObj;
-	const SLInterfaceID pOutputMixIDs[] = {};
-	const SLboolean pOutputMixRequired[] = {};
-//Аналогично slCreateEngine()
-	result = (*engine)->CreateOutputMix(engine, &outputMixObj, 0, pOutputMixIDs, pOutputMixRequired);
-	result = (*outputMixObj)->Realize(outputMixObj, SL_BOOLEAN_FALSE);
-
-	struct WAVHeader{
-		char                RIFF[4];
-		unsigned long       ChunkSize;
-		char                WAVE[4];
-		char                fmt[4];
-		unsigned long       Subchunk1Size;
-		unsigned short      AudioFormat;
-		unsigned short      NumOfChan;
-		unsigned long       SamplesPerSec;
-		unsigned long       bytesPerSec;
-		unsigned short      blockAlign;
-		unsigned short      bitsPerSample;
-		char                Subchunk2ID[4];
-		unsigned long       Subchunk2Size;
-	};
-	struct SoundBuffer{
-		WAVHeader* header;
-		char* buffer;
-		int length;
-	};
-//Для чтения буфера PCM из файла используется AAssetManager:
-	SoundBuffer* loadSoundFile(const char* filename){
-		SoundBuffer* result = new SoundBuffer();
-		AAsset* asset = AAssetManager_open(assetManager, filename, AASSET_MODE_UNKNOWN);
-		off_t length = AAsset_getLength(asset);
-		result->length = length - sizeof(WAVHeader);
-		result->header = new WAVHeader();
-		result->buffer = new char[result->length];
-		AAsset_read(asset, result->header, sizeof(WAVHeader));
-		AAsset_read(asset, result->buffer, result->length);
-		AAsset_close(asset);
-		return result;
-	}
-
-//Данные, которые необходимо передать в CreateAudioPlayer() для создания буферизованного плеера
-	//SLDataLocator_AndroidSimpleBufferQueue locatorBufferQueue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 1}; Один буфер в очереди Информация, которую можно взять из заголовка wav
- 	SLDataFormat_PCM formatPCM = {
-			SL_DATAFORMAT_PCM,  1, SL_SAMPLINGRATE_44_1,
-			SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
-			SL_SPEAKER_FRONT_CENTER, SL_BYTEORDER_LITTLEENDIAN
-	};
-	SLDataSource audioSrc = {&locatorBufferQueue, &formatPCM};
-	SLDataLocator_OutputMix locatorOutMix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObj};
-	SLDataSink audioSnk = {&locatorOutMix, NULL};
-	const SLInterfaceID pIDs[1] = {SL_IID_BUFFERQUEUE};
-	const SLboolean pIDsRequired[1] = {SL_BOOLEAN_TRUE };
-Создаем плеер
-	result = (*engine)->CreateAudioPlayer(engine, &playerObj, &audioSrc, &audioSnk, 1, pIDs, pIDsRequired);
-	result = (*playerObj)->Realize(playerObj, SL_BOOLEAN_FALSE);
-
-	SLPlayItf player;
-	result = (*playerObj)->GetInterface(playerObj, SL_IID_PLAY, &player);
-	SLBufferQueueItf bufferQueue;
-	result = (*playerObj)->GetInterface(playerObj, SL_IID_BUFFERQUEUE, &bufferQueue);
-	result = (*player)->SetPlayState(player, SL_PLAYSTATE_PLAYING);
-
-	SoundBuffer* sound = loadSoundFile("mySound.wav");
-	(*soundsBufferQueue)->Clear(bufferQueue); Очищаем очередь на случай, если там что-то было. Можно опустить, если хочется, чтобы очередь реально была очередью
-	(*soundsBufferQueue)->Enqueue(bufferQueue, sound->buffer, sound->length);
-Не забудьте почистить за собой SoundBuffer, когда он перестанет быть нужен
- */
+    va_start(ap, count);
+    for(int i = 0; i < count; i++) mixing_ch[i] = va_arg(ap, uint16_t*);
+    for(int i = 0; i < SND_TICKS_PER_FRAME[0]; i++) {
+        buf[i] = 0;
+        for(int j = 0; j < count; j++) buf[i] += mixing_ch[j][i] / count;
+    }
+    va_end(ap);
 }
 
 bool zxSound::initSL() {
     isInitSL = true;
-/*
 
-	SLObjectItf engineObj;
-    SLEngineItf engine;
-
-	const SLInterfaceID pIDs[1] = { SL_IID_ENGINE };
+    LOG_INFO("start", nullptr);
 	const SLboolean pIDsRequired[1]  = { SL_BOOLEAN_TRUE };
 
-    SL_SUCCESS(slCreateEngine(&engineObj, 0, nullptr, 1, pIDs, pIDsRequired), "Error after slCreateEngine")
-    SL_SUCCESS((*engineObj)->Realize(engineObj, SL_BOOLEAN_FALSE), "")
-    SL_SUCCESS((*engineObj)->GetInterface(engineObj, SL_IID_ENGINE, &engine), "Error after Realize engineObj")
-*/
+    // создаем движек
+    SL_SUCCESS(slCreateEngine(&engineObj, 0, nullptr, 1, &SL_IID_ENGINE, pIDsRequired), "Error slCreateEngine");
+    SL_SUCCESS((*engineObj)->Realize(engineObj, SL_BOOLEAN_FALSE), "Error Realize engineObj");
+    SL_SUCCESS((*engineObj)->GetInterface(engineObj, SL_IID_ENGINE, &engine), "Error GetInterface SL_IID_ENGINE");
+    // создаем миксер
+    SL_SUCCESS((*engine)->CreateOutputMix(engine, &mixObj, 0, nullptr, nullptr), "Error CreateOutputMix");
+    SL_SUCCESS((*mixObj)->Realize(mixObj, SL_BOOLEAN_FALSE), "Error Realize OutputMixObject");
 
+    // Данные, которые необходимо передать в CreateAudioPlayer() для создания буферизованного плеера
+    SLDataLocator_AndroidSimpleBufferQueue locatorBufferQueue = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2 };
+    SLDataLocator_OutputMix locatorOutMix = { SL_DATALOCATOR_OUTPUTMIX, mixObj };
+
+    SLDataFormat_PCM formatPCM = {
+            SL_DATAFORMAT_PCM, 1, SL_SAMPLINGRATE_44_1,
+            SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
+            SL_SPEAKER_FRONT_CENTER, SL_BYTEORDER_LITTLEENDIAN
+    };
+
+    static SLDataSource audioSrc = {&locatorBufferQueue, &formatPCM};
+    static SLDataSink audioSnk = {&locatorOutMix, nullptr};
+
+    // Создаем плеер
+    SL_SUCCESS((*engine)->CreateAudioPlayer(engine, &playerObj, &audioSrc, &audioSnk, 1, &SL_IID_BUFFERQUEUE, pIDsRequired), "Error CreateAudioPlayer");
+    SL_SUCCESS((*playerObj)->Realize(playerObj, SL_BOOLEAN_FALSE), "Error Ralize PlayerObject");
+
+    // создаем очередь
+    SL_SUCCESS((*playerObj)->GetInterface(playerObj, SL_IID_PLAY, &player), "Error GetInterface SL_IID_PLAY");
+    SL_SUCCESS((*playerObj)->GetInterface(playerObj, SL_IID_BUFFERQUEUE, &bufferQueue), "Error GetInterface SL_IID_BUFFERQUEUE");
+    SL_SUCCESS((*player)->SetPlayState(player, SL_PLAYSTATE_PLAYING), "Error SetPlayState");
+/*
+    // (*obj)->Destroy(obj)
+SL_IID_VOLUME для управления громкостью
+SL_IID_MUTESOLO для управления каналами (только для многоканального звука, это указывается в поле numChannels структуры SLDataFormat_PCM).
+SL_IID_EFFECTSEND для наложения эффектов(по спецификации – только эффект реверберации) *
+ */
+    LOG_INFO("finish", nullptr);
     return true;
 }

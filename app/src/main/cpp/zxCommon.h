@@ -43,15 +43,19 @@ extern int                              frequencies[3];
 #define CMD_CACHE(v)                    cmdCache[currentCmdPos] = v; currentCmdPos++; currentCmdPos &= 511;
 #define LOG_NAME                        "ZX"
 
+// вывод отладочной информации
+void info(const char* msg, const char* file, const char* func, int line, ...);
+void debug(const char* msg, const char* file, const char* func, int line, ...);
+
 #ifdef DEBUG
-    #define LOG_DEBUG(m, ...)           debug1(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
+    #define LOG_DEBUG(m, ...)           debug(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
 #else
     #define LOG_DEBUG(m, ...)
 #endif
 
-#define LOG_INFO(m, ...)                info1(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
+#define LOG_INFO(m, ...)                info(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
 
-#define SL_SUCCESS(f, m)                if(((f) != SL_RESULT_SUCCESS)) { info(m); return false; }
+#define SL_SUCCESS(f, m)                if((f) != SL_RESULT_SUCCESS) { LOG_INFO(m, nullptr); return false; }
 
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
 
@@ -91,7 +95,7 @@ constexpr int ZX_ROM_TRDOS              = 245760;
 
 // Разделяемые свойства
 // 0. Байтовые значения, вычисляемые во время работы программы
-constexpr int ZX_PROP_JOY_TYPE        = 70; // Текущий тип джойстика
+//constexpr int ZX_PROP_JOY_TYPE        = 70; // Текущий тип джойстика
 constexpr int ZX_PROP_JOY_KEYS        = 71; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
 constexpr int ZX_PROP_JOY_CROSS_VALUE = 79; // Нажатые кнопки джойстика-крестовины
 constexpr int ZX_PROP_JOY_ACTION_VALUE= 80; // Нажатые кнопки джойстика-управления
@@ -107,21 +111,18 @@ constexpr int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого з
 constexpr int ZX_PROP_TRAP_TAPE       = 129; // Признак перехвата загрузки/записи с ленты
 constexpr int ZX_PROP_SHOW_JOY        = 130; // Признак отображения джойстика
 constexpr int ZX_PROP_SHOW_KEY        = 131; // Признак отображения клавиатуры
-constexpr int ZX_PROP_LAUNCH_TRACCER  = 132; // Признак запуска трассера
-constexpr int ZX_PROP_TURBO_MODE      = 133; // Признак турбо-режима процессора
-constexpr int ZX_PROP_SND_LAUNCH      = 134; // Признак запуска звукового процессора
-constexpr int ZX_PROP_SND_BP          = 135; // Признак запуска бипера
-constexpr int ZX_PROP_SND_AY          = 136; // Признак запуска AY
-constexpr int ZX_PROP_SND_8BIT        = 137; // Признак 8 битного звука
-constexpr int ZX_PROP_SND_SAVE        = 138; // Признак прямой записи
-constexpr int ZX_PROP_ERRORS          = 139; // Признак наличия ошибки при выходе в прошлый раз
-constexpr int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
-constexpr int ZX_PROP_SHOW_DEBUGGER   = 141; // Признак режима отладчика
-constexpr int ZX_PROP_TRACER          = 142; // Признак записи трассировки
-constexpr int ZX_PROP_SHOW_HEX        = 143; // Признак 16-тиричного вывода
-constexpr int ZX_PROP_SHOW_ADDRESS    = 144; // Признак отображения адреса инструкции
-constexpr int ZX_PROP_SHOW_CODE       = 145; // Признак отображения кода инструкции
-constexpr int ZX_PROP_SHOW_CODE_VALUE = 146; // Признак отображения содержимого по коду
+constexpr int ZX_PROP_TURBO_MODE      = 132; // Признак турбо-режима процессора
+constexpr int ZX_PROP_SND_LAUNCH      = 133; // Признак запуска звукового процессора
+constexpr int ZX_PROP_SND_BP          = 134; // Признак запуска бипера
+constexpr int ZX_PROP_SND_AY          = 135; // Признак запуска AY
+constexpr int ZX_PROP_SND_8BIT        = 136; // Признак 8 битного звука
+constexpr int ZX_PROP_SND_SAVE        = 137; // Признак прямой записи
+constexpr int ZX_PROP_EXECUTE         = 138; // Признак выполнения программы
+constexpr int ZX_PROP_SHOW_HEX        = 139; // Признак 16-тиричного вывода
+//constexpr int ZX_PROP_SHOW_DEBUGGER   = 140; // Признак режима отладчика
+//constexpr int ZX_PROP_SHOW_ADDRESS    = 141; // Признак отображения адреса инструкции
+//constexpr int ZX_PROP_SHOW_CODE       = 142; // Признак отображения кода инструкции
+//constexpr int ZX_PROP_SHOW_CODE_VALUE = 143; // Признак отображения содержимого по коду
 
 // 2. Байтовые значения
 constexpr int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -133,8 +134,8 @@ constexpr int ZX_PROP_SND_VOLUME_BP   = 155; // Громкость бипера
 constexpr int ZX_PROP_SND_VOLUME_AY   = 156; // Громкость AY
 constexpr int ZX_PROP_BLINK_SPEED     = 157; // Скорость мерцания курсора
 constexpr int ZX_PROP_CPU_SPEED       = 158; // Скорость процессора
-constexpr int ZX_PROP_KEY_SIZE        = 159; // Размер экранной клавиатуры
-constexpr int ZX_PROP_JOY_SIZE        = 160; // Размер экранного джойстика
+//constexpr int ZX_PROP_KEY_SIZE        = 159; // Размер экранной клавиатуры
+//constexpr int ZX_PROP_JOY_SIZE        = 160; // Размер экранного джойстика
 
 // 3. Целые значения
 constexpr int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
@@ -152,7 +153,6 @@ constexpr int MODEL_128               = 3; // Синклер 128К
 constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
 constexpr int MODEL_SCORPION          = 5; // Скорпион 256К
 constexpr int MODEL_PROFI             = 6; // Profi 256К
-constexpr int MODEL_TRDOS             = 7; // TRDOS
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -168,10 +168,10 @@ constexpr uint8_t MODE_G1             = 9;
 constexpr uint8_t MODE_CE             = 10;
 
 // Варианты форматирования чисел
-constexpr int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
-constexpr int ZX_FV_CODE				= 2; // "3X ", "2X "
+//constexpr int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
+//constexpr int ZX_FV_CODE				= 2; // "3X ", "2X "
 constexpr int ZX_FV_PADDR16				= 4; // "5(X)", "4(#X)"
-constexpr int ZX_FV_PADDR8				= 6; // "3(X)", "2(#X)"
+//constexpr int ZX_FV_PADDR8				= 6; // "3(X)", "2(#X)"
 constexpr int ZX_FV_OFFS				= 8; // "3+-X)", "2+-#X)"
 constexpr int ZX_FV_NUM16				= 10;// "5X", "4X"
 constexpr int ZX_FV_OPS16				= 12;// "5X", "4#X"
@@ -180,7 +180,7 @@ constexpr int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
 constexpr int ZX_FV_PVAL8				= 18;// "3{X}", "2{#X}"
 constexpr int ZX_FV_PVAL16				= 20;// "5{X}", "4{#X}"
 constexpr int ZX_FV_NUMBER				= 22;// "0X", "0#X"
-constexpr int ZX_FV_SIMPLE				= 24;// "0X", "0X"
+//constexpr int ZX_FV_SIMPLE				= 24;// "0X", "0X"
 
 // Команды
 constexpr int ZX_CMD_MODEL              = 0; // Установка модели памяти
@@ -190,19 +190,18 @@ constexpr int ZX_CMD_UPDATE_KEY         = 3; // Обковление кнопо�
 constexpr int ZX_CMD_INIT_GL            = 4; // Инициализация GL
 constexpr int ZX_CMD_POKE               = 5; // Установка POKE
 constexpr int ZX_CMD_ASSEMBLER          = 6; // Ассемблирование
-constexpr int ZX_CMD_TRACER             = 7; // Запуск трасировщика
+constexpr int ZX_CMD_TAPE_COUNT         = 7; // Получение количества блоков ленты
 constexpr int ZX_CMD_QUICK_BP           = 8; // Быстрая установка точки останова
 constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
 constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
 constexpr int ZX_CMD_MOVE_PC            = 11;// Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12;// Получение адреса в памяти/адреса перехода в инструкции
-constexpr int ZX_CMD_TAPE_COUNT         = 13;// Получение количества блоков ленты
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
 
 constexpr int ZX_CMD_TRACE_IN           = 0; // Трассировка с заходом
-constexpr int ZX_CMD_TRACE_OUT          = 1; // Трассировка с обходом
+//constexpr int ZX_CMD_TRACE_OUT          = 1; // Трассировка с обходом
 constexpr int ZX_CMD_TRACE_OVER         = 2; // Трассировка с выходом
 
 constexpr int ZX_DEBUGGER_MODE_PC       = 0; // Список ДА
@@ -229,13 +228,6 @@ constexpr int RADIX_BOL 				= 6;
 #define SAFE_DELETE(ptr)                if(ptr) { delete (ptr); (ptr) = nullptr; }
 #define modifySTATE(a, r)               { (*zxALU::_STATE) &= ~(r); (*zxALU::_STATE) |= (a); }
 #define SWAP_REG(r1, r2)                { auto a = *(r1); auto b = *(r2); *(r1) = b; *(r2) = a; }
-
-// вывод отладочной информации
-void info1(const char* msg, const char* file, const char* func, int line, ...);
-void debug1(const char* msg, const char* file, const char* func, int line, ...);
-
-// разбить строку на подстроки
-char __unused ** ssh_split(const char* str, const char* delim, int* count = nullptr);
 
 // число в строку
 char* ssh_ntos(void* v, int r, char** end = nullptr);

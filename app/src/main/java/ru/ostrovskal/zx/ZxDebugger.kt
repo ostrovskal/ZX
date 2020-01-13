@@ -110,7 +110,7 @@ class ZxDebugger {
                 addUiView(ZxListView.ItemView(R.id.button1, context).lps(MATCH, WRAP))
             }.lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3]))
             pos += 4
-            // flags
+            // execFlags
             repeat(8) {
                 registers[it].text = text(registers[it].nm, style_debugger_flags).
                     lps(coord[pos], coord[pos + 1], coord[pos + 2], coord[pos + 3])
@@ -154,7 +154,7 @@ class ZxDebugger {
                 reg.oval = nval
                 // устанавливаем значение регистра
                 if(reg.fmt == ZX_FV_SIMPLE) {
-                    // flags
+                    // execFlags
                     reg.text?.background = if(nval == 1) selector else null
                 } else {
                     val sval = ZxWnd.zxFormatNumber(nval, reg.fmt, true)

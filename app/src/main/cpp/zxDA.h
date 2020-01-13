@@ -8,12 +8,12 @@
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 
 enum DA_INSTRUCTION_FLAGS {
-    DA_PC   = 1,   // адрес
-    DA_CODE = 2,   // машинные коды
-    DA_REGS = 4,   // такты
-    DA_PN   = 8,   // содержимое адреса
-    DA_PNN  = 16,  // вычисляемое значение
-    DA_LABEL= 32   // метки
+    DA_PC   = 1,  // адрес
+    DA_CODE = 2,  // машинные коды
+    DA_PN   = 4,  // содержимое адреса
+    DA_PNN  = 8,  // вычисляемое значение
+    DA_LABEL= 16, // метки
+    DA_REGS = 32  // гегистры
 };
 
 class zxDA {

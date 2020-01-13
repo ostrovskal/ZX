@@ -59,7 +59,7 @@ class ZxFormCloud : Form() {
     override fun handleMessage(msg: Message): Boolean {
         if(msg.action == ZxWnd.ZxMessages.ACT_DROPBOX_LIST_FILES_FINISH.ordinal) {
             if(msg.arg1 == BTN_NO) {
-                ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, R.string.connectError, R.integer.I_YES, 0, 0, 0, 0))
+                ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, R.string.cloudConnectError, R.integer.I_YES, 0, 0, 0, 0))
             } else {
                 root.byIdx<Ribbon>(3).adapter = LoadingAdapter(wnd, filesCloud)
             }
@@ -71,7 +71,7 @@ class ZxFormCloud : Form() {
     override fun initContent(content: ViewGroup) {
         removeForm("progress")
         wnd.launch {
-            FormProgress().show(wnd, R.string.connectCloud, FORM_PROGRESS_WAIT).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_LIST_FILES_FINISH.ordinal) {
+            FormProgress().show(wnd, R.string.cloudConnect, FORM_PROGRESS_WAIT).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_LIST_FILES_FINISH.ordinal) {
                 val result = withContext(Dispatchers.IO) {dbx.folders("/ZX") }
                 result?.filter { it.name.validFileExtensions(validExt) && !filesLocal.contains(it.name) }?.run {
                     filesCloud = sortedBy { it.name }.toMutableList()
@@ -85,7 +85,7 @@ class ZxFormCloud : Form() {
     private fun downloadCheckedFiles() {
         // загрузить отмеченные файлы из облака
         wnd.launch {
-            FormProgress().show(wnd, R.string.downloadCloud, FORM_PROGRESS_DOWNLOAD).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal) { fp ->
+            FormProgress().show(wnd, R.string.cloudDownload, FORM_PROGRESS_DOWNLOAD).doInBackground(ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal) { fp ->
                 delay(500L)
                 fp.maximum = checkedCount
                 var idx = 1

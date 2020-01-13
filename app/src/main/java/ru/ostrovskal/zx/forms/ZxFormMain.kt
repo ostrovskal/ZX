@@ -49,7 +49,6 @@ class ZxFormMain: Form() {
     override fun restoreState(state: Bundle) {
         super.restoreState(state)
         debugger.restore(state)
-        zxview?.updateTracer()
     }
 
     private fun updateLayout() {
@@ -86,7 +85,6 @@ class ZxFormMain: Form() {
     @SuppressLint("SetTextI18n")
     override fun handleMessage(msg: Message): Boolean {
         when(msg.action) {
-            ZxWnd.ZxMessages.ACT_UPDATE_TRACER_BUTTON.ordinal-> zxview?.updateTracer()
             ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal         -> zxview?.updateJoy()
             ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal,
             ZxWnd.ZxMessages.ACT_RESET.ordinal,

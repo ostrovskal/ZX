@@ -41,14 +41,14 @@ enum CPU_REGS {
     // 41
     AY_REG,
     AY_AFINE, AY_ACOARSE, AY_BFINE, AY_BCOARSE, AY_CFINE, AY_CCOARSE, AY_NOISEPER, AY_ENABLE, AY_AVOL,
-    AY_BVOL, AY_CVOL, AY_EFINE, AY_ECOARSE, AY_ESHAPE, AY_PORTA, AY_BEEPER,
-    // 58
-    TRDOS_CMD, TRDOS_TRK, TRDOS_SEC, TRDOS_DAT, TRDOS_IN, TRDOS_OUT,
+    AY_BVOL, AY_CVOL, AY_EFINE, AY_ECOARSE, AY_ESHAPE, AY_PORTA, AY_PORTB, AY_BEEPER,
+    // 59
+    TRDOS_TRK, TRDOS_SEC, TRDOS_DAT, TRDOS_IN, TRDOS_OUT,
     RTMP,
     STATE,
     CALL0, CALL1,
     MODEL,
-    // 69
+    // 70
     COUNT_REGS
 };
 
@@ -137,9 +137,6 @@ protected:
     // пишем в память 8 бит
     void wm8(uint16_t address, uint8_t val);
 
-    // получить значение флага
-    inline uint8_t getFlag(uint8_t fl) { return (uint8_t)(*_F & fl); }
-
     // код операции
     int codeOps;
 
@@ -155,14 +152,14 @@ protected:
     // такты
     int ticks;
 
-    // спец. флаги
-    uint8_t flags;
+    // обработанные. флаги
+    uint8_t execFlags;
 
     // результат операций
     uint8_t res;
 
     // значение флага FPV
-    bool resetPV;
+//    bool resetPV;
 
     // значение FC для установки
     uint16_t  _fc;

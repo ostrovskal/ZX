@@ -25,7 +25,6 @@ public:
         access_temp			= 0x010,// T
         access_random		= 0x020,// R
         access_sequential	= 0x040,// S
-        access_reset_deny	= 0x080,// N
         access_enable_deny	= 0x100 // C
     };
     zxFile() : fd(nullptr) {}
@@ -38,32 +37,35 @@ public:
     bool read(void* buf, size_t size) const {
         return fread(buf, 1, size, fd) == size;
     }
-    void* read(size_t size) const {
-        if(!size) size = (length() - get_pos());
-        uint8_t* buf = new uint8_t[size];
-        read(buf, size);
-        return buf;
-    }
-    void* read(size_t size, size_t pos, int flags) const {
+    // чтение с позиции
+    bool read(void* buf, size_t size, size_t pos, int flags) const {
         set_pos(pos, flags);
-        return read(size);
+        return read(buf, size);
     }
     // запись
     bool write(void* buf, size_t size) const {
         return fwrite(buf, 1, size, fd) == size;
     }
+    // запись по определенной позиции
     bool write(void* buf, size_t size, size_t pos, int flags) const {
         set_pos(pos, flags);
         return write(buf, size);
     }
     // сервис
     size_t get_pos() const { return (size_t)ftell(fd); }
+    // вернуть длину
     size_t length() const;
-    size_t set_pos(long pos, int flags) const { return (size_t)fseek(fd, pos, flags); }
+    // установить текущую позицию
+    size_t set_pos(size_t pos, int flags) const { return (size_t)fseek(fd, (long)pos, flags); }
+    // записать файл
     static bool writeFile(const char* path, void* buffer, size_t size, bool isFiles = true);
+    // прочитать файл
     static void* readFile(const char* path, void* buffer, bool isFiles = true, size_t* size = nullptr);
+    // создать директорию
     static bool makeDir(const char* path) { return mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO) == 0; }
+    // вернуть путь
     static std::string makePath(const char* name, bool isFiles);
 protected:
+    // дескриптор
     FILE* fd;
 };

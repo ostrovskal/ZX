@@ -1,11 +1,10 @@
 <resources>
-    <string name="themeDef" translatable="false">def</string>
     <string name="menuOpenSave">Open/Save…</string>
     <string name="menuSettings">Settings…</string>
     <string name="menuProperties">Properties…</string>
     <string name="menuSelectDisk">Select disk…</string>
     <string name="menuSound">Sound</string>
-    <string name="menuPokes">Pokes…</string>
+    <string name="menuPokes" translatable="false">Pokes…</string>
     <string name="menuMru">Last…</string>
     <string name="menuReset">Reset</string>
     <string name="menuRestore">Restore</string>
@@ -29,43 +28,38 @@
     <string name="menuProfi">Profi</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Keyboard/Joystick</string>
-    <string name="menuHexDec" translatable="false">Hex\\Dec</string>
-    <string name="hintName">name</string>
-    <string name="headerIO">Operations</string>
-    <string name="downloadCloud">Download…</string>
+    <string name="menuLabel">Label</string>
+    <string name="menuCode">Code</string>
+    <string name="menuValue">Content</string>
+
     <string name="headerCloud" translatable="false">Download</string>
-    <string name="connectCloud">Connected…</string>
-    <string name="connectError">Unable to connect to the server. Check your internet connection!</string>
-    <string name="pokeHead" translatable="false">Pokes</string>
+    <string name="headPoke" translatable="false">Pokes</string>
+    <string name="headerIO">Manager</string>
+    <string name="headSettings">Settings</string>
+    <string name="headBps">Break Points</string>
+
+    <string name="cloudDownload">Download…</string>
+    <string name="cloudConnect">Connected…</string>
+    <string name="cloudConnectError">Unable to connect to the server. Check your internet connection!</string>
+
+    <string name="ioLoadError">Failed to read. The file is corrupt!</string>
+    <string name="ioSaveError">Failed to write. Unknown file format!</string>
+
+    <string name="hintName">name</string>
     <string name="hintAddress">address</string>
     <string name="hintAddress1">begin address</string>
     <string name="hintAddress2">finish address</string>
     <string name="hintMask">mask</string>
     <string name="hintValue">value</string>
-    <string name="settingsHead">Settings</string>
-    <string name="settingsJoyType">Type</string>
-    <string name="settingsJoyPreset">Samples</string>
+
     <string name="settingsCPU" translatable="false">CPU</string>
     <string name="settingsBLINK" translatable="false">BLINK</string>
     <string name="settingsJOY" translatable="false">JOYSTICK</string>
     <string name="settingsBORDER" translatable="false">BORDER</string>
     <string name="settingsKEY" translatable="false">KEYBOARD</string>
-    <string name="settingsColorRed">RED</string>
-    <string name="settingsColorYellow">YELLOW</string>
-    <string name="settingsColorLRed">LIGHT RED</string>
-    <string name="settingsColorBlue">BLUE</string>
-    <string name="settingsColorBlack">BLACK</string>
-    <string name="settingsColorCyan">CYAN</string>
-    <string name="settingsColorGreen">GREEN</string>
-    <string name="settingsColorLBlack">LIGHT BLACK</string>
-    <string name="settingsColorLGreen">LIGHT GREEN</string>
-    <string name="settingsColorLBlue">LIGHT BLUE</string>
-    <string name="settingsColorLCyan">LIGHT CYAN</string>
-    <string name="settingsColorLYellow">LIGHT YELLOW</string>
-    <string name="settingsColorMagenta">MAGENTA</string>
-    <string name="settingsColorWhite">WHITE</string>
-    <string name="settingsColorLWhite">LIGHT WHITE</string>
-    <string name="settingsColorLMagenta">LIGHT MAGENTA</string>
+
+    <string name="settingsJoyType">Type</string>
+    <string name="settingsJoyPreset">Samples</string>
     <string name="settingsJoyLeft">LEFT</string>
     <string name="settingsJoyRight">RIGHT</string>
     <string name="settingsJoyUp">UP</string>
@@ -74,17 +68,44 @@
     <string name="settingsJoyY" translatable="false">Y</string>
     <string name="settingsJoyA" translatable="false">A</string>
     <string name="settingsJoyB" translatable="false">B</string>
+
+    <string name="settingsColorBlack">BLACK</string>
+    <string name="settingsColorBlue">BLUE</string>
+    <string name="settingsColorRed">RED</string>
+    <string name="settingsColorMagenta">MAGENTA</string>
+    <string name="settingsColorGreen">GREEN</string>
+    <string name="settingsColorCyan">CYAN</string>
+    <string name="settingsColorYellow">YELLOW</string>
+    <string name="settingsColorWhite">WHITE</string>
+    <string name="settingsColorLBlack">LIGHT BLACK</string>
+    <string name="settingsColorLBlue">LIGHT BLUE</string>
+    <string name="settingsColorLRed">LIGHT RED</string>
+    <string name="settingsColorLMagenta">LIGHT MAGENTA</string>
+    <string name="settingsColorLGreen">LIGHT GREEN</string>
+    <string name="settingsColorLCyan">LIGHT CYAN</string>
+    <string name="settingsColorLYellow">LIGHT YELLOW</string>
+    <string name="settingsColorLWhite">LIGHT WHITE</string>
+
     <string name="settingsSound8Bit">8 Bit</string>
     <string name="settingsSoundBeeper">Beeper</string>
-    <string name="settingsSoundAY">AY</string>
+    <string name="settingsSoundAY" translatable="false">AY</string>
     <string name="settingsSoundSave">Save</string>
     <string name="settingsSndVolAY">Volume AY</string>
     <string name="settingsSndVolBP">Volume BP</string>
     <string name="settingsSndFreq">Frequency</string>
     <string name="settingsSndTypeAY">Stereo AY</string>
-    <string name="descImage" translatable="false">desc</string>
-    <string name="ioLoadError">Failed to read. The file is corrupt!</string>
-    <string name="ioSaveError">Failed to write. Unknown file format!</string>
+
+    <string name="settingsTapeCaption">CAPTION</string>
+    <string name="settingsTapeLine">LINE</string>
+    <string name="settingsTapeArray">ARRAY</string>
+    <string name="settingsTapeAddress">ADDRESS</string>
+    <string name="settingsTapeScreen">SCREEN</string>
+    <string name="settingsTapeBlock">BLOCK</string>
+    <string name="settingsTapeBytes">BYTES</string>
+    <string name="settingsTapeBasic">BASIC</string>
+    <string name="settingsTapeNumArray">N.ARRAY</string>
+    <string name="settingsTapeStringArray">S.ARRAY</string>
+
     <string name="flagS" translatable="false">S</string>
     <string name="flagZ" translatable="false">Z</string>
     <string name="flagY" translatable="false">Y</string>
@@ -104,23 +125,10 @@
     <string name="riy" translatable="false">IY</string>
     <string name="rpc" translatable="false">PC</string>
     <string name="rsp" translatable="false">SP</string>
+
     <string name="shadow_null" translatable="false">0,0,0,#ff000000</string>
     <string name="radiiFormMessage" translatable="false">40,35,40,35,20,20,20,20</string>
-    <string name="menuLabel">Label</string>
-    <string name="menuCode">Code</string>
-    <string name="menuValue">Content</string>
-    <string name="menuTrace">Tracer</string>
-    <string name="headBps">Break Points</string>
-    <string name="menuTracer">Tracer…</string>
-    <string name="headerTracer">TRACER</string>
-    <string name="settingsTapeCaption">CAPTION</string>
-    <string name="settingsTapeLine">LINE</string>
-    <string name="settingsTapeArray">ARRAY</string>
-    <string name="settingsTapeAddress">ADDRESS</string>
-    <string name="settingsTapeScreen">SCREEN</string>
-    <string name="settingsTapeBlock">BLOCK</string>
-    <string name="settingsTapeBytes">BYTES</string>
-    <string name="settingsTapeBasic">BASIC</string>
-    <string name="settingsTapeNumArray">N.ARRAY</string>
-    <string name="settingsTapeStringArray">S.ARRAY</string>
+    <string name="descImage" translatable="false">desc</string>
+    <string name="themeDef" translatable="false">def</string>
+
 </resources>

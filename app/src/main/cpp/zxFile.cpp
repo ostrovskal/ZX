@@ -35,7 +35,8 @@ void* zxFile::readFile(const char* path, void* buffer, bool isFiles, size_t* siz
         if(buffer) {
             f.read(buffer, sz);
         } else {
-            buffer = f.read(sz);
+            buffer = new uint8_t[sz];
+            f.read(buffer, sz);
         }
         if(size) *size = sz;
     } else {

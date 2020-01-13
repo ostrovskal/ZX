@@ -17,27 +17,14 @@ public final class ZxCommon {
     public static final String ZX_TMP_SAVE          = "tmp_save.zx";
     public final static byte ZX_DEBUGGER            = 0x20;
 
-    public final static int DA_PC                  = 1;
-    public final static int DA_CODE                = 2;
-    public final static int DA_REGS                = 4;
-    public final static int DA_PN                  = 8;
-    public final static int DA_PNN                 = 16;
-    public final static int DA_LABEL               = 32;
+    public final static int DA_PC                   = 1;
+    public final static int DA_CODE                 = 2;
+    public final static int DA_PN                   = 4;
+    public final static int DA_PNN                  = 8;
+    public final static int DA_LABEL                = 16;
 
-    public final static byte ZX_BP_NONE                = 0; // не учитывается
-    public final static byte ZX_BP_EXEC                = 1; // исполнение
-//    public final static byte ZX_BP_WMEM                = 2; // запись в память
-//    public final static byte ZX_BP_RPORT               = 3; // чтение из порта
-//    public final static byte ZX_BP_WPORT               = 4; // запись в порт
-
-/*
-    public final static int ZX_BP_OPS_EQ              = 0; // ==
-    public final static int ZX_BP_OPS_NQ              = 1; // !=
-    public final static int ZX_BP_OPS_GT              = 2; // >
-    public final static int ZX_BP_OPS_LS              = 3; // <
-    public final static int ZX_BP_OPS_GTE             = 4; // >=
-    public final static int ZX_BP_OPS_LSE             = 5; // <=
-*/
+    public final static byte ZX_BP_NONE             = 0; // не учитывается
+    public final static byte ZX_BP_EXEC             = 1; // исполнение
 
     // DEBUGGER ACTION
     public final static int DEBUGGER_ACT_HEX_DEC    = 0;
@@ -68,19 +55,19 @@ public final class ZxCommon {
     public final static int ZX_PYSL                 = ZX_PC | ZX_STORY | ZX_SEL | ZX_LIST;
 
     // REGISTERS
+    public final static int ZX_CPU_BC               = 0;
+    public final static int ZX_CPU_DE               = 2;
+    public final static int ZX_CPU_HL               = 4;
+    public final static int ZX_CPU_AF               = 6;
     public final static int ZX_CPU_F                = 6;
+    public final static int ZX_CPU_IX               = 16;
+    public final static int ZX_CPU_IY               = 18;
+    public final static int ZX_CPU_SP               = 20;
+    public final static int ZX_CPU_PC               = 22;
     public final static int ZX_CPU_RAM              = 34;
     public final static int ZX_CPU_ROM              = 35;
     public final static int ZX_CPU_VID              = 36;
     public final static int ZX_CPU_STATE            = 65;
-    public final static int ZX_CPU_AF               = 6;
-    public final static int ZX_CPU_HL               = 4;
-    public final static int ZX_CPU_DE               = 2;
-    public final static int ZX_CPU_BC               = 0;
-    public final static int ZX_CPU_IX               = 16;
-    public final static int ZX_CPU_IY               = 18;
-    public final static int ZX_CPU_PC               = 22;
-    public final static int ZX_CPU_SP               = 20;
 
     public final static int MENU_CLOUD              = 1000;
     public final static int MENU_IO                 = 1001;
@@ -100,14 +87,12 @@ public final class ZxCommon {
     public final static int MENU_PROPS_TURBO        = 1014;
     public final static int MENU_PROPS_EXECUTE      = 1015;
     public final static int MENU_PROPS_DEBUGGER     = 1016;
-    public final static int MENU_PROPS_TRACER       = 1017;
-    public final static int MENU_DEBUGGER_LABEL     = 1018;
-    public final static int MENU_DEBUGGER_CODE      = 1019;
-    public final static int MENU_DEBUGGER_VALUE     = 1020;
-    public final static int MENU_MRU                = 1021;
-    public final static int MENU_POKES              = 1022;
-    public final static int MENU_DEBUGGER1          = 1023;
-    public final static int MENU_TRACER             = 1024;
+    public final static int MENU_DEBUGGER_LABEL     = 1017;
+    public final static int MENU_DEBUGGER_CODE      = 1018;
+    public final static int MENU_DEBUGGER_VALUE     = 1019;
+    public final static int MENU_MRU                = 1020;
+    public final static int MENU_POKES              = 1021;
+    public final static int MENU_DEBUGGER1          = 1022;
 
     public final static int MENU_DISK_A             = 1200;
     public final static int MENU_DISK_B             = 1201;
@@ -140,7 +125,6 @@ public final class ZxCommon {
     public final static int FORM_POKES              = 3;
     public final static int FORM_LOADING            = 4;
     public final static int FORM_BREAK_POINTS       = 5;
-    public final static int FORM_TRACCER            = 6;
 
     // Разделяемые свойства
 
@@ -149,10 +133,6 @@ public final class ZxCommon {
     public static final int ZX_PROP_JOY_KEYS        = 71; // Привазанные к джойстику коды кнопок клавиатуры (8) 69 - 76
     public static final int ZX_PROP_JOY_CROSS_VALUE = 79; // Нажатые кнопки джойстика-крестовины
     public static final int ZX_PROP_JOY_ACTION_VALUE= 80; // Нажатые кнопки джойстика-управления
-//    public static final int ZX_PROP_KEY_CURSOR_MODE = 81; // Режим курсора (E, G, L, K т.п.)
-//    public static final int ZX_PROP_KEY_MODE        = 82; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
-//    public static final int ZX_PROP_VALUES_SEMI_ROW = 83; // Значения в полурядах клавиатуры (8) 81 - 88
-//    public static final int ZX_PROP_VALUES_KEMPSTON = 91; // Значение для кемпстон-джойстика
     public static final int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
     public static final int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 
@@ -161,25 +141,22 @@ public final class ZxCommon {
     private static final int ZX_PROP_TRAP_TAPE      = 129; // Признак перехвата загрузки/записи с ленты
     public static final int ZX_PROP_SHOW_JOY        = 130; // Признак отображения джойстика
     public static final int ZX_PROP_SHOW_KEY        = 131; // Признак отображения клавиатуры
-    public static final int ZX_PROP_LAUNCH_TRACCER  = 132; // Признак запуска трассера
-    private static final int ZX_PROP_TURBO_MODE     = 133; // Признак турбо-режима процессора
-    private static final int ZX_PROP_SND_LAUNCH     = 134; // Признак запуска звукового процессора
-    private static final int ZX_PROP_SND_BP         = 135; // Признак запуска бипера
-    private static final int ZX_PROP_SND_AY         = 136; // Признак трехканального AY
-    private static final int ZX_PROP_SND_8BIT       = 137; // Признак 8 битного звука
-    private static final int ZX_PROP_SND_SAVE       = 138; // Признак прямой записи
-    //    public static final int ZX_PROP_EXIT_ERROR    = 139; // Признак завершения с ошибкой(не загружать состояние)
-    public static final int ZX_PROP_EXECUTE         = 140; // Признак выполнения программы
-    public static final int ZX_PROP_SHOW_DEBUGGER   = 141; // Признак режима отладчика
-    public static final int ZX_PROP_TRACER          = 142; // Признак записи трассировки
-    public static final int ZX_PROP_SHOW_HEX        = 143; // Признак 16-тиричного вывода
-    public static final int ZX_PROP_SHOW_LABEL      = 144; // Признак отображения меток инструции
-    public static final int ZX_PROP_SHOW_CODE       = 145; // Признак режима кода инструкции
-    public static final int ZX_PROP_SHOW_CODE_VALUE = 146; // Признак режима содержимого кода
+    private static final int ZX_PROP_TURBO_MODE     = 132; // Признак турбо-режима процессора
+    private static final int ZX_PROP_SND_LAUNCH     = 133; // Признак запуска звукового процессора
+    private static final int ZX_PROP_SND_BP         = 134; // Признак запуска бипера
+    private static final int ZX_PROP_SND_AY         = 135; // Признак трехканального AY
+    private static final int ZX_PROP_SND_8BIT       = 136; // Признак 8 битного звука
+    private static final int ZX_PROP_SND_SAVE       = 137; // Признак прямой записи
+    public static final int ZX_PROP_EXECUTE         = 138; // Признак выполнения программы
+    public static final int ZX_PROP_SHOW_HEX        = 139; // Признак 16-тиричного вывода
+    public static final int ZX_PROP_SHOW_DEBUGGER   = 140; // Признак режима отладчика
+    public static final int ZX_PROP_SHOW_LABEL      = 141; // Признак отображения меток инструции
+    public static final int ZX_PROP_SHOW_CODE       = 142; // Признак режима кода инструкции
+    public static final int ZX_PROP_SHOW_CODE_VALUE = 143; // Признак режима содержимого кода
 
     // 2. Байтовые значения
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
-    public static final int ZX_PROP_BORDER_SIZE     = 151; // Размер границы
+    private static final int ZX_PROP_BORDER_SIZE    = 151; // Размер границы
     public static final int ZX_PROP_MODEL_TYPE      = 152; // Модель памяти
     private static final int ZX_PROP_SND_TYPE_AY    = 153; // Тип каналов в звуковом процессоре AY
     private static final int ZX_PROP_SND_FREQUENCY  = 154; // Частота звука
@@ -200,18 +177,8 @@ public final class ZxCommon {
     public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_BPS - ZX_PROP_FIRST_LAUNCH) + 8; // Количество свойств
 
     // Варианты форматирования чисел
-//    public static final int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
-//    public static final int ZX_FV_CODE				= 2; // "3X ", "2X "
-//    public static final int ZX_FV_PADDR16			= 4; // "5(X)", "4(#X)"
-//    public static final int ZX_FV_PADDR8			= 6; // "3(X)", "2(#X)"
-//    public static final int ZX_FV_OFFS			    = 8; // "3+-X)", "2+-#X)"
-//    public static final int ZX_FV_NUM16				= 10;// "5X", "4X"
     public static final int ZX_FV_OPS16				= 12;// "5X", "4#X"
     public static final int ZX_FV_OPS8				= 14;// "3X", "2#X"
-//    public static final int ZX_FV_CVAL				= 16;// "5[X]", "4[#X]"
-//    public static final int ZX_FV_PVAL8				= 18;// "3{X}", "2{#X}"
-//    public static final int ZX_FV_PVAL16			= 20;// "3{X}", "2{#X}"
-//    public static final int ZX_FV_NUMBER			= 22;// "0X", "0X"
     public static final int ZX_FV_SIMPLE			= 24;// "0X", "0X"
 
     // Команды
@@ -222,18 +189,16 @@ public final class ZxCommon {
     public static final int ZX_CMD_INIT_GL          = 4;  // Инициализация GL
     public static final int ZX_CMD_POKE             = 5;  // Установка POKE
     public static final int ZX_CMD_ASSEMBLER        = 6;  // Ассемблирование
-    public static final int ZX_CMD_TRACER           = 7;  // Запуск трасировщика
+    public static final int ZX_CMD_TAPE_COUNT       = 7;  // Получение количества блоков ленты
     public static final int ZX_CMD_QUICK_BP         = 8;  // Быстрая установка точки останова
     public static final int ZX_CMD_TRACE_X          = 9;  // Трассировка
     public static final int ZX_CMD_STEP_DEBUG       = 10; // Выполнение в отладчике
     public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
-    public static final int ZX_CMD_TAPE_COUNT       = 13; // Получение количества блоков ленты
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
     public static final int ZX_DEBUGGER_MODE_DT     = 2; // Список данных
-    public static final int ZX_DEBUGGER_MODE_TR     = 3; // Список трасера
 
     private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 
@@ -588,7 +553,7 @@ public final class ZxCommon {
 
     public static final int[] menuProps     = {
             ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0,
-            ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER, ZX_PROP_TRACER,
+            ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER,
             ZX_PROP_SHOW_LABEL, ZX_PROP_SHOW_CODE, ZX_PROP_SHOW_CODE_VALUE
     };
 

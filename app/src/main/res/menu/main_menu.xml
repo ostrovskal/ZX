@@ -29,7 +29,7 @@
     </item>
     <item
         android:id="@integer/MENU_CLOUD"
-        android:title="@string/downloadCloud"
+        android:title="@string/cloudDownload"
         android:showAsAction="ifRoom" />
     <item
         android:id="@integer/MENU_IO"
@@ -68,10 +68,6 @@
                 <item
                     android:id="@integer/MENU_PROPS_DEBUGGER"
                     android:title="@string/menuDebugger"
-                    android:showAsAction="never" />
-                <item
-                    android:id="@integer/MENU_PROPS_TRACER"
-                    android:title="@string/menuTrace"
                     android:showAsAction="never" />
             </group>
         </menu>
@@ -158,10 +154,6 @@
     <item
         android:id="@integer/MENU_POKES"
         android:title="@string/menuPokes"
-        android:showAsAction="never" />
-    <item
-        android:id="@integer/MENU_TRACER"
-        android:title="@string/menuTracer"
         android:showAsAction="never" />
     <item
         android:id="@integer/MENU_RESET"

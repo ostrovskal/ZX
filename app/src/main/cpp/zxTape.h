@@ -32,9 +32,6 @@ public:
     // управление импульсами
     void control(int ticks);
 
-    // перехватчик
-    int trap(uint16_t PC);
-
     // загрузить WAV
     bool openWAV(const char *path);
 

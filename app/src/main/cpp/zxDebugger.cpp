@@ -71,7 +71,7 @@ const char *zxDebugger::itemList(int cmd, int data, int flags){
             // data
             uint8_t v;
             auto tres = rtmp + 256;
-            // flags значений
+            // execFlags значений
             // address
             if(data < 65536 && data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
             else ssh_char(&rtmp, '?', 5 - opts[ZX_PROP_SHOW_HEX]);

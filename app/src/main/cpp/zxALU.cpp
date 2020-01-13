@@ -46,11 +46,13 @@ static int pages_rom[8] = {
 };
 
 static int modelParams[] = {
+        8960, 8, 56, 7168, // 69888, 16192  KOMPANION
         8960, 8, 56, 7168, // 69888, 16192  48K
-        8960, 8, 56, 7168, // 69888, 16192  48K
+        8960, 8, 56, 7168, // 69888, 16192  48KN
         8892, 8, 60, 7296, // 70908, 16256  128K
         12544,52,12, 5376, // 71680, 17984  Pentagon
         8960, 48,16, 7168, // 69888  16192  Scorpion
+        8960, 48,16, 7168, // 69888  16192  Profi
 };
 
 static uint8_t semiRows[] = {
@@ -231,7 +233,7 @@ bool zxALU::openZ80(const char *path) {
         }
         switch(head2->hardMode) {
             case 0: case 1: if(!isMod) model = MODEL_48; break;
-            case 3: case 4: case 5: case 6: if(!isMod) model = MODEL_128; break;
+            case 3: case 4: case 5: case 6: model = MODEL_128; break;
             case 9: model = MODEL_PENTAGON; break;
             case 10: model = MODEL_SCORPION; break;
             default: LOG_DEBUG("Неизвестное оборудование в %s!", path); return false;
@@ -250,6 +252,7 @@ bool zxALU::openZ80(const char *path) {
             bool isPage = false;
             switch(model) {
                 case MODEL_48:
+                case MODEL_48N:
                 case MODEL_KOMPANION:
                     isPage = true;
                     switch(numPage) {
@@ -300,9 +303,10 @@ bool zxALU::openZ80(const char *path) {
     *_FE = (uint8_t)(224 | ((head1->STATE1 & 14) >> 1));
     memcpy(&opts[RC_], &head1->BC_, 8);
     *cpu->_PC = PC;
+    LOG_INFO("Z80 Start PC: %i", PC);
     if(head2) {
         writePort(0xfd, 0x7f, head2->hardState);
-        memcpy(snd->_REGISTERS, head2->sndRegs, 16);
+        memcpy(&opts[AY_AFINE], head2->sndRegs, 16);
         writePort(0xfd, 0xff, head2->sndChipRegNumber);
     }
     if(head3 && length == 87) writePort(0xfd, 0x1f, head3->port1FFD);
@@ -352,8 +356,8 @@ bool zxALU::saveZ80(const char *path) {
     head2->length = 55;
     head.port1FFD = *_1FFD;
     head2->hardState = *_7FFD;
-    head2->sndChipRegNumber = *snd->_CURRENT;
-    memcpy(head2->sndRegs, snd->_REGISTERS, 16);
+    head2->sndChipRegNumber = opts[AY_REG];
+    memcpy(head2->sndRegs, &opts[AY_AFINE], 16);
     ssh_memzero(head2->sndRegs, 16);
     // формируем буфер из содержимого страниц
     ssh_memcpy(&buf, &head, sizeof(HEAD3_Z80));
@@ -515,6 +519,7 @@ bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
         ssh_memzero(PAGE_ROM, sizeof(PAGE_ROM));
         for (int i = 0; i < pagesROM; i++) PAGE_ROM[i] = (rom + i * 16384);
     }
+    /*
     uint8_t src[] = {
             LD_A_N, 1,
             LD_BC_NN, 255, 255,
@@ -567,7 +572,8 @@ bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
             JP_NN, 6, 0
                      };
     auto dst = &PAGE_ROM[*_ROM][0];
-    //memcpy(dst, src, sizeof(src));
+    memcpy(dst, src, sizeof(src));
+     */
     signalRESET(resetTape);
     return result;
 }
@@ -626,7 +632,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
                                 else *_ROM = (uint8_t) ((*_7FFD & 16) >> 4);
                             }
                             *_RAM = (uint8_t) ((*_7FFD & 7) + (uint8_t) ((val & 16) >> 1));
-                            LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
+                            //LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
                             setPages();
                         }
                         break;
@@ -645,21 +651,19 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
                         if(*_MODEL == MODEL_SCORPION) {
                             if(!(*_1FFD & 2)) *_ROM = (uint8_t)((val & 16) >> 4);
                             *_RAM += (uint8_t)((*_1FFD & 16) >> 1);
-                            LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
                         } else {
                             *_ROM = (uint8_t)((val & 16) >> 4);
                         }
+                        //LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
                         setPages();
                         break;
                     case 0xBF:
                         // записываем значение в текущий регистр
-                        snd->write(*snd->_CURRENT, val);
-                        //LOG_DEBUG("AY VAL (%X%X(%i)", A8A15, A0A7, val);
+                        snd->write(opts[AY_REG], val);
                         break;
                     case 0xFF:
                         // устанавливаем текущий регистр
-                        *snd->_CURRENT = (uint8_t)(val & 15);
-                        //LOG_DEBUG("AY REG (%X%X(%i)", A8A15, A0A7, val);
+                        opts[AY_REG] = (uint8_t)((val & 15) + AY_AFINE);
                         break;
                 }
         }
@@ -673,7 +677,7 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
         // звук AY
         case 0xFD:
             if(A8A15 != 0xff) break;
-            return snd->_REGISTERS[*snd->_CURRENT];
+            return opts[opts[AY_REG]];
         // джойстик
         case 0x1F:
             return *_KEMPSTON;
@@ -702,8 +706,8 @@ void zxALU::setPages() {
 void zxALU::execute() {
     // отображение экрана, воспроизведение звука
     updateFrame();
-    //snd->update();
     gpu->updateFrame();
+    snd->update();
 }
 
 void zxALU::stepDebug() {
@@ -734,11 +738,16 @@ int zxALU::step(bool allow_int) {
     return ticks;
 }
 
+static int totalTick = 0;
+static int rtotalTick = 0;
+
 void zxALU::updateCPU(int todo, bool interrupt) {
     if(*_STATE & (ZX_BP | ZX_PAUSE)) return;
     if(!opts[ZX_PROP_EXECUTE]) return;
     int ticks;
+    totalTick += todo;
     todo += periodGPU;
+    rtotalTick += todo;
     if (interrupt) {
         if (periodGPU > 0) {
             ticks = step(false);
@@ -756,6 +765,14 @@ void zxALU::updateCPU(int todo, bool interrupt) {
         todo -= ticks;
         tape->control(ticks);
     }
+/*
+    1.8960
+    2.(8 + 160 + 56) * 24 = 5376
+    3.(8 + 16 + 128 + 16 + 56) * 192 = 43008
+    4. (8 + 160 + 56) * 24 = 1512
+    5. 7168
+    6 =
+*/
     periodGPU = todo;
 }
 
@@ -771,11 +788,14 @@ void zxALU::updateFrame() {
     auto dest = gpu->frameBuffer;
     if(!dest) return;
 
+    totalTick = 0;
+    rtotalTick = 0;
+
     auto isBlink = ((blink & blinkMsk) >> blinkShift) == 0;
     auto szBorder = sizeBorder >> 1;
     auto colours = (uint32_t*)&opts[ZX_PROP_COLORS];
 
-//    _FF = 0xff;
+    //_FF = 0xff;
     colorBorder = (uint8_t)(*_FE & 7);
 
     updateCPU(stateUP, true);
@@ -790,6 +810,7 @@ void zxALU::updateFrame() {
         }
         updateCPU(stateRP, false);
     }
+    //
     // экран по центру и бордер слева и справа
     for (line = 0; line < 192; line++) {
         updateCPU(stateLP, false);
@@ -845,15 +866,7 @@ void zxALU::updateFrame() {
     }
     updateCPU(stateDP, false);
     blink++;
-}
-
-void zxALU::tracer(int start) {
-    ftracer.close();
-    opts[ZX_PROP_LAUNCH_TRACCER] = (uint8_t)start;
-    if(start != 0) {
-        auto nm = name + ".log";
-        ftracer.open(zxFile::makePath(nm.c_str(), false).c_str(), zxFile::create_write);
-    }
+//    LOG_INFO("total ticks on frame %i:%i:(real)%i", sizeBorder, totalTick, rtotalTick);
 }
 
 void zxALU::quickBP(uint16_t address) {
@@ -935,7 +948,7 @@ int zxALU::trap() {
     if(PC < 16384) {
         // активность TR DOS
         if(PC >= 15616 && PC <= 15871) {
-            if(pageROM != PAGE_ROM[0]) {
+            if(!(*_STATE & ZX_TRDOS)) {
                 *_STATE |= ZX_TRDOS;
                 setPages();
             }

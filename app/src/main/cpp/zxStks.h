@@ -6,28 +6,6 @@
 
 #pragma pack(push, 1)
 
-struct PRESET {
-    char name[31];
-    uint8_t joyType;
-    uint8_t joyL, joyR, joyU, joyD;
-    uint8_t joyX, joyY, joyA, joyB;
-};
-
-struct HEADER_TGA {
-    uint8_t	    bIdLength;		//
-    uint8_t	    bColorMapType;	// тип цветовой карты ()
-    uint8_t	    bType;			// тип файла ()
-    uint16_t	wCmIndex;		// тип индексов в палитре
-    uint16_t	wCmLength;		// длина палитры
-    uint8_t	    bCmEntrySize;	// число бит на элемент палитры
-    uint16_t	wXorg;			//
-    uint16_t	wYorg;			//
-    uint16_t	wWidth;			// ширина
-    uint16_t	wHeight;		// высота
-    uint8_t	    bBitesPerPixel;	// бит на пиксель
-    uint8_t	    bFlags;			//
-};
-
 struct HEAD1_Z80 {
     uint16_t AF, BC, HL, PC, SP;
     uint8_t I, R;

@@ -8,15 +8,11 @@
     <dimen name="pokeHeight">150dp</dimen>
     <dimen name="settingsWidth">420dp</dimen>
     <dimen name="settingsHeight">280dp</dimen>
-    <dimen name="debuggerTextFlags">8sp</dimen>
     <dimen name="debuggerTextDef">10sp</dimen>
     <dimen name="textSettings">14sp</dimen>
     <dimen name="settingsTextColor">14sp</dimen>
-    <dimen name="actionBar">25dp</dimen>
     <dimen name="widthBps">300dp</dimen>
     <dimen name="heightBps">295dp</dimen>
     <dimen name="debuggerTextList">10sp</dimen>
     <dimen name="paddingHorzDebEdit">3dp</dimen>
-    <dimen name="heightTracer">280dp</dimen>
-    <dimen name="widthTracer">400dp</dimen>
 </resources>

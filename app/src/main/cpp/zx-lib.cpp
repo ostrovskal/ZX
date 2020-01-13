@@ -27,8 +27,8 @@ static int parseExtension(const char* name) {
 
 static void copyAssetsFile(AAssetManager *aMgr, const char *aPath, const char *path, uint8_t **buffer = nullptr) {
     auto aFile = AAssetManager_open(aMgr, aPath, AASSET_MODE_UNKNOWN);
-    bool result = false;
-    if(aFile) {
+    bool result = aFile != nullptr;
+    if(result) {
         auto aLen = (size_t) AAsset_getLength(aFile);
         auto aBuf = new uint8_t[aLen];
         AAsset_read(aFile, aBuf, aLen);
@@ -37,8 +37,9 @@ static void copyAssetsFile(AAssetManager *aMgr, const char *aPath, const char *p
             zxFile::writeFile(path, aBuf, aLen);
             SAFE_A_DELETE(aBuf);
         } else *buffer = aBuf;
+    } else {
+        LOG_DEBUG("Не удалось найти файл <%s>!", aPath);
     }
-    if(!result) LOG_DEBUG("Не удалось найти файл <%s>!", aPath);
 }
 
 extern "C" {
@@ -68,8 +69,12 @@ extern "C" {
         LOG_DEBUG("%s \"%s\"", load ? "load" : "save", path);
         auto type = parseExtension(path);
         auto ret = (jboolean)(load ? ALU->load(path, type) : ALU->save(path, type));
-        if(!ret) LOG_DEBUG("Не удалось загрузить/записать <%s>!", path)
-        else if(type > ZX_CMD_IO_STATE) ALU->programName(path);
+        if(!ret) {
+            LOG_DEBUG("Не удалось загрузить/записать <%s>!", path)
+        }
+        else if(type > ZX_CMD_IO_STATE) {
+            ALU->programName(path);
+        }
         return ret;
     }
 
@@ -107,7 +112,6 @@ extern "C" {
             AAssetDir_close(dir);
             opts[ZX_PROP_FIRST_LAUNCH] = 0;
             copyAssetsFile(amgr, "tapLoader.zx", "tapLoader.zx");
-            copyAssetsFile(amgr, "trdLoader.zx", "trdLoader.zx");
         }
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
         copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
@@ -191,7 +195,6 @@ extern "C" {
             case ZX_CMD_PROPS:      ALU->updateProps(arg1); break;
             case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], *ALU->_MODEL, true); break;
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
-            case ZX_CMD_TRACER:     ALU->tracer(arg1); break;
             case ZX_CMD_QUICK_BP:   ALU->quickBP((uint16_t)arg1); break;
             case ZX_CMD_TRACE_X:    ALU->debugger->trace(arg1); break;
             case ZX_CMD_STEP_DEBUG: ALU->stepDebug(); break;
