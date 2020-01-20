@@ -22,11 +22,15 @@ class ZxView(context: Context) : GLSurfaceView(context) {
 
     private inner class ZxRender : Renderer {
         override fun onDrawFrame(gl: GL10) {
-            val tm = System.currentTimeMillis()
-            updateState()
-            val diff = System.currentTimeMillis() - tm
-            val delay = 20 - diff
-            if(delay > 0) sleep(delay)
+            if(ZxWnd.props[ZX_PROP_TURBO_MODE].toBoolean) {
+                updateState()
+            } else {
+                val tm = System.currentTimeMillis()
+                updateState()
+                val diff = System.currentTimeMillis() - tm
+                val delay = 20 - diff
+                if (delay > 0) sleep(delay)
+            }
         }
 
         override fun onSurfaceChanged(gl: GL10, width: Int, height: Int) {
@@ -139,11 +143,9 @@ class ZxView(context: Context) : GLSurfaceView(context) {
     }
 
     fun updateJoy() {
-/*
         var show = !ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean
         if(show) show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
-*/
-        val show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
+//        val show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
         val isv = if (show) View.VISIBLE else View.GONE
         val size = 80 + ZxWnd.props[ZX_PROP_JOY_SIZE].toInt() * 40
         val mx = wnd.main.measuredWidth

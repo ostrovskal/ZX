@@ -53,7 +53,6 @@
     <string name="hintValue">value</string>
 
     <string name="settingsCPU" translatable="false">CPU</string>
-    <string name="settingsBLINK" translatable="false">BLINK</string>
     <string name="settingsJOY" translatable="false">JOYSTICK</string>
     <string name="settingsBORDER" translatable="false">BORDER</string>
     <string name="settingsKEY" translatable="false">KEYBOARD</string>
@@ -86,7 +85,7 @@
     <string name="settingsColorLYellow">LIGHT YELLOW</string>
     <string name="settingsColorLWhite">LIGHT WHITE</string>
 
-    <string name="settingsSound8Bit">8 Bit</string>
+    <string name="settingsSoundModeAY">Mode AY</string>
     <string name="settingsSoundBeeper">Beeper</string>
     <string name="settingsSoundAY" translatable="false">AY</string>
     <string name="settingsSoundSave">Save</string>

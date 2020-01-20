@@ -5,14 +5,6 @@
 
 static jobject objProps = nullptr;
 
-#ifdef DEBUG
-const char* scmd[] = {
-        "CMD_MODEL", "CMD_PROPS", "CMD_RESET", "CMD_UPDATE_KEY", "CMD_INIT_GL", "CMD_POKE",
-        "CMD_ASSEMBLER", "CMD_TRACER", "CMD_QUICK_BP", "CMD_TRACE_X", "CMD_STEP_DEBUG",
-        "CMD_MOVE_PC", "CMD_JUMP", "CMD_TAPE_COUNT", "CMD_SET_DISK"
-};
-#endif
-
 static int parseExtension(const char* name) {
     auto l = strlen(name);
     const char* ext = (l > 2 ? name + (l - 3) : "123");
@@ -62,6 +54,7 @@ extern "C" {
         }
         // Uninit GL
         ALU->gpu->uninitGL();
+        ALU->cpu->shutdown();
     }
 
     jboolean zxIO(JNIEnv* env, jclass, jstring nm, jboolean load) {
@@ -84,11 +77,12 @@ extern "C" {
         auto autoSavePath = env->GetStringUTFChars(savePath, nullptr);
         LOG_DEBUG("savePath: %s error: %i", autoSavePath, error);
 
+        // инициализировать пути к системным папкам
+        FOLDER_FILES = env->GetStringUTFChars(filesDir, nullptr);
+        FOLDER_CACHE = env->GetStringUTFChars(cacheDir, nullptr);
+
         auto amgr = AAssetManager_fromJava(env, asset);
         if(opts[ZX_PROP_FIRST_LAUNCH]) {
-            // инициализировать пути к системным папкам
-            FOLDER_FILES = env->GetStringUTFChars(filesDir, nullptr);
-            FOLDER_CACHE = env->GetStringUTFChars(cacheDir, nullptr);
             // перенести все игры из активов на диск
             std::string out("games/");
             std::string z80("Z80/");
@@ -199,7 +193,7 @@ extern "C" {
             case ZX_CMD_TRACE_X:    ALU->debugger->trace(arg1); break;
             case ZX_CMD_STEP_DEBUG: ALU->stepDebug(); break;
             case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2, 10); break;
-            case ZX_CMD_JUMP:       ret = ALU->debugger->jump(arg1, arg2, true); break;
+            case ZX_CMD_JUMP:       ret = ALU->debugger->jump((uint16_t)arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_INIT_GL:    ALU->gpu->initGL(); break;
             case ZX_CMD_TAPE_COUNT: ret = ALU->tape->countBlocks; break;

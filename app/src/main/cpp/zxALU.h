@@ -160,17 +160,17 @@ protected:
     // текущий атрибут (порт #FF)
     uint8_t _FF;
 
-    // параметры обновления ЦПУ
-    int stateUP, stateLP, stateRP, stateDP;
+    // TSTATES
+    int stateUP, stateLP, stateRP, stateDP, statePP;
 
-    // текущее приращение ГПУ
-    int periodGPU;
+    // остаток TSTATE
+    int deltaTSTATE;
 
     // старое значение кнопок джойстика
     uint8_t joyOldButtons;
 
     // параметры мерцания
-    uint32_t blink, blinkMsk, blinkShift;
+    uint32_t blink;
 
     // цвет и размер границы
     uint32_t sizeBorder, colorBorder;

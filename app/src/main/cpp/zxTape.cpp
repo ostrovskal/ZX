@@ -235,9 +235,11 @@ bool zxTape::saveWAV(const char *path) {
 void zxTape::writePort(uint8_t value) {
     auto mic    = (uint8_t)(value & 8);
     auto beep   = (uint8_t)(value & 16);
-    if (mic != _MIC) {
-        _MIC = mic;
-        //snd->write(AY_BEEPER, mic);
+    if(checkSTATE(ZX_TAPE)) {
+        if (mic != _MIC) {
+            _MIC = mic;
+            snd->write(AY_BEEPER, mic);
+        }
     }
     if (beep != _BEEP) {
         _BEEP = beep;

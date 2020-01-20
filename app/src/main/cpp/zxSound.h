@@ -6,19 +6,19 @@
 
 #define TIMER_CONST			        19
 
-#define SND_ARRAY_LEN				256
+#define SND_ARRAY_LEN				512
 #define SND_STEP					800
-
-#define SND_TICKS_PER_FRAME_MAX		10000
 
 #define AY_STEREO_ACB               0
 #define AY_STEREO_ABC               1
 
 class zxSound {
+    friend void callback_sound(SLBufferQueueItf pBufferQueue, void *pContext);
 public:
     struct AY_CHANNEL {
-        AY_CHANNEL() { memset(data, 0, sizeof(data)); period = counter = noise = rnd = 0; }
-        uint16_t data[SND_TICKS_PER_FRAME_MAX];
+        AY_CHANNEL() : data(nullptr), period(0), counter(0), noise(0), rnd(0) { }
+        ~AY_CHANNEL() { delete[] data; data = nullptr; }
+        uint16_t* data;
         int period, counter, noise, rnd;
         bool isEnable;
         bool isNoise;
@@ -49,7 +49,7 @@ public:
 protected:
 
     // инициализация OpenSL ES
-    bool initSL();
+    void initSL();
 
     // применение параметров регистров на текущем шаге
     void applyRegister(uint8_t reg, uint8_t val);
@@ -59,17 +59,14 @@ protected:
     // количество выборок(sampler-ов)
     int nSamplers;
 
+    // размер буфера
+    uint32_t nLength;
+
     // значения выборок звука
     AY_STEPS SAMPLER[SND_ARRAY_LEN];
 
-    //
-    int SND_TICKS_PER_FRAME[3];
-
     // микширование AY/бипера
     void mix(uint16_t *buf, int count, ...);
-
-    // копия буфера регистров(в процессе преобразования)
-    static uint8_t regs[17];
 
     //
     uint32_t updateStep;
@@ -83,31 +80,28 @@ protected:
     // признак инициализации
     bool isInitSL;
 
-    //
+    // параметры формы
     uint8_t cont, att, alt, hold, up, holded;
 
     // 3 канала
     AY_CHANNEL channelA, channelB, channelC;
 
-    // тип распределения каналов в стерео режиме
-    int stereoAY;
+    // стерео режим
+    int stereoMode;
 
-    // частота дискредитации
-    int freq;
-
-    // результирующий буфер звука
-    uint16_t soundBuffer[SND_TICKS_PER_FRAME_MAX];
+    // буфер звука
+    uint16_t* buffer;
 
     // буфер бипера
-    uint16_t beeperBuffer[SND_TICKS_PER_FRAME_MAX];
+    uint16_t* beeperBuffer;
 
     // текущее значение бипера
     uint16_t beepVal;
 
-    //
+    // период огибающей
     uint32_t periodN, periodE;
 
-    //
+    // базовая громкость
     uint8_t envVolume;
 
     //
@@ -116,7 +110,7 @@ protected:
     // движок
     SLObjectItf engineObj;
 
-    // миксер
+    // микшер
     SLObjectItf mixObj;
 
     // плеер
@@ -130,4 +124,6 @@ protected:
 
     // интерфейс буфера
     SLBufferQueueItf bufferQueue;
+
+    void makePlayer();
 };

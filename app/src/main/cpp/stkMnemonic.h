@@ -24,6 +24,28 @@ enum ZX_CODE_BUTTON {
     CB_TILE, CB_BREAK
 };
 
+static const char* namesCode[] = { "C", "B", "E", "D", "L", "H", "R", "A",
+                                   "", "(HL)", "I", "BC", "DE", "HL", "AF", "SP",
+                                   "NZ", "Z", "NC", "C", "PO", "PE", "P", "M",
+                                   "XL", "XH", "YL", "YH", "(IX", "(IY", "F", "IX", "IY", "IM ",
+                                   "(BC)", "(DE)",
+                                   "NOP", "EX AF, AF'", "DJNZ ", "JR ",
+                                   "RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF",
+                                   "DI", "EI",
+                                   "ADD ", "ADC ", "SUB ", "SBC ", "AND ", "XOR ", "OR ", "CP ",
+                                   "RLC ", "RRC ", "RL ", "RR ", "SLA ", "SRA ", "SLL ", "SRL ",
+                                   "BIT ", "RES ", "SET ",
+                                   "INC ", "DEC ",
+                                   "RRD", "RLD",
+                                   "LDI", "CPI", "INI", "OTI",
+                                   "LDD", "CPD", "IND",  "OTD",
+                                   "LDIR", "CPIR", "INIR", "OTIR",
+                                   "LDDR", "CPDR", "INDR",  "OTDR",
+                                   "EXX", "EX DE, HL", "EX (SP), ", "LD ", "JP ", "CALL ",
+                                   "RET ", "RETI", "RETN", "RST ", "PUSH ", "POP ",
+                                   "HALT", "NEG", "IN ", "OUT ", "*IX*", "*IY*", "*ED*",
+                                   ", ", "0", "(C)"};
+
 static uint8_t buttons[] = {
         CB_1, 0, CB_2, 0, CB_3, 0, CB_4, 0, CB_5, 0, CB_6, 0, CB_7, 0, CB_8, 0, CB_9, 0, CB_0, 0,
         CB_TILE, 5, CB_PLOT, 0, CB_DRAW, 0, CB_REM, 0, CB_RUN, 0, CB_RAND, 0, CB_RET, 0, CB_IF, 0, CB_INPUT, 0, CB_POKE, 0, CB_PRINT, 0, CB_TILE, 6, CB_TILE, 10, CB_NEW, 0,
@@ -123,12 +145,12 @@ enum MNEMONIC_FLAGS {
 #define LD_HL_Y(y)      { _RPHL, y, O_SAVE, _T(1, 7), C_LD }
 #define LD_X_HL(x)      { x, _RPHL, O_LOAD, _T(1, 7), C_LD }
 
-#define ROT_PX(c)       { _RPHL, _N_, O_ROT, _T(2, 15), c, F_ROTX }
+#define ROT_PX(c)       { _RPHL, _N_, O_ROTX, _T(2, 15), c, F_ROTX }
 
-#define ROT_X(x, c)     { x, _N_, O_ROT, _T(2, 8), c, F_ROTX }
-#define BIT_X(x)        { x, _BT, O_BIT, _T(2, 8), C_BIT, F_BIT }
-#define RES_X(x)        { x, _BT, O_RES, _T(2, 8), C_RES }
-#define SET_X(x)        { x, _BT, O_SET, _T(2, 8), C_SET }
+#define ROT_X(x, c)     { x, _N_, O_ROTX, _T(1, 8), c, F_ROTX }
+#define BIT_X(x)        { x, _BT, O_BIT, _T(1, 8), C_BIT, F_BIT }
+#define RES_X(x)        { x, _BT, O_RES, _T(1, 8), C_RES }
+#define SET_X(x)        { x, _BT, O_SET, _T(1, 8), C_SET }
 
 
 #define F_ADSBC16   FS | FZ | F5 | FH | F3 | FPV | FN | FC
@@ -156,7 +178,7 @@ enum MNEMONIC_FLAGS {
 #define F_LDI       F5 | FH | F3 | FPV | FN
 #define F_CPL       F5 | FH | F3 | FN
 
-#define STK_NONI    { _N_, _N_, 255, _T(2, 8), C_ED_NONI }
+#define STK_NONI    { _N_, _N_, 255, _T(1, 8), C_ED_NONI }
 
 #define _RBC        (_R16 | _RC)
 #define _RDE        (_R16 | _RE)
@@ -164,7 +186,7 @@ enum MNEMONIC_FLAGS {
 #define _RAF        (_R16 | _RF)
 #define _RSP        (_R16 | _RS)
 
-static zxCPU::MNEMONIC mnemonics[] = {
+static MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_SPEC,     _T(1, 4),  C_NOP           },  // NOP
         { _RBC, _C16,   O_ASSIGN,   _T(3, 10), C_LD            },  // LD_BC_NN
         { _RBC, _RA,    O_SAVE,     _T(1, 7),  C_LD            },  // LD_PBC_A
@@ -259,7 +281,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_RET,  _T(1, 5),  C_RET,  _Z      },  // RET_Z
         { _N_,  _N_,    O_RET,  _T(1, 10), C_RET           },  // RET
         { _N_,  _C16,   O_JMP,  _T(3, 10), C_JP,   _Z      },  // JP_Z
-        { _N_,  _N_,    O_PREF, _T(1, 4),  C_NULL          },  // PREF_CB
+        { _N_,  _N_,    O_PREF, _T(1, 0),  C_NULL, 1       },  // PREF_CB
         { _N_,  _C16,   O_CALL, _T(3, 10), C_CALL, _Z      },  // CALL_Z
         { _N_,  _C16,   O_CALL, _T(3, 17), C_CALL          },  // CALL_NN
         { _N_,  _C8,    O_ADC,  _T(2, 7),  C_ADC,  F_ADSB8 },  // ADC_A_N
@@ -267,7 +289,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_RET,  _T(1, 5),  C_RET,  _NC     },  // RET_NC
         { _RDE, _N_,    O_POP,  _T(1, 10), C_POP           },  // POP_DE
         { _N_,  _C16,   O_JMP,  _T(3, 10), C_JP,   _NC     },  // JP_NC
-        { _RA,  _C8,    O_OUT,  _T(2, 11), C_OUT           },  // OUT_PN_A
+        { _RA,  _C8,    O_OUT,  _T(2, 11), C_OUT           },  // OUT_N_A
         { _N_,  _C16,   O_CALL, _T(3, 10), C_CALL, _NC     },  // CALL_NC
         { _RDE, _N_,    O_PUSH, _T(1, 11), C_PUSH          },  // PUSH_DE
         { _N_,  _C8,    O_SUB,  _T(2, 7),  C_SUB,  F_ADSB8 },  // SUB_N
@@ -275,9 +297,9 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_RET,  _T(1, 5),  C_RET,  _C      },  // RET_C
         { _N_,  _N_,    O_EX,   _T(1, 4),  C_EXX           },  // EXX
         { _N_,  _C16,   O_JMP,  _T(3, 10), C_JP,   _C      },  // JP_C
-        { _RA,  _C8,    O_IN,   _T(2, 11), C_IN            },  // IN_A_PN
+        { _RA,  _C8,    O_IN,   _T(2, 11), C_IN            },  // IN_A_N
         { _N_,  _C16,   O_CALL, _T(3, 10), C_CALL, _C      },  // CALL_C
-        { _N_,  _N_,    O_PREF, _T(1, 4),  C_NULL          },  // PREF_DD
+        { _N_,  _N_,    O_PREF, _T(1, 12), C_NULL          },  // PREF_DD
         { _N_,  _C8,    O_SBC,  _T(2, 7),  C_SBC,  F_ADSB8 },  // SBC_A_N
         { _N_,  _N_,    O_RST,  _T(1, 11), C_RST           },  // RST24
         { _N_,  _N_,    O_RET,  _T(1, 5),  C_RET,  _PO     },  // RET_PO
@@ -293,7 +315,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _C16,   O_JMP,  _T(3, 10), C_JP,   _PE     },  // JP_PE
         { _N_,  _N_,    O_EX,   _T(1, 4),  C_EX_DE         },  // EX_DE_HL
         { _N_,  _C16,   O_CALL, _T(3, 10), C_CALL, _PE     },  // CALL_PE
-        { _N_,  _N_,    O_PREF, _T(1, 4),  C_NULL          },  // PREF_ED
+        { _N_,  _N_,    O_PREF, _T(1, 0),  C_NULL, 2       },  // PREF_ED
         { _N_,  _C8,    O_XOR,  _T(2, 7),  C_XOR,  F_XOR   },  // XOR_N
         { _N_,  _N_,    O_RST,  _T(1, 11), C_RST           },  // RST40
         { _N_,  _N_,    O_RET,  _T(1, 5),  C_RET,  _P      },  // RET_P
@@ -309,7 +331,7 @@ static zxCPU::MNEMONIC mnemonics[] = {
         { _N_,  _C16,   O_JMP,  _T(3, 10), C_JP,   _M      },  // JP_M
         { _N_,  _N_,    O_SPEC, _T(1, 4),  C_EI            },  // EI
         { _N_,  _C16,   O_CALL, _T(3, 10), C_CALL, _M      },  // CALL_M
-        { _N_,  _N_,    O_PREF, _T(1, 4),  C_NULL          },  // PREF_FD
+        { _N_,  _N_,    O_PREF, _T(1, 24), C_NULL          },  // PREF_FD
         { _N_,  _C8,    O_CP,   _T(2, 7),  C_CP,   F_CP    },  // CP_N
         { _N_,  _N_,    O_RST,  _T(1, 11), C_RST           },  // RST56
         // 203
@@ -355,99 +377,99 @@ static zxCPU::MNEMONIC mnemonics[] = {
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { _RB,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_B_BC = 64
-        { _RB,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_B
-        { _RHL, _RBC,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_BC
-        { _C16, _RBC,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_BC
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG
-        { _N_,  _N_,    O_RETN, _T(2, 14), C_RETN          },  // RETN
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0
-        { _RI,  _RA,    O_ASSIGN,_T(2, 9), C_LD            },  // LD_I_A
-        { _RC,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_C_BC
-        { _RC,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_C
-        { _RHL, _RBC,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_BC
-        { _RBC, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_BC_PNN
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_1
-        { _N_,  _N_,    O_RETN, _T(2, 14), C_RETI          },  // RETI
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0_1
-        { _RR,  _RA,    O_ASSIGN,_T(2, 9), C_LD            },  // LD_R_A
-        { _RD,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_D_BC
-        { _RD,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_D
-        { _RHL, _RDE,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_DE
-        { _C16, _RDE,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_DE
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_2
-        { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_0
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM1
-        { _RA,  _RI,    O_ASSIGN,_T(2, 9), C_LD,   F_IR    },  // LD_A_I
-        { _RE,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_E_BC
-        { _RE,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_E
-        { _RHL, _RDE,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_DE
-        { _RDE, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_DE_PNN
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_3
-        { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_1
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM2
-        { _RA,  _RR,    O_ASSIGN,_T(2, 9), C_LD,   F_IR    },  // LD_A_R
-        { _RH,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_H_BC
-        { _RH,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_H
-        { _RHL, _RHL,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_HL
-        { _C16, _RHL,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_HL1
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_4
-        { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_2=101
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0_2
-        { _RPHL,_RA,    O_SPEC, _T(2, 18), C_RRD,  F_RLRD  },  // RRD
-        { _RL,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_L_BC
-        { _RL,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_L
-        { _RHL, _RHL,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_HL
-        { _RHL, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_HL1_PNN
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_5
-        { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_3
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM0_3
-        { _RPHL,_RA,    O_SPEC, _T(2, 18), C_RLD,  F_RLRD  },  // RLD
-        { _N_,  _N_,    O_SPEC, _T(2, 12), C_IN,   F_F_PC  },  // IN_F_PC
-        { _N_,  _N_,    O_SPEC, _T(2, 12), C_OUT           },  // OUT_BC_0
-        { _RHL, _RSP,   O_SBC,  _T(2, 15), C_SBC,  F_ADSBC16}, // SBC_HL_SP
-        { _C16, _RSP,   O_SAVE, _T(4, 20), C_LD            },  // LD_PNN_SP
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_6
-        { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_4
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM1_1
-        { _N_,  _N_,    O_SPEC, _T(2, 8),  C_NOP           },  // NOP_1=119
-        { _RA,  _RC,    O_IN,   _T(2, 12), C_IN,   F_IN    },  // IN_A_BC
-        { _RA,  _RC,    O_OUT,  _T(2, 12), C_OUT           },  // OUT_BC_A
-        { _RHL, _RSP,   O_ADC,  _T(2, 15), C_ADC,  F_ADSBC16}, // ADC_HL_SP
-        { _RSP, _C16,   O_LOAD, _T(4, 20), C_LD            },  // LD_SP_PNN
-        { _N_,  _N_,    O_NEG,  _T(2, 4),  C_NEG,  F_NEG   },  // NEG_7
-        { _N_,  _N_,    O_RET,  _T(2, 14), C_RET           },  // RET_5
-        { _N_,  _N_,    O_IM,   _T(2, 8),  C_IM            },  // IM2_1
-        { _N_,  _N_,    O_SPEC, _T(2, 8),  C_NOP           },  // NOP_2 = 127
+        { _RB,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_B_BC = 64
+        { _RB,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_B
+        { _RHL, _RBC,   O_SBC,  _T(1, 15), C_SBC,  F_ADSBC16}, // SBC_HL_BC
+        { _C16, _RBC,   O_SAVE, _T(3, 20), C_LD            },  // LD_PNN_BC
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG
+        { _N_,  _N_,    O_RETN, _T(1, 14), C_RETN          },  // RETN
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0
+        { _RI,  _RA,    O_ASSIGN,_T(1, 9), C_LD            },  // LD_I_A
+        { _RC,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_C_BC
+        { _RC,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_C
+        { _RHL, _RBC,   O_ADC,  _T(1, 15), C_ADC,  F_ADSBC16}, // ADC_HL_BC
+        { _RBC, _C16,   O_LOAD, _T(3, 20), C_LD            },  // LD_BC_PNN
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_1
+        { _N_,  _N_,    O_RET,  _T(1, 14), C_RETI          },  // RETI
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_1
+        { _RR,  _RA,    O_ASSIGN,_T(1, 9), C_LD            },  // LD_R_A
+        { _RD,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_D_BC
+        { _RD,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_D
+        { _RHL, _RDE,   O_SBC,  _T(1, 15), C_SBC,  F_ADSBC16}, // SBC_HL_DE
+        { _C16, _RDE,   O_SAVE, _T(3, 20), C_LD            },  // LD_PNN_DE
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_2
+        { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_0
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM1
+        { _RA,  _RI,    O_ASSIGN,_T(1, 9), C_LD,   F_IR    },  // LD_A_I
+        { _RE,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_E_BC
+        { _RE,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_E
+        { _RHL, _RDE,   O_ADC,  _T(1, 15), C_ADC,  F_ADSBC16}, // ADC_HL_DE
+        { _RDE, _C16,   O_LOAD, _T(3, 20), C_LD            },  // LD_DE_PNN
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_3
+        { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_1
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM2
+        { _RA,  _RR,    O_ASSIGN,_T(1, 9), C_LD,   F_IR    },  // LD_A_R
+        { _RH,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_H_BC
+        { _RH,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_H
+        { _RHL, _RHL,   O_SBC,  _T(1, 15), C_SBC,  F_ADSBC16}, // SBC_HL_HL
+        { _C16, _RHL,   O_SAVE, _T(3, 20), C_LD            },  // LD_PNN_HL1
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_4
+        { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_2=101
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_2
+        { _RPHL,_RA,    O_SPEC, _T(1, 18), C_RRD,  F_RLRD  },  // RRD
+        { _RL,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_L_BC
+        { _RL,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_L
+        { _RHL, _RHL,   O_ADC,  _T(1, 15), C_ADC,  F_ADSBC16}, // ADC_HL_HL
+        { _RHL, _C16,   O_LOAD, _T(3, 20), C_LD            },  // LD_HL1_PNN
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_5
+        { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_3
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_3
+        { _RPHL,_RA,    O_SPEC, _T(1, 18), C_RLD,  F_RLRD  },  // RLD
+        { _N_,  _N_,    O_SPEC, _T(1, 12), C_IN,   F_F_PC  },  // IN_F_PC
+        { _N_,  _N_,    O_SPEC, _T(1, 12), C_OUT           },  // OUT_BC_0
+        { _RHL, _RSP,   O_SBC,  _T(1, 15), C_SBC,  F_ADSBC16}, // SBC_HL_SP
+        { _C16, _RSP,   O_SAVE, _T(3, 20), C_LD            },  // LD_PNN_SP
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_6
+        { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_4
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM1_1
+        { _N_,  _N_,    O_SPEC, _T(1, 8),  C_NOP           },  // NOP_1=119
+        { _RA,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_A_BC
+        { _RA,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_A
+        { _RHL, _RSP,   O_ADC,  _T(1, 15), C_ADC,  F_ADSBC16}, // ADC_HL_SP
+        { _RSP, _C16,   O_LOAD, _T(3, 20), C_LD            },  // LD_SP_PNN
+        { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_7
+        { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_5
+        { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM2_1
+        { _N_,  _N_,    O_SPEC, _T(1, 8),  C_NOP           },  // NOP_2 = 127
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { _N_, _N_, O_LDI, _T(2, 16), C_LDI, F_LDI },  // LDI
-        { _N_, _N_, O_CPI, _T(2, 16), C_CPI, F_CPI },  // CPI
-        { _N_, _N_, O_INI, _T(2, 16), C_INI, F_INI },  // INI
-        { _N_, _N_, O_OTI, _T(2, 16), C_OTI, F_OTI },  // OTI
+        { _N_, _N_, O_LDI, _T(1, 16), C_LDI, F_LDI },  // LDI
+        { _N_, _N_, O_CPI, _T(1, 16), C_CPI, F_CPI },  // CPI
+        { _N_, _N_, O_INI, _T(1, 16), C_INI, F_INI },  // INI
+        { _N_, _N_, O_OTI, _T(1, 16), C_OTI, F_OTI },  // OTI
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { _N_, _N_, O_LDI, _T(2, 16), C_LDD, F_LDI },  // LDD
-        { _N_, _N_, O_CPI, _T(2, 16), C_CPD, F_CPI },  // CPD
-        { _N_, _N_, O_INI, _T(2, 16), C_IND, F_INI },  // IND
-        { _N_, _N_, O_OTI, _T(2, 16), C_OTD, F_OTI },  // OTD
+        { _N_, _N_, O_LDI, _T(1, 16), C_LDD, F_LDI },  // LDD
+        { _N_, _N_, O_CPI, _T(1, 16), C_CPD, F_CPI },  // CPD
+        { _N_, _N_, O_INI, _T(1, 16), C_IND, F_INI },  // IND
+        { _N_, _N_, O_OTI, _T(1, 16), C_OTD, F_OTI },  // OTD
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { _N_, _N_, O_LDI, _T(2, 16), C_LDIR, F_LDI},  // LDIR
-        { _N_, _N_, O_CPI, _T(2, 16), C_CPIR, F_CPI }, // CPIR
-        { _N_, _N_, O_INI, _T(2, 16), C_INIR, F_INI }, // INIR
-        { _N_, _N_, O_OTI, _T(2, 16), C_OTIR, F_OTI }, // OTIR
+        { _N_, _N_, O_LDI, _T(1, 16), C_LDIR, F_LDI},  // LDIR
+        { _N_, _N_, O_CPI, _T(1, 16), C_CPIR, F_CPI }, // CPIR
+        { _N_, _N_, O_INI, _T(1, 16), C_INIR, F_INI }, // INIR
+        { _N_, _N_, O_OTI, _T(1, 16), C_OTIR, F_OTI }, // OTIR
         STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { _N_, _N_, O_LDI, _T(2, 16), C_LDDR, F_LDI }, // LDDR
-        { _N_, _N_, O_CPI, _T(2, 16), C_CPDR, F_CPI }, // CPDR
-        { _N_, _N_, O_INI, _T(2, 16), C_INDR, F_INI }, // INDR
-        { _N_, _N_, O_OTI, _T(2, 16), C_OTDR, F_OTI }, // OTDR
+        { _N_, _N_, O_LDI, _T(1, 16), C_LDDR, F_LDI }, // LDDR
+        { _N_, _N_, O_CPI, _T(1, 16), C_CPDR, F_CPI }, // CPDR
+        { _N_, _N_, O_INI, _T(1, 16), C_INDR, F_INI }, // INDR
+        { _N_, _N_, O_OTI, _T(1, 16), C_OTDR, F_OTI }, // OTDR = 187
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
-        { _N_, _N_, 255, 4, C_IY_NONI },
-        { _N_, _N_, 255, 4, C_IX_NONI }
+        { _N_, _N_, 255, _T(1, 8), C_IY_NONI },
+        { _N_, _N_, 255, _T(1, 8), C_IX_NONI }
 };
 
 

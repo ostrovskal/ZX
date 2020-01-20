@@ -27,7 +27,7 @@ protected:
     // получение информации об операндах инструкции
     static int getOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16 = nullptr, uint16_t *pc = nullptr, int* ticks = nullptr, uint8_t* offset = nullptr);
 
-    static zxCPU::MNEMONIC* skipPrefix(uint16_t* pc, uint16_t* code, int* pref, int* prefix, int* ticks, uint16_t* v, uint8_t* offs);
+    static MNEMONIC* skipPrefix(uint16_t* pc, uint16_t* code, int* pref, int* prefix, int* ticks, uint16_t* v, uint8_t* offs);
 
     static const char* searchLabel(int address);
 };

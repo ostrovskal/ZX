@@ -26,6 +26,21 @@
 #include "zxCPU.h"
 #include "zxALU.h"
 
+struct MNEMONIC {
+    // приемник
+    uint8_t regDst;
+    // источник
+    uint8_t regSrc;
+    // операция
+    uint8_t ops;
+    // такты|длина
+    uint8_t tiks;
+    // имя
+    uint8_t name;
+    // флаги
+    uint8_t flags;
+};
+
 // Глобальные
 extern zxALU* 				            ALU;
 extern uint8_t* 			            opts;
@@ -55,7 +70,7 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 
 #define LOG_INFO(m, ...)                info(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
 
-#define SL_SUCCESS(f, m)                if((f) != SL_RESULT_SUCCESS) { LOG_INFO(m, nullptr); return false; }
+#define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
 
 constexpr int ZX_SIZE_TMP_BUF           = 524288;
 
@@ -74,13 +89,14 @@ constexpr int ZX_BP_OPS_LSE             = 5; // <=
 
 // Биты состояний
 enum ZX_STATE {
-    ZX_INT 	= 0x01, // прерывание
+    ZX_SCR  = 0x01, // когда рисуется экран
     ZX_NMI 	= 0x02, //
     ZX_HALT = 0x04, // останов. ждет прерывания
     ZX_TRDOS= 0x08, // режим диска
     ZX_BP   = 0x10, // сработала точка останова
     ZX_DEBUG= 0x20, // режим отладки активирован
-    ZX_PAUSE= 0x40  // пауза между загрузкой блоков TAP
+    ZX_PAUSE= 0x40, // пауза между загрузкой блоков TAP
+    ZX_TAPE = 0x80  // операции с лентой(запись/загрузка)
 };
 
 // Позиция ПЗУ различных моделей
@@ -115,14 +131,13 @@ constexpr int ZX_PROP_TURBO_MODE      = 132; // Признак турбо-реж
 constexpr int ZX_PROP_SND_LAUNCH      = 133; // Признак запуска звукового процессора
 constexpr int ZX_PROP_SND_BP          = 134; // Признак запуска бипера
 constexpr int ZX_PROP_SND_AY          = 135; // Признак запуска AY
-constexpr int ZX_PROP_SND_8BIT        = 136; // Признак 8 битного звука
-constexpr int ZX_PROP_SND_SAVE        = 137; // Признак прямой записи
-constexpr int ZX_PROP_EXECUTE         = 138; // Признак выполнения программы
-constexpr int ZX_PROP_SHOW_HEX        = 139; // Признак 16-тиричного вывода
-//constexpr int ZX_PROP_SHOW_DEBUGGER   = 140; // Признак режима отладчика
-//constexpr int ZX_PROP_SHOW_ADDRESS    = 141; // Признак отображения адреса инструкции
-//constexpr int ZX_PROP_SHOW_CODE       = 142; // Признак отображения кода инструкции
-//constexpr int ZX_PROP_SHOW_CODE_VALUE = 143; // Признак отображения содержимого по коду
+constexpr int ZX_PROP_SND_SAVE        = 136; // Признак прямой записи
+constexpr int ZX_PROP_EXECUTE         = 137; // Признак выполнения программы
+constexpr int ZX_PROP_SHOW_HEX        = 138; // Признак 16-тиричного вывода
+//constexpr int ZX_PROP_SHOW_DEBUGGER   = 139; // Признак режима отладчика
+//constexpr int ZX_PROP_SHOW_ADDRESS    = 140; // Признак отображения адреса инструкции
+//constexpr int ZX_PROP_SHOW_CODE       = 141; // Признак отображения кода инструкции
+//constexpr int ZX_PROP_SHOW_CODE_VALUE = 142; // Признак отображения содержимого по коду
 
 // 2. Байтовые значения
 constexpr int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -132,10 +147,9 @@ constexpr int ZX_PROP_SND_TYPE_AY     = 153; // Раскладка канало�
 constexpr int ZX_PROP_SND_FREQUENCY   = 154; // Частота звука
 constexpr int ZX_PROP_SND_VOLUME_BP   = 155; // Громкость бипера
 constexpr int ZX_PROP_SND_VOLUME_AY   = 156; // Громкость AY
-constexpr int ZX_PROP_BLINK_SPEED     = 157; // Скорость мерцания курсора
-constexpr int ZX_PROP_CPU_SPEED       = 158; // Скорость процессора
-//constexpr int ZX_PROP_KEY_SIZE        = 159; // Размер экранной клавиатуры
-//constexpr int ZX_PROP_JOY_SIZE        = 160; // Размер экранного джойстика
+constexpr int ZX_PROP_CPU_SPEED       = 157; // Скорость процессора
+//constexpr int ZX_PROP_KEY_SIZE        = 158; // Размер экранной клавиатуры
+//constexpr int ZX_PROP_JOY_SIZE        = 159; // Размер экранного джойстика
 
 // 3. Целые значения
 constexpr int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
@@ -169,7 +183,7 @@ constexpr uint8_t MODE_CE             = 10;
 
 // Варианты форматирования чисел
 //constexpr int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
-//constexpr int ZX_FV_CODE				= 2; // "3X ", "2X "
+constexpr int ZX_FV_CODE				= 2; // "3X ", "2X "
 constexpr int ZX_FV_PADDR16				= 4; // "5(X)", "4(#X)"
 //constexpr int ZX_FV_PADDR8				= 6; // "3(X)", "2(#X)"
 constexpr int ZX_FV_OFFS				= 8; // "3+-X)", "2+-#X)"
@@ -268,6 +282,9 @@ inline uint8_t hcarry(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
     static uint8_t tbl[16] = { 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1 };
     return tbl[((x & 0x8) >> 1) | (((y + c) & 0x8) >> 2) | ((z & 0x8) >> 3) | (n << 3)];
 }
+
+// проверка на состояние
+inline bool checkSTATE(uint8_t state) { return (*zxALU::_STATE & state); }
 
 // читаем 8 бит из памяти
 inline uint8_t rm8(uint16_t address) { return *realPtr(address); }

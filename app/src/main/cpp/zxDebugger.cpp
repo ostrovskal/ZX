@@ -7,24 +7,31 @@
 #include "stkMnemonic.h"
 #include "zxDA.h"
 
-static uint8_t computeCmdLength(int address) {
-    auto v = rm8((uint16_t)address++);
-    auto m = &mnemonics[v];
-    uint8_t len = 0;
-    if(m->ops == O_PREF) {
-        if(v == PREF_DD || v == PREF_FD) {
-            v = rm8((uint16_t)address);
-            if(v == PREF_DD || v == PREF_FD || v == PREF_ED) return 1;
-            if(v == PREF_CB) return 4;
-            m = &mnemonics[v];
-            len = (uint8_t)(1 + (uint8_t)(m->regSrc == _RPHL || m->regDst == _RPHL));
-        } else if(v == PREF_CB) {
-            return 2;
-        } else if(v == PREF_ED) {
-            m = &mnemonics[rm8((uint16_t)address) + 512];
-        }
+static MNEMONIC* skipPrefix(uint16_t& entry, int& prefix, int& code) {
+    int offset(0);
+    MNEMONIC* m(nullptr);
+    prefix = 0;
+
+    while(true) {
+        code = rm8(entry++);
+        m = &mnemonics[code + offset];
+        if(m->ops != O_PREF) break;
+        offset = m->flags << 8;
+        if(offset == 256 && prefix) continue;
+        prefix = m->tiks & 31;
     }
-    return len + (m->tiks >> 5);
+    return m;
+}
+
+static uint16_t computeCmdLength(uint16_t address) {
+    uint16_t entry(address);
+    int prefix, code;
+    auto m = skipPrefix(entry, prefix, code);
+    // displacement
+    entry += (uint8_t)(prefix && (m->regSrc == _RPHL || m->regDst == _RPHL));
+    // operands
+    entry += (m->tiks >> 5) - 1;
+    return entry;
 }
 
 const char *zxDebugger::itemList(int cmd, int data, int flags){
@@ -95,9 +102,8 @@ const char *zxDebugger::itemList(int cmd, int data, int flags){
             ssh_strcpy(&rtmp, res + 256);
             tmp += flags;
             *rtmp = 0;
-        }
             break;
-        default:break;
+        }
     }
     opts[ZX_PROP_JNI_RETURN_VALUE] = (uint8_t)(tmp - data);
     return res;
@@ -112,7 +118,7 @@ void zxDebugger::trace(int mode) {
             yAddr = *(uint16_t *) (opts + ZX_PROP_JNI_RETURN_VALUE);
             nAddr = *(uint16_t *) (opts + ZX_PROP_JNI_RETURN_VALUE + 2);
         } else {
-            yAddr = nAddr = (uint16_t)(pc + computeCmdLength(pc));
+            yAddr = nAddr = computeCmdLength(pc);
         }
     }
     auto tm = time(nullptr);
@@ -124,71 +130,75 @@ void zxDebugger::trace(int mode) {
     }
 }
 
-int zxDebugger::jump(int address, int mode, bool isCall) {
-    uint16_t ret(0), retn(0), addr((uint16_t)address);
-    uint8_t tmp;
-    int offs = 0;
-    zxCPU::MNEMONIC* m;
+int zxDebugger::jump(uint16_t entry, int mode, bool isCall) {
+    uint16_t jmp(0), next(0);
+    MNEMONIC* m;
+    auto cpu = ALU->cpu;
+    int prefix, code;
     switch(mode) {
         case ZX_DEBUGGER_MODE_PC:
             // взять инструкцию по адресу
-            mode = ZX_DEBUGGER_MODE_PC;
-            tmp = rm8(addr++);
-            if(tmp == PREF_ED) { tmp = rm8(addr++); offs = 512; }
-            retn = addr;
-            m = &mnemonics[tmp + offs];
+            m = skipPrefix(entry, prefix, code);
             switch(m->ops) {
-                case O_SAVE:
-                case O_LOAD:
+                case O_SAVE: case O_LOAD:
                     if(m->regDst == _C16 || m->regSrc == _C16) {
-                        ret = rm16(addr);
+                        jmp = rm16(entry);
+                        next = (uint16_t)(entry + 2);
                         mode = ZX_DEBUGGER_MODE_DT;
                     } else mode = -1;
                     break;
                 case O_RET:
-                    ret = rm16(*ALU->cpu->_SP);
+                    jmp = rm16(*cpu->_SP);
+                    next = entry;
                     break;
                 case O_SPEC:
-                    if(tmp == JP_HL) {
-                        retn = ret = *ALU->cpu->_HL;
+                    if(code == JP_HL) {
+                        if(prefix == 12) jmp = *cpu->_IX;
+                        else if(prefix == 24) jmp = *cpu->_IY;
+                        else jmp = *cpu->_HL;
+                        next = entry;
                         break;
-                    } else if(tmp != DJNZ) { mode = -1; break; }
+                    } else if(code != DJNZ) {
+                        mode = -1;
+                        break;
+                    }
                 case O_JR:
-                    tmp = rm8(addr++);
-                    ret = addr + (int8_t)tmp;
-                    retn = addr;
+                    code = rm8(entry++);
+                    jmp = entry + (int8_t)code;
+                    next = entry;
                     break;
                 case O_RST:
                     if(!isCall) { mode = -1; break; }
-                    ret = (uint16_t)(tmp & 56);
+                    jmp = (uint16_t)(code & 56);
+                    next = entry;
                     break;
                 case O_CALL:
                     if(!isCall) { mode = -1; break; }
                 case O_JMP:
-                    ret = rm16(addr);
-                    retn = (uint16_t)(addr + 2);
+                    jmp = rm16(entry);
+                    next = (uint16_t)(entry + 2);
                     break;
                 default: mode = -1; break;
             }
             break;
         case ZX_DEBUGGER_MODE_SP:
-            ret = rm16(addr);
+            jmp = rm16(entry);
             mode = ZX_DEBUGGER_MODE_PC;
             break;
         case ZX_DEBUGGER_MODE_DT:
             mode = -1;
             break;
     }
-    *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE) = ret;
-    *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE + 2) = retn;
+    *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE) = jmp;
+    *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE + 2) = next;
     return mode;
 }
 
 static int computeWndLength(int address, int finish, int count, int* length) {
     *length = 0;
-    auto buf = &TMP_BUF[0];
+    auto buf = (uint16_t*)&TMP_BUF[0];
     while(count-- > 0 && address < finish) {
-        auto len = computeCmdLength(address);
+        auto len = (computeCmdLength((uint16_t)address) - (uint16_t)address);
         *buf++ = len;
         *length += len;
         address += len;
@@ -214,7 +224,7 @@ bool zxDebugger::findBackAddress(int entry, int address, int* addr) {
     if(nmin < 300) return true;
     // искать из переходов после
     for(int i = 0 ; i < 1000; i++) {
-        if(jump(entry, ZX_DEBUGGER_MODE_PC, true) == ZX_DEBUGGER_MODE_PC) {
+        if(jump((uint16_t)entry, ZX_DEBUGGER_MODE_PC, true) == ZX_DEBUGGER_MODE_PC) {
             n = *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE);
             if(n < address) {
                 nn = address - n;
@@ -225,7 +235,7 @@ bool zxDebugger::findBackAddress(int entry, int address, int* addr) {
             }
             entry = *(uint16_t*)(opts + ZX_PROP_JNI_RETURN_VALUE + 2);;
         } else {
-            entry += computeCmdLength(entry);
+            entry = computeCmdLength((uint16_t)entry);
         }
     }
     return nmin < 300;
@@ -253,10 +263,10 @@ int zxDebugger::move(int entry, int delta, int count) {
             // нашли
             auto size = computeWndLength(adr, entry, 65535, &length);
             auto sz = 65535 - size;
-            //info("move- nadr: %i adr: %i size: %i sz: %i length: %i delta: %i", nentry, adr, size, sz, length, delta);
             if(sz < delta) {
                 // команд меньше, чем ожидалось
                 // что делать?? - ну сдвинем не на дельту тогда
+                //delta = sz;
             }
             for (int i = 1; i <= delta; i++)
                 entry -= TMP_BUF[sz - i];

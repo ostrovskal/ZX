@@ -35,7 +35,7 @@ static GLuint createProgram(GLuint vShader, GLuint fShader) {
 }
 
 zxGPU::zxGPU() : frameHeight(0), frameWidth(0), texture(0) {
-    frameBuffer = new uint32_t[320 * 256];
+    frameBuffer = new uint32_t[352 * 288];
 }
 
 zxGPU::~zxGPU() {

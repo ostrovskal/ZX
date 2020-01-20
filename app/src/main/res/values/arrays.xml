@@ -17,7 +17,6 @@
 
     <array name="settingsCommonTexts">
         <item>@string/settingsCPU</item>
-        <item>@string/settingsBLINK</item>
         <item>@string/settingsJOY</item>
         <item>@string/settingsBORDER</item>
         <item>@string/settingsKEY</item>
@@ -52,13 +51,12 @@
         <item>@string/settingsJoyB</item>
     </array>
     <array name="settingsSndTexts">
-        <item>@string/settingsSoundAY</item>
+        <item>@string/settingsSoundModeAY</item>
         <item>@string/settingsSndFreq</item>
         <item>@string/settingsSndVolBP</item>
         <item>@string/settingsSndVolAY</item>
         <item>@string/settingsSoundBeeper</item>
         <item>@string/settingsSoundAY</item>
-        <item>@string/settingsSound8Bit</item>
         <item>@string/settingsSoundSave</item>
     </array>
 
@@ -70,8 +68,7 @@
         <item>turbo_mode,false</item>
         <item>snd_launch,true</item>
         <item>snd_bp,true</item>
-        <item>snd_ay,false</item>
-        <item>snd_8bit,false</item>
+        <item>snd_ay,true</item>
         <item>snd_save,false</item>
         <item>execute,true</item>
         <item>hex,false</item>
@@ -86,19 +83,20 @@
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
+        <item>unusedBool1,true</item>
 
         <item>active_disk,0</item>
-        <item>border_size,4</item>
+        <item>border_size,3</item>
         <item>model_type,1</item>
-        <item>snd_type_ay,0</item>
+        <item>snd_type_ay,2</item>
         <item>snd_freq,0</item>
-        <item>snd_vol_bp,15</item>
+        <item>snd_vol_bp,12</item>
         <item>snd_vol_ay,100</item>
-        <item>blink_speed,4</item>
         <item>cpu_speed,10</item>
         <item>key_size,4</item>
         <item>joy_size,2</item>
 
+        <item>unusedByte,0</item>
         <item>unusedByte,0</item>
         <item>unusedByte,0</item>
         <item>unusedByte,0</item>
@@ -133,7 +131,7 @@
         <item>unusedInt,0</item>
         <item>unusedInt1,1</item>
 
-        <item>#bp0,0#0#0#0#0#0</item>
+        <item>#bp0,0#0#0#0#0#1</item>
         <item>#bp1,0#0#0#0#0#0</item>
         <item>#bp2,0#0#0#0#0#0</item>
         <item>#bp3,0#0#0#0#0#0</item>

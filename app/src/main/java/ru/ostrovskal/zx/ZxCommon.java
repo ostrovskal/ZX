@@ -141,18 +141,17 @@ public final class ZxCommon {
     private static final int ZX_PROP_TRAP_TAPE      = 129; // Признак перехвата загрузки/записи с ленты
     public static final int ZX_PROP_SHOW_JOY        = 130; // Признак отображения джойстика
     public static final int ZX_PROP_SHOW_KEY        = 131; // Признак отображения клавиатуры
-    private static final int ZX_PROP_TURBO_MODE     = 132; // Признак турбо-режима процессора
+    public static final int ZX_PROP_TURBO_MODE      = 132; // Признак турбо-режима процессора
     private static final int ZX_PROP_SND_LAUNCH     = 133; // Признак запуска звукового процессора
     private static final int ZX_PROP_SND_BP         = 134; // Признак запуска бипера
     private static final int ZX_PROP_SND_AY         = 135; // Признак трехканального AY
-    private static final int ZX_PROP_SND_8BIT       = 136; // Признак 8 битного звука
-    private static final int ZX_PROP_SND_SAVE       = 137; // Признак прямой записи
-    public static final int ZX_PROP_EXECUTE         = 138; // Признак выполнения программы
-    public static final int ZX_PROP_SHOW_HEX        = 139; // Признак 16-тиричного вывода
-    public static final int ZX_PROP_SHOW_DEBUGGER   = 140; // Признак режима отладчика
-    public static final int ZX_PROP_SHOW_LABEL      = 141; // Признак отображения меток инструции
-    public static final int ZX_PROP_SHOW_CODE       = 142; // Признак режима кода инструкции
-    public static final int ZX_PROP_SHOW_CODE_VALUE = 143; // Признак режима содержимого кода
+    private static final int ZX_PROP_SND_SAVE       = 136; // Признак прямой записи
+    public static final int ZX_PROP_EXECUTE         = 137; // Признак выполнения программы
+    public static final int ZX_PROP_SHOW_HEX        = 138; // Признак 16-тиричного вывода
+    public static final int ZX_PROP_SHOW_DEBUGGER   = 139; // Признак режима отладчика
+    public static final int ZX_PROP_SHOW_LABEL      = 140; // Признак отображения меток инструции
+    public static final int ZX_PROP_SHOW_CODE       = 141; // Признак режима кода инструкции
+    public static final int ZX_PROP_SHOW_CODE_VALUE = 142; // Признак режима содержимого кода
 
     // 2. Байтовые значения
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -162,10 +161,9 @@ public final class ZxCommon {
     private static final int ZX_PROP_SND_FREQUENCY  = 154; // Частота звука
     private static final int ZX_PROP_SND_VOLUME_BP  = 155; // Громкость бипера
     private static final int ZX_PROP_SND_VOLUME_AY  = 156; // Громкость AY
-    private static final int ZX_PROP_BLINK_SPEED    = 157; // Скорость мерцания курсора
-    private static final int ZX_PROP_CPU_SPEED      = 158; // Скорость процессора
-    public static final int ZX_PROP_KEY_SIZE        = 159; // Размер экранной клавиатуры
-    public static final int ZX_PROP_JOY_SIZE        = 160; // Размер экранного джойстика
+    private static final int ZX_PROP_CPU_SPEED      = 157; // Скорость процессора
+    public static final int ZX_PROP_KEY_SIZE        = 158; // Размер экранной клавиатуры
+    public static final int ZX_PROP_JOY_SIZE        = 159; // Размер экранного джойстика
 
     // 3. Целые значения
     public static final int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
@@ -503,11 +501,11 @@ public final class ZxCommon {
     public static final String[] joyButtons     = {"K←", "K→", "K↑", "K↓", "K*", "6", "7", "9", "8", "0", "1", "2", "4", "3", "5", "←", "→", "↑",
                                                     "↓", "0", "N/A", "N/A", "N/A", "N/A", "N/A"};
 
-    public static final int[] settingsCommon    = { ZX_PROP_CPU_SPEED, ZX_PROP_BLINK_SPEED, ZX_PROP_JOY_SIZE, ZX_PROP_BORDER_SIZE, ZX_PROP_KEY_SIZE};
-    public static final int[] settingsCheckSnd  = { ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_8BIT, ZX_PROP_SND_SAVE };
+    public static final int[] settingsCommon    = { ZX_PROP_CPU_SPEED, ZX_PROP_JOY_SIZE, ZX_PROP_BORDER_SIZE, ZX_PROP_KEY_SIZE};
+    public static final int[] settingsCheckSnd  = { ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_SAVE };
     public static final int[] settingsSnd       = { ZX_PROP_SND_TYPE_AY, ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
     public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_TYPE_AY, 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
-                                                    ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_8BIT, ZX_PROP_SND_SAVE};
+                                                    ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_SAVE};
 
     public static final int[] debuggerLand = {
             30, 14,

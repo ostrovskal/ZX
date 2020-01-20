@@ -17,28 +17,6 @@ static uint8_t cnvRegs[] = {
         C_C, C_E, C_YL, C_F, C_SP, C_B, C_D, C_YH, C_A, C_I, C_R, C_PIY, C_A, 0, 0, 0, C_BC, C_DE, C_IY, C_AF, C_SP, 0, 0, 0
 };
 
-static const char* namesCode[] = { "C", "B", "E", "D", "L", "H", "R", "A",
-                                   "", "(HL)", "I", "BC", "DE", "HL", "AF", "SP",
-                                   "NZ", "Z", "NC", "C", "PO", "PE", "P", "M",
-                                   "XL", "XH", "YL", "YH", "(IX", "(IY", "F", "IX", "IY", "IM ",
-                                   "(BC)", "(DE)",
-                                   "NOP", "EX AF, AF'", "DJNZ ", "JR ",
-                                   "RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF",
-                                   "DI", "EI",
-                                   "ADD ", "ADC ", "SUB ", "SBC ", "AND ", "XOR ", "OR ", "CP ",
-                                   "RLC ", "RRC ", "RL ", "RR ", "SLA ", "SRA ", "SLL ", "SRL ",
-                                   "BIT ", "RES ", "SET ",
-                                   "INC ", "DEC ",
-                                   "RRD", "RLD",
-                                   "LDI", "CPI", "INI", "OTI",
-                                   "LDD", "CPD", "IND",  "OTD",
-                                   "LDIR", "CPIR", "INIR", "OTIR",
-                                   "LDDR", "CPDR", "INDR",  "OTDR",
-                                   "EXX", "EX DE, HL", "EX (SP), ", "LD ", "JP ", "CALL ",
-                                   "RET ", "RETI", "RETN", "RST ", "PUSH ", "POP ",
-                                   "HALT", "NEG", "IN ", "OUT ", "*IX*", "*IY*", "*ED*",
-                                   ", ", "0", "(C)"};
-
 int zxDA::getOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16, uint16_t *pc, int* ticks, uint8_t* offset) {
     switch(o) {
         case _C8:
@@ -61,28 +39,22 @@ int zxDA::getOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16, uint16_t 
     return cnvRegs[(prefix << 1) + o];
 }
 
-zxCPU::MNEMONIC* zxDA::skipPrefix(uint16_t* pc, uint16_t* code, int* pref, int* prefix, int* ticks, uint16_t* v, uint8_t* offs) {
+MNEMONIC* zxDA::skipPrefix(uint16_t* pc, uint16_t* code, int* pref, int* prefix, int* ticks, uint16_t* v, uint8_t* offs) {
     int offset(0), pr(0), cod(0);
-    zxCPU::MNEMONIC* m(nullptr);
+    MNEMONIC* m(nullptr);
+
     while(true) {
-        if(offset == 256 && pr) {
-            getOperand(_RPHL, _N_, pr, v, pc, ticks, offs);
-            *pref = pr; pr = 0;
-        }
         cod = rm8((*pc)++) + offset;
         *code = (uint16_t)cod;
         m = &mnemonics[cod];
         if(m->ops != O_PREF) break;
-        switch(cod) {
-            case PREF_CB: offset = 256; break;
-            case PREF_ED: pr = 0; offset = 512; break;
-            case PREF_DD: case PREF_FD: {
-                if(pr) { (*pc)--; return &mnemonics[512]; }
-                pr = ((cod == PREF_DD) ? 12 : 24);
-                offset = 0;
-                break;
-            }
+        *ticks += 4;
+        offset = m->flags << 8;
+        if(offset == 256 && pr) {
+            getOperand(_RPHL, _N_, pr, v, pc, ticks, offs);
+            *pref = pr;
         }
+        pr = m->tiks & 31;
     }
     *prefix = pr;
     return m;
@@ -170,7 +142,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
             DA(C_DST);
             break;
         case C_JP:
-            if(code == 233) { DA(C_HL); break; }
+            if(code == 233) { DA(C_DST); break; }
         case C_CALL: case C_DJNZ: case C_JR:
             // cmd [flag,] NN
             if(fl) { DA(C_FNZ + fl - 1); DA(C_COMMA); }

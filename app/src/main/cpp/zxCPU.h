@@ -57,19 +57,23 @@ enum CPU_REGS {
 enum MNEMONIC_OPS {
     O_ADD, O_SUB, O_ADC, O_SBC, O_DEC, O_OR, O_INC, O_XOR, O_AND, O_CP,
     O_PUSH, O_POP,
-    O_RST, O_RETN, O_EX,
-    O_ASSIGN, O_LOAD, O_SAVE,
-    O_SPEC, O_ROT, O_PREF,
-    O_IN, O_OUT,
+    O_RST, O_ASSIGN, O_LOAD, O_SAVE,
+    O_ROT, O_PREF,
     O_IM, O_NEG,
-    // 25
-    O_SET, O_RES, O_BIT,
-    O_JMP, O_JR, O_CALL, O_RET,
-    // 32
+    // 20
+    O_EX,
+    // 21
+    O_SPEC,
+    // 22
+    O_IN, O_OUT,
+    // 24
+    O_ROTX, O_SET, O_RES, O_BIT,
+    // 28
+    O_JMP, O_JR, O_CALL, O_RET, O_RETN,
+    // 33
     O_LDI, O_CPI, O_INI, O_OTI
 };
 
-#define _FC16(val)              fc  = (uint8_t)((val) > 65535)
 #define _FP(val)				fpv = tbl_parity[(uint8_t)(val)]
 #define _FH(x, y, z, c, n)	    fh  = hcarry((uint8_t)(x), (uint8_t)(y), (uint8_t)(z), (uint8_t)(c), (uint8_t)(n))
 #define _FZ(val)                fz  = (uint8_t)((val) == 0)
@@ -79,16 +83,6 @@ enum MNEMONIC_OPS {
 
 class zxCPU {
 public:
-
-    struct MNEMONIC {
-        uint8_t regDst;
-        uint8_t regSrc;
-        uint8_t ops;
-        uint8_t tiks;
-        uint8_t name;
-        uint8_t flags;
-    };
-
     zxCPU();
 
     // выполнение операции
@@ -110,6 +104,8 @@ public:
     // адреса регистров
     static uint8_t*  regs[36];
 
+    void shutdown();
+
 protected:
 
     inline void incrementR() {
@@ -119,8 +115,29 @@ protected:
     // вызов подпрограммы
     int call(uint16_t address);
 
+    // блочные операции
+    void opsBlock();
+
+    // операции передачи управления
+    void opsJump();
+
+    // операции с портами
+    void opsPort(uint8_t regSrc);
+
+    // операции с портами
+    void opsExchange();
+
+    // операции с портами
+    void opsSpecial();
+
+    // битовые операции
+    void opsBits(bool prefCB, uint8_t regDst);
+
     // инициализация операнда
     uint8_t* initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, uint8_t& v8);
+
+    // выполнение сдвига
+    void rotate(uint8_t value);
 
     // читаем 16 бит из PC
     inline uint16_t rm16PC() { return (rm8PC() | rm8PC() << 8); }
@@ -139,12 +156,6 @@ protected:
 
     // код операции
     int codeOps;
-
-    // специальная операция
-    void special(uint16_t vSrc, uint8_t v8Dst, uint8_t v8Src);
-
-    // выполенение сдвига
-    void rotate(uint8_t value, bool isCB);
 
     // флаги
     uint8_t fc, fn, fpv, fx, fh, fy, fz, fs;

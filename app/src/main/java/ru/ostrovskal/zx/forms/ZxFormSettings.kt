@@ -35,7 +35,7 @@ class ZxFormSettings : Form() {
         private var countTapeBlocks             = 0
 
         private val tapeTypes       = listOf("BASIC", "NumberArray", "StringArray", "Bytes")
-        private val settingsAY      = listOf("ACB", "ABC", "NONE")
+        private val settingsAY      = listOf("ACB", "ABC", "MONO")
         private val settingsFreq    = listOf("44100", "22050", "11025")
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
@@ -58,7 +58,7 @@ class ZxFormSettings : Form() {
 
         private val idSeeks         = listOf(R.id.seek1, R.id.seek2, R.id.seek3, R.id.seek4, R.id.seek5, R.id.seek6, R.id.seek7, R.id.seek8, R.id.seek9, R.id.seek10)
 
-        private val rangeCommon= arrayOf(3..16, 1..6, 1..6, 0..4, 3..9)
+        private val rangeCommon= arrayOf(3..16, 2..7, 0..3, 3..9)
     }
 
     private var curView         = 0
@@ -71,21 +71,19 @@ class ZxFormSettings : Form() {
     private val commonPage: TabLayout.Content.() -> View = {
         val textsCommon = context.loadResource("settingsCommonTexts", "array", IntArray(0))
         cellLayout(16, 21) {
-            repeat(3) { y ->
+            repeat(2) { y ->
                 repeat(2) { x ->
                     val pos = y * 2 + x
-                    if (pos < 5) {
-                        text(textsCommon[pos], style_text_settings).lps(1 + x * 8, 1 + y * 6, 8, 3)
-                        seek(idSeeks[pos + 5], rangeCommon[pos], true) {
-                            setOnClickListener {
-                                ZxWnd.props[settingsCommon[pos]] = progress.toByte()
-                                when (pos) {
-                                    2 -> updateJoy = true
-                                    4 -> updateKey = true
-                                }
+                    text(textsCommon[pos], style_text_settings).lps(1 + x * 8, 2 + y * 7, 8, 3)
+                    seek(idSeeks[pos + 5], rangeCommon[pos], true) {
+                        setOnClickListener {
+                            ZxWnd.props[settingsCommon[pos]] = progress.toByte()
+                            when (pos) {
+                                1 -> updateJoy = true
+                                3 -> updateKey = true
                             }
-                        }.lps(x * 8, 3 + y * 6, 8, 4)
-                    }
+                        }
+                    }.lps(x * 8, 4 + y * 7, 8, 5)
                 }
             }
         }
@@ -173,14 +171,14 @@ class ZxFormSettings : Form() {
                     }
                 }
             }
-            repeat(4) { x ->
+            repeat(3) { x ->
                 check(idNulls[x + 2], textsSnd[x + 4]) {
                     setOnClickListener {
                         ZxWnd.props[settingsCheckSnd[x]] = if(isChecked) 1 else 0
                         if(x == 0) volBp?.apply { isEnabled = this@check.isChecked }
                         else if(x == 1) volAy?.apply { isEnabled = this@check.isChecked }
                     }
-                }.lps(1 + x * 2, 16, 3, 4)
+                }.lps(1 + x * 3, 16, 4, 4)
             }
         }
     }
@@ -355,7 +353,7 @@ class ZxFormSettings : Form() {
     }
 
     private fun defaultSound(content: View, settings: Array<String>, reset: Boolean) {
-        for (idx in 11 downTo 0) {
+        for (idx in 10 downTo 0) {
             val opt = settingsAllSnd[idx]
             if(opt > 0) {
                 if(reset) {
@@ -366,14 +364,14 @@ class ZxFormSettings : Form() {
                 when (idx) {
                     1, 3        -> content.byIdx<Spinner>(idx).selection   = v
                     5, 7        -> content.byIdx<Seek>(idx).progress       = v
-                    8, 9, 10, 11-> content.byIdx<Check>(idx).isChecked     = v != 0
+                    8, 9, 10    -> content.byIdx<Check>(idx).isChecked     = v != 0
                 }
             }
         }
     }
 
     private fun defaultCommon(content: View, settings: Array<String>, reset: Boolean) {
-        repeat(5) {
+        repeat(4) {
             val opt = settingsCommon[it]
             if(reset) {
                 val o = opt - ZX_PROP_FIRST_LAUNCH

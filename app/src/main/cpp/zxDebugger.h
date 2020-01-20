@@ -18,7 +18,7 @@ public:
     int move(int entry, int delta, int count);
 
     // получение адреса в памяти/адреса перехода в инструкции/адреса из стека
-    int jump(int address, int mode, bool isCall);
+    int jump(uint16_t address, int mode, bool isCall);
 
     bool findBackAddress(int entry, int address, int* addr);
 };

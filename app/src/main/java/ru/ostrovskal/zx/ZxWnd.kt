@@ -192,7 +192,7 @@ class ZxWnd : Wnd() {
             // Инициализируем установки
             settings = loadResource("settings", "array_str", arrayOf(""))
             Settings.initialize(getSharedPreferences(logTag, Context.MODE_PRIVATE), settings)
-            val errors = "#errors".b and !restart
+            val errors = false//"#errors".b and !restart
             if(errors) Settings.default()
             // Применяем тему
             applyTheme()
@@ -255,7 +255,7 @@ class ZxWnd : Wnd() {
                 MENU_DISKS      -> getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
                 MENU_PROPS      -> repeat(6) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
                 MENU_MRU        -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
-                MENU_DEBUGGER1  -> repeat(3) { getItem(it).isChecked = props[menuProps[it + 9]].toBoolean }
+                MENU_DEBUGGER1  -> repeat(3) { getItem(it).isChecked = props[menuProps[it + 8]].toBoolean }
             }
         }
         return super.onMenuItemSelected(featureId, item)

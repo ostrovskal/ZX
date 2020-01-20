@@ -71,7 +71,7 @@
     <string name="settingsColorLYellow">СВ. ЖЁЛТЫЙ</string>
     <string name="settingsColorLWhite">СВ. БЕЛЫЙ</string>
 
-    <string name="settingsSound8Bit">8 Бит</string>
+    <string name="settingsSoundModeAY">Режим AY</string>
     <string name="settingsSoundBeeper">Бипер</string>
     <string name="settingsSoundSave">Запись</string>
     <string name="settingsSndVolAY">Громкость AY</string>
