@@ -38,9 +38,8 @@ extern "C" {
 
     int zxExecute(JNIEnv*, jclass) {
         ALU->execute();
-        if(*ALU->_STATE & ZX_BP) {
-            LOG_DEBUG("zx_bp %i", zxALU::PC);
-            modifySTATE(0, ZX_BP);
+        if(checkSTATE(ZX_BP)) {
+            *ALU->_STATE &= ~ZX_BP;
             return 2;
         }
         return ALU->updateKeys(0, 0);

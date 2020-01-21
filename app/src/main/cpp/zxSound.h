@@ -1,111 +1,92 @@
 //
-// Created by Sergey on 26.12.2019.
+// Created by Sergey on 21.01.2020.
 //
 
 #pragma once
 
-#define TIMER_CONST			        19
-
-#define SND_ARRAY_LEN				512
-#define SND_STEP					800
-
-#define AY_STEREO_ACB               0
-#define AY_STEREO_ABC               1
+#define FRAME_STATES_48		    (3500000 /50)
+#define FRAME_STATES_128	    (3546900 / 50)
+#define AY_CLOCK		        1773400
+#define AMPL_AY_TONE		    (28 * 256)
+#define AY_CHANGE_MAX		    8000
+#define AY_ENV_CONT	            8
+#define AY_ENV_ATTACK	        4
+#define AY_ENV_ALT	            2
+#define AY_ENV_HOLD	            1
 
 class zxSound {
-    friend void callback_sound(SLBufferQueueItf pBufferQueue, void *pContext);
+    friend void callback_ay8912(SLBufferQueueItf pBufferQueue, void*);
 public:
-    struct AY_CHANNEL {
-        AY_CHANNEL() : data(nullptr), period(0), counter(0), noise(0), rnd(0) { }
-        ~AY_CHANNEL() { delete[] data; data = nullptr; }
-        uint16_t* data;
-        int period, counter, noise, rnd;
-        bool isEnable;
-        bool isNoise;
-        void gen(int i, int periodN, uint8_t volume, int reg);
+    struct ay_change_tag {
+        u_long   tstates;
+        uint16_t ofs;
+        uint8_t  reg,val;
     };
 
-    struct AY_STEPS {
-        uint32_t tcounter;
-        uint8_t reg, val;
-        int pos;
-    };
+    zxSound();
+    virtual ~zxSound() { }
 
     enum {
         AFINE, ACOARSE, BFINE, BCOARSE, CFINE, CCOARSE, NOISEPER, ENABLE, AVOL,
         BVOL, CVOL, EFINE, ECOARSE, ESHAPE, PORTA, PORTB, BEEPER
     };
-    zxSound();
-    ~zxSound();
 
-    void updateProps(uint8_t period);
-
+    int update();
+    void ayWrite(uint8_t reg, uint8_t value);
     void reset();
-
-    void update();
-
-    void write(uint8_t reg, uint8_t value);
-
+    void beeperWrite(uint8_t on);
+    void updateProps(uint8_t period);
 protected:
+    void initDriver();
+    void ay_overlay();
+    void makePlayer();
 
-    // инициализация OpenSL ES
-    void initSL();
+    // признак инициализации драйвер
+    bool isInit;
 
-    // применение параметров регистров на текущем шаге
-    void applyRegister(uint8_t reg, uint8_t val);
+    // признак активного звука
+    bool isEnabled;
 
-    void envelopeStep();
+    // признак активного звукого процессора
+    bool isAyEnabled;
 
-    // количество выборок(sampler-ов)
-    int nSamplers;
+    // признак активного бипера
+    bool isBpEnabled;
 
-    // размер буфера
-    uint32_t nLength;
+    // циклов на кадр
+    u_long tsmax;
 
-    // значения выборок звука
-    AY_STEPS SAMPLER[SND_ARRAY_LEN];
+    // амплитуда/громкость бипера
+    int ampBeeper, volBeeper;
 
-    // микширование AY/бипера
-    void mix(uint16_t *buf, int count, ...);
+    // амплитуда/громкость звукового процессора
+    int ampAy, volAy;
 
-    //
-    uint32_t updateStep;
+    // частота звука
+    int sound_freq;
 
-    // громкость бипера/AY
-    uint32_t beeperVolume, ayVolume;
+    // массив сэмплов
+    ay_change_tag ay_change[AY_CHANGE_MAX];
 
-    // признак активности AY/бипера
-    bool isAY, isBeeper;
+    // текущее количество сэмплов
+    int ay_change_count;
 
-    // признак инициализации
-    bool isInitSL;
+    int psgap;
 
-    // параметры формы
-    uint8_t cont, att, alt, hold, up, holded;
+    int sound_framesiz;
+    uint32_t ay_tone_levels[16];
 
-    // 3 канала
-    AY_CHANNEL channelA, channelB, channelC;
+    signed short *sound_buf;
 
-    // стерео режим
-    int stereoMode;
+    int sound_oldpos, sound_fillpos, sound_oldval, sound_oldval_orig;
 
-    // буфер звука
-    uint16_t* buffer;
-
-    // буфер бипера
-    uint16_t* beeperBuffer;
-
-    // текущее значение бипера
-    uint16_t beepVal;
-
-    // период огибающей
-    uint32_t periodN, periodE;
-
-    // базовая громкость
-    uint8_t envVolume;
-
-    //
-    uint32_t envelopeCounter;
+    uint32_t ay_tone_tick[3], ay_tone_high[3], ay_noise_tick;
+    uint32_t ay_tone_subcycles, ay_env_subcycles;
+    uint32_t ay_env_internal_tick,ay_env_tick;
+    uint32_t ay_tick_incr;
+    uint32_t ay_tone_period[3], ay_noise_period, ay_env_period;
+    int beeper_last_subpos;
+    uint8_t sound_ay_registers[16];
 
     // движок
     SLObjectItf engineObj;
@@ -124,6 +105,4 @@ protected:
 
     // интерфейс буфера
     SLBufferQueueItf bufferQueue;
-
-    void makePlayer();
 };

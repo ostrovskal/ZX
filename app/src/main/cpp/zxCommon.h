@@ -49,13 +49,11 @@ extern uint8_t* 			            TMP_BUF;
 extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
 extern BREAK_POINT*			            bps;
-extern uint16_t                         cmdCache[512];
 extern uint8_t                          numBits[8];
 extern int                              currentCmdPos;
 extern int                              frequencies[3];
 
 #define ZX_TOTAL_RAM                    262144
-#define CMD_CACHE(v)                    cmdCache[currentCmdPos] = v; currentCmdPos++; currentCmdPos &= 511;
 #define LOG_NAME                        "ZX"
 
 // вывод отладочной информации
@@ -167,6 +165,7 @@ constexpr int MODEL_128               = 3; // Синклер 128К
 constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
 constexpr int MODEL_SCORPION          = 5; // Скорпион 256К
 constexpr int MODEL_PROFI             = 6; // Profi 256К
+constexpr int MODEL_16                = 7; // Синклер 16К(только для загрузки)
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -252,11 +251,9 @@ void* ssh_ston(const char* s, int r, const char** end = nullptr);
 // число в строку с формированием
 char* ssh_fmtValue(int value, int type, bool hex);
 
-bool unpackBlock(uint8_t* ptr, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool packed, bool sign);
+bool unpackBlock(uint8_t* ptr, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool packed);
 
 uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_t& newSize);
-
-uint8_t* realPtr(uint16_t address);
 
 /*
 Целочисленное переполнение со знаком выражения x + y + c (где c равно 0 или 1) происходит тогда и только тогда,
@@ -283,6 +280,9 @@ inline uint8_t hcarry(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
     return tbl[((x & 0x8) >> 1) | (((y + c) & 0x8) >> 2) | ((z & 0x8) >> 3) | (n << 3)];
 }
 
+// вернуть реальный адрес памяти
+inline uint8_t* realPtr(uint16_t address) { return &zxALU::memPAGES[address >> 14][address & 16383]; }
+
 // проверка на состояние
 inline bool checkSTATE(uint8_t state) { return (*zxALU::_STATE & state); }
 
@@ -296,10 +296,7 @@ inline uint16_t rm16(uint16_t address) { return (rm8(address) | (rm8((uint16_t) 
 inline void wm8(uint8_t* address, uint8_t val) {
     auto broms = ALU->ROMS;
     auto eroms = &ALU->ROMS[262144];
-    if (address >= broms && address < eroms) {
-        //log_info("запись в ПЗУ (PC: %i ADDRESS: %i VALUE: %i)", *zxCPU::_PC - 1, address - zxALU::pageROM, val);
-        return;
-    }
+    if (address >= broms && address < eroms) return;
     *address = val;
 }
 

@@ -65,7 +65,7 @@ bool zxTape::load(uint8_t* ptr, bool unpacked) {
         auto len = size;
         if(unpacked) {
             len	= *(uint16_t*)ptr; ptr += sizeof(uint16_t);
-            if(!unpackBlock(ptr, TMP_BUF, TMP_BUF + size, len, true, false))
+            if(!unpackBlock(ptr, TMP_BUF, TMP_BUF + size, len, true))
                 return false;
             data = TMP_BUF;
         }
@@ -238,13 +238,13 @@ void zxTape::writePort(uint8_t value) {
     if(checkSTATE(ZX_TAPE)) {
         if (mic != _MIC) {
             _MIC = mic;
-            snd->write(AY_BEEPER, mic);
+            //snd->beeperWrite(mic);
         }
     }
-    if (beep != _BEEP) {
+//    if (beep != _BEEP) {
         _BEEP = beep;
-        snd->write(AY_BEEPER, beep);
-    }
+        snd->beeperWrite(beep);
+//    }
 }
 
 void zxTape::updateProps() {
@@ -375,7 +375,7 @@ void zxTape::control(int ticks) {
         // для записи в магнитофон
         if(posImpulse < lenImpulse) {
             posImpulse++;
-            snd->write(15, (uint8_t) checkBit(bufImpulse, posImpulse));
+            snd->beeperWrite((uint8_t) checkBit(bufImpulse, posImpulse));
             if (posImpulse >= lenImpulse) {
                 if (nextBlock()) updateImpulseBuffer(false);
             }

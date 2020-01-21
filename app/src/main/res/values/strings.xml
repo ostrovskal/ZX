@@ -85,7 +85,6 @@
     <string name="settingsColorLYellow">LIGHT YELLOW</string>
     <string name="settingsColorLWhite">LIGHT WHITE</string>
 
-    <string name="settingsSoundModeAY">Mode AY</string>
     <string name="settingsSoundBeeper">Beeper</string>
     <string name="settingsSoundAY" translatable="false">AY</string>
     <string name="settingsSoundSave">Save</string>

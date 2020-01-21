@@ -86,7 +86,7 @@ void zxDisk::writeData(uint8_t val) {
 }
 
 void zxDisk::writePort(uint8_t A0A7, uint8_t val) {
-    LOG_INFO("port: %X val: %i", A0A7, val);
+    LOG_INFO("port: %02X val: %i", A0A7, val);
     switch(A0A7) {
         case PORT_CMD: writeCommand(val); break;
         case PORT_TRK: opts[TRDOS_TRK] = val; break;

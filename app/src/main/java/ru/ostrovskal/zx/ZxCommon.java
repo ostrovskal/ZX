@@ -64,10 +64,10 @@ public final class ZxCommon {
     public final static int ZX_CPU_IY               = 18;
     public final static int ZX_CPU_SP               = 20;
     public final static int ZX_CPU_PC               = 22;
-    public final static int ZX_CPU_RAM              = 34;
-    public final static int ZX_CPU_ROM              = 35;
-    public final static int ZX_CPU_VID              = 36;
-    public final static int ZX_CPU_STATE            = 65;
+    public final static int ZX_CPU_RAM              = 32;
+    public final static int ZX_CPU_ROM              = 33;
+    public final static int ZX_CPU_VID              = 34;
+    public final static int ZX_CPU_STATE            = 59;
 
     public final static int MENU_CLOUD              = 1000;
     public final static int MENU_IO                 = 1001;
@@ -503,8 +503,8 @@ public final class ZxCommon {
 
     public static final int[] settingsCommon    = { ZX_PROP_CPU_SPEED, ZX_PROP_JOY_SIZE, ZX_PROP_BORDER_SIZE, ZX_PROP_KEY_SIZE};
     public static final int[] settingsCheckSnd  = { ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_SAVE };
-    public static final int[] settingsSnd       = { ZX_PROP_SND_TYPE_AY, ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
-    public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_TYPE_AY, 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
+    public static final int[] settingsSnd       = { ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
+    public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
                                                     ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_SAVE};
 
     public static final int[] debuggerLand = {

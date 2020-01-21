@@ -89,17 +89,17 @@ public:
     // модель памяти
     uint8_t* _MODEL;
 
-    // адреса текущих страниц
-    static uint8_t *pageTRDOS, *pageROM, *pageRAM, *pageVRAM, *pageATTRIB;
+    // видео страницы
+    uint8_t *pageVRAM, *pageATTRIB;
 
-    // страницы озу
-    static uint8_t* PAGE_RAM[16];
+    // активные страницы памяти
+    static uint8_t *memPAGES[4];
 
     // статус
     static uint8_t* _STATE;
 
     // счетчик тактов
-    static uint32_t* _TICK;
+    static uint32_t _TICK;
 
     // адрес возврата
     static uint16_t* _CALL;
@@ -149,7 +149,11 @@ protected:
     int step(bool allow_int);
 
     // перехватчик
-    int trap();
+    void trap();
+
+    void write1FFD(uint8_t val);
+
+    void write7FFD(uint8_t val);
 
     // содержимое портов
     uint8_t *_KEMPSTON, *_1FFD, *_7FFD, *_FE;
@@ -161,7 +165,7 @@ protected:
     uint8_t _FF;
 
     // TSTATES
-    int stateUP, stateLP, stateRP, stateDP, statePP;
+    int stateUP, stateLP, stateRP, stateDP;
 
     // остаток TSTATE
     int deltaTSTATE;

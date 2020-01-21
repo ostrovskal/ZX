@@ -51,7 +51,6 @@
         <item>@string/settingsJoyB</item>
     </array>
     <array name="settingsSndTexts">
-        <item>@string/settingsSoundModeAY</item>
         <item>@string/settingsSndFreq</item>
         <item>@string/settingsSndVolBP</item>
         <item>@string/settingsSndVolAY</item>

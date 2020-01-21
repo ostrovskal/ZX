@@ -34,21 +34,20 @@ enum CPU_REGS {
     RXL, RXH, RYL, RYH,
     RSPL, RSPH, RPCL, RPCH,
     RI, RR, IFF1, IFF2, IM,
-    PORT_FE, PORT_1F, PORT_FD,
-    FE16, FE8,
+    PORT_FE, PORT_1FFD, PORT_7FFD,
     RAM, ROM, VID,
-    TICK0, TICK1, TICK2, TICK3,
-    // 41
+    // 35
     AY_REG,
     AY_AFINE, AY_ACOARSE, AY_BFINE, AY_BCOARSE, AY_CFINE, AY_CCOARSE, AY_NOISEPER, AY_ENABLE, AY_AVOL,
     AY_BVOL, AY_CVOL, AY_EFINE, AY_ECOARSE, AY_ESHAPE, AY_PORTA, AY_PORTB, AY_BEEPER,
-    // 59
+    // 53
     TRDOS_TRK, TRDOS_SEC, TRDOS_DAT, TRDOS_IN, TRDOS_OUT,
     RTMP,
+    // 59
     STATE,
     CALL0, CALL1,
     MODEL,
-    // 70
+    // 63
     COUNT_REGS
 };
 
@@ -163,14 +162,14 @@ protected:
     // такты
     int ticks;
 
-    // обработанные. флаги
+    // обработанные флаги
     uint8_t execFlags;
+
+    // значения обработанных флагов
+    uint8_t nFlags;
 
     // результат операций
     uint8_t res;
-
-    // значение флага FPV
-//    bool resetPV;
 
     // значение FC для установки
     uint16_t  _fc;

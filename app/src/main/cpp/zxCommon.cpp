@@ -15,8 +15,6 @@ std::string FOLDER_FILES("");
 std::string FOLDER_CACHE("");
 
 // кэш адресов перехода и текущая позиция занесения в кэш
-uint16_t                cmdCache[512];
-int                     currentCmdPos(0);
 int frequencies[3]      = { 44100, 22050, 11025 };
 uint8_t numBits[8]      = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
@@ -44,41 +42,24 @@ void debug(const char* msg, const char* file, const char* func, int line, ...) {
     va_end(varArgs);
 }
 
-// вернуть адрес памяти
-uint8_t* realPtr(uint16_t address) {
-    if(address < 16384) return &zxALU::pageROM[address];
-    else if(address < 32768) {
-        if(*zxALU::_STATE & ZX_SCR) {
-            // задержки при доступе к странице экрана, в момент отрисовки экрана
-            //LOG_INFO("ACCESS RAM5 - TSTATE: %i", *zxALU::_TICK);
-        }
-        return &zxALU::PAGE_RAM[5][address - 16384];
-    }
-    else if(address < 49152) return &zxALU::PAGE_RAM[2][address - 32768];
-    return &zxALU::pageRAM[address - 49152];
-}
-
 // распаковка блока памяти (с учетом или без завершающей сигнатуры)
-bool unpackBlock(uint8_t* src, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool packed, bool sign) {
-    if(packed) {
-        while(sz > 0 && dst < dstE) {
-            sz--;
-            uint8_t b = *src++;
-            uint8_t c = 1;
-            if (b == 0xed && *src == 0xed) {
-                src++;
-                c = *src++;
-                b = *src++;
-                sz -= 3;
-            }
-            if (c == 1) *dst++ = b; else dst = ssh_memset(dst, b, c);
+bool unpackBlock(uint8_t* src, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool packed) {
+    uint8_t b_prev = 0;
+    while(sz > 0 && dst < dstE) {
+        auto b = *src++;
+        sz--;
+        if(packed && b == 0xED && b_prev == 0xED) {
+            auto rep_count = *src++;
+            auto rep_byte = *src++;
+            dst--;
+            sz -= 2;
+            for(int cb = 0; cb < rep_count; cb++) *dst++ = rep_byte;
+            b = 0;
+        } else {
+            *dst++ = b;
         }
-        if(sz > 0) {
-            if(sign) return (sz == 4 && (*(u_long*) src == 0x00eded00));
-        }
-        return (sz == 0);
+        b_prev = b;
     }
-    memcpy(dst, src, sz);
     return true;
 }
 

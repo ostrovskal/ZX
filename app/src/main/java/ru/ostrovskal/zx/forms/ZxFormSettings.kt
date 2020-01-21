@@ -35,7 +35,6 @@ class ZxFormSettings : Form() {
         private var countTapeBlocks             = 0
 
         private val tapeTypes       = listOf("BASIC", "NumberArray", "StringArray", "Bytes")
-        private val settingsAY      = listOf("ACB", "ABC", "MONO")
         private val settingsFreq    = listOf("44100", "22050", "11025")
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
@@ -150,29 +149,24 @@ class ZxFormSettings : Form() {
         var volBp: Seek? = null
         var volAy: Seek? = null
         cellLayout(10, 21) {
-            repeat(2) { y ->
-                repeat(2) { x ->
-                    val pos = y * 2 + x
-                    text(textsSnd[pos], style_text_settings).lps(1 + x * 5, y * 9, 4, 3)
-                    if(y == 0) {
-                        spinner(if(x == 0) R.id.spinner3 else R.id.spinner4) {
-                            adapter = ArrayListAdapter(context, Popup(), Item(), if(x == 0) settingsAY else settingsFreq)
-                            itemClickListener = { _, _, p, _ ->
-                                ZxWnd.props[settingsSnd[pos]] = p.toByte()
-                            }
-                        }.lps(x * 5, 3, 4, 4)
-                    } else {
-                        val sk = seek(idSeeks[pos and 1], if(x == 0) 0..15 else 0..100, true) {
-                            setOnClickListener {
-                                ZxWnd.props[settingsSnd[pos]] = progress.toByte()
-                            }
-                        }.lps(x * 5, 12, 5, 4)
-                        if(x == 0) volBp = sk else volAy = sk
-                    }
+            text(textsSnd[0], style_text_settings).lps(6, 0, 4, 3)
+            spinner(R.id.spinner3) {
+                adapter = ArrayListAdapter(context, Popup(), Item(), settingsFreq)
+                itemClickListener = { _, _, p, _ ->
+                    ZxWnd.props[settingsSnd[0]] = p.toByte()
                 }
+            }.lps(5, 3, 4, 4)
+            repeat(2) { x ->
+                text(textsSnd[x + 1], style_text_settings).lps(x * 5, 9, 4, 3)
+                val sk = seek(idSeeks[x], if(x == 0) 0..16 else 0..28, true) {
+                    setOnClickListener {
+                        ZxWnd.props[settingsSnd[x + 1]] = progress.toByte()
+                    }
+                }.lps(x * 5, 12, 5, 4)
+                if(x == 0) volBp = sk else volAy = sk
             }
             repeat(3) { x ->
-                check(idNulls[x + 2], textsSnd[x + 4]) {
+                check(idNulls[x + 2], textsSnd[x + 3]) {
                     setOnClickListener {
                         ZxWnd.props[settingsCheckSnd[x]] = if(isChecked) 1 else 0
                         if(x == 0) volBp?.apply { isEnabled = this@check.isChecked }
@@ -353,7 +347,7 @@ class ZxFormSettings : Form() {
     }
 
     private fun defaultSound(content: View, settings: Array<String>, reset: Boolean) {
-        for (idx in 10 downTo 0) {
+        for (idx in 8 downTo 0) {
             val opt = settingsAllSnd[idx]
             if(opt > 0) {
                 if(reset) {
@@ -362,9 +356,9 @@ class ZxFormSettings : Form() {
                 }
                 val v = ZxWnd.props[opt].toInt()
                 when (idx) {
-                    1, 3        -> content.byIdx<Spinner>(idx).selection   = v
-                    5, 7        -> content.byIdx<Seek>(idx).progress       = v
-                    8, 9, 10    -> content.byIdx<Check>(idx).isChecked     = v != 0
+                    1        -> content.byIdx<Spinner>(idx).selection   = v
+                    3, 5     -> content.byIdx<Seek>(idx).progress       = v
+                    6, 7, 8  -> content.byIdx<Check>(idx).isChecked     = v != 0
                 }
             }
         }

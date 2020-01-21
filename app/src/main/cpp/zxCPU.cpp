@@ -299,14 +299,6 @@ int zxCPU::step() {
         if(flg & F3) fx = (uint8_t)(res & 8);
         if(flg & FPV) _FV(v8Dst, v8Src, res, fch, fn);
         if(flg & FC) _FC(_fc);
-        if(fs != 1 && fs != 0) LOG_INFO("S: %i", fs);
-        if(fz != 1 && fz != 0) LOG_INFO("Z: %i", fz);
-        if(fy != 32 && fy != 0) LOG_INFO("FY: %i", fy);
-        if(fh != 1 && fh != 0) LOG_INFO("H: %i", fh);
-        if(fx != 8 && fx != 0) LOG_INFO("FX: %i", fx);
-        if(fpv != 1 && fpv != 0) LOG_INFO("FPV: %i", fpv);
-        if(fn != 1 && fn != 0) LOG_INFO("N: %i", fn);
-        if(fc != 1 && fc != 0) LOG_INFO("CY: %i", fc);
         uint8_t f = fc | (fn << 1) | (fpv << 2) | fx | (fh << 4) | fy | (fz << 6) | (fs << 7);
         *_F &= ~mskFlags;
         *_F |= (f & mskFlags);
@@ -322,13 +314,6 @@ int zxCPU::step() {
     return ticks;
 }
 
-/*
-         val bshr = IntArray(256) { (it shr 1) and 255 }
-        val bshl = IntArray(256) { (it shl 1) and 255 }
-        val sshr = bshr.joinToString()
-        val sshl = bshl.joinToString()
-*
- */
 void zxCPU::rotate(uint8_t value) {
     // --503-0C / SZ503P0C
     fs = fz = fpv = fh = fn = 0; execFlags = FH | FC;
@@ -429,7 +414,6 @@ void zxCPU::opsJump() {
         switch (ops) {
             case O_JMP:
                 *_PC = vSrc;
-                CMD_CACHE(vSrc);
                 ticks = 14;
                 break;
             case O_JR:
@@ -439,7 +423,6 @@ void zxCPU::opsJump() {
                 break;
             case O_CALL:
                 call(vSrc);
-                CMD_CACHE(vSrc);
                 ticks = 17;
                 break;
             case O_RETN:
@@ -447,7 +430,6 @@ void zxCPU::opsJump() {
                 ticks = 8;
             case O_RET:
                 *_PC = rm16(*_SP);
-                CMD_CACHE(*_PC);
                 *_SP += 2;
                 ticks += 6;
                 break;
