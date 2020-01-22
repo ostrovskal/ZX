@@ -7,11 +7,13 @@
 #pragma pack(push, 1)
 
 struct HEAD1_Z80 {
-    uint16_t AF, BC, HL, PC, SP;
+    uint8_t A, F;
+    uint16_t BC, HL, PC, SP;
     uint8_t I, R;
     uint8_t STATE1;				// 0 -> 7 бит R, 1-3 -> бордер
     uint16_t DE;
-    uint16_t BC_, DE_, HL_, AF_;
+    uint16_t BC_, DE_, HL_;
+    uint8_t A_, F_;
     uint16_t IY, IX;
     uint8_t IFF1, IFF2;
     uint8_t STATE2;				// 0-1 IM

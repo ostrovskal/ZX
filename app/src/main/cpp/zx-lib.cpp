@@ -34,10 +34,25 @@ static void copyAssetsFile(AAssetManager *aMgr, const char *aPath, const char *p
     }
 }
 
+static u_long tme = 0;
+static int turbo_delay = 0;
+
 extern "C" {
 
     int zxExecute(JNIEnv*, jclass) {
         ALU->execute();
+        if(opts[ZX_PROP_TURBO_MODE]) {
+            turbo_delay++;
+            if(turbo_delay & 1) ALU->execute();
+        }
+        auto tms = (u_long)currentTimeMillis();
+        auto tm = tms - tme;
+        if(tm < 20) {
+            auto t = 20 - tm;
+            usleep(t * 1000);
+            tms += t;
+        }
+        tme = tms;
         if(checkSTATE(ZX_BP)) {
             *ALU->_STATE &= ~ZX_BP;
             return 2;

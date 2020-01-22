@@ -147,7 +147,7 @@ class ZxFormBreakPoints: Form() {
         root.byIdx<Edit>(4).setText(mask)
         root.byIdx<Spinner>(5).selection = flag.toInt()
         root.byIdx<Spinner>(6).selection = condition
-        isAddr2 = addr2.isBlank()
+        isAddr2 = true
 
         isInner = false
     }

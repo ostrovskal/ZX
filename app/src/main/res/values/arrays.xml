@@ -152,6 +152,10 @@
 
         <item>filter,true</item>
         <item>#errors,false</item>
+        <item>disk0,</item>
+        <item>disk1,</item>
+        <item>disk2,</item>
+        <item>disk3,</item>
     </string-array>
 
     <array name="forms">

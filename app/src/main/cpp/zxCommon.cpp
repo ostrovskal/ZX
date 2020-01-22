@@ -60,7 +60,7 @@ bool unpackBlock(uint8_t* src, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool pa
         }
         b_prev = b;
     }
-    return true;
+    return dst == dstE;
 }
 
 static void packSegment(uint8_t ** dst, uint32_t count, uint8_t block) {
@@ -81,7 +81,7 @@ static void packSegment(uint8_t ** dst, uint32_t count, uint8_t block) {
     *dst = dest;
 }
 
-// распаковка блока памяти (с учетом или без завершающей сигнатуры)
+// упаковка блока памяти (с учетом или без завершающей сигнатуры)
 uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* blk, bool sign, uint32_t& newSize) {
     uint8_t *dst = blk;
     uint8_t block = 0;

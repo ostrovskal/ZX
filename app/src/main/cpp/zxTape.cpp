@@ -92,11 +92,12 @@ uint8_t* zxTape::save(int root, uint8_t* buf, bool packed) {
         *(uint16_t*)buf = size; buf += sizeof(uint16_t);
         if(packed) {
             uint32_t nsz;
-            data = packBlock(data, data + size, buf + 2, false, nsz);
-            *(uint16_t*)buf = (uint16_t)nsz; buf += sizeof(uint16_t);
-            size = (uint16_t)nsz;
+            packBlock(data, data + size, buf + 2, false, nsz);
+            *(uint16_t*)buf = (uint16_t)nsz;
+            buf += sizeof(uint16_t) + nsz;
+        } else {
+            ssh_memcpy(&buf, data, size);
         }
-        ssh_memcpy(&buf, data, size);
     }
     *(uint16_t*)buf = 0; buf += sizeof(uint16_t);
     if(packed) {
@@ -235,16 +236,16 @@ bool zxTape::saveWAV(const char *path) {
 void zxTape::writePort(uint8_t value) {
     auto mic    = (uint8_t)(value & 8);
     auto beep   = (uint8_t)(value & 16);
-    if(checkSTATE(ZX_TAPE)) {
+//    if(checkSTATE(ZX_TAPE)) {
         if (mic != _MIC) {
             _MIC = mic;
-            //snd->beeperWrite(mic);
+            snd->beeperWrite(mic);
         }
-    }
-//    if (beep != _BEEP) {
+//    }
+    if (beep != _BEEP) {
         _BEEP = beep;
         snd->beeperWrite(beep);
-//    }
+    }
 }
 
 void zxTape::updateProps() {

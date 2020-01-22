@@ -27,8 +27,9 @@ class ZxFormIO: Form() {
     // относительный путь к выбранному файлу
     private var filePath                    = ""
 
+    private val isDisk             by lazy { arguments.getBoolean("disk") }
     // список расщирений
-    private val validExt by lazy { arguments.getString("filter")?.split(',') ?: listOf("") }
+    private val validExt        by lazy { arguments.getString("filter")?.split(',') ?: listOf("") }
 
     // список файлов
     private var files           = listOf("")
@@ -52,7 +53,7 @@ class ZxFormIO: Form() {
                             filePath = rootFolder.removePrefix(folderFiles) + name
                             root.byIdx<Tile>(2).isEnabled = name.isNotBlank()
                             root.byIdx<Tile>(3).isEnabled = enabled
-                            root.byIdx<Tile>(4).isEnabled = name.validFileExtensions(validExt) && !enabled
+                            root.byIdx<Tile>(4).isEnabled = name.validFileExtensions(validExt) && !enabled && !isDisk
                             root.byIdx<Tile>(5).isEnabled = enabled
                         }
                     }.lps(0, 0, 10, 3)

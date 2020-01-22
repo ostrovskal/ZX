@@ -8,13 +8,10 @@ import android.view.SurfaceHolder
 import android.view.View
 import ru.ostrovskal.sshstd.Common.ACT_INIT_SURFACE
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
-import ru.ostrovskal.sshstd.utils.action
-import ru.ostrovskal.sshstd.utils.i
-import ru.ostrovskal.sshstd.utils.send
-import ru.ostrovskal.sshstd.utils.toBoolean
+import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Controller
 import ru.ostrovskal.zx.ZxCommon.*
-import java.lang.Thread.sleep
+import java.util.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -22,15 +19,7 @@ class ZxView(context: Context) : GLSurfaceView(context) {
 
     private inner class ZxRender : Renderer {
         override fun onDrawFrame(gl: GL10) {
-            if(ZxWnd.props[ZX_PROP_TURBO_MODE].toBoolean) {
-                updateState()
-            } else {
-                val tm = System.currentTimeMillis()
-                updateState()
-                val diff = System.currentTimeMillis() - tm
-                val delay = 20 - diff
-                if (delay > 0) sleep(delay)
-            }
+            updateState()
         }
 
         override fun onSurfaceChanged(gl: GL10, width: Int, height: Int) {
@@ -138,16 +127,18 @@ class ZxView(context: Context) : GLSurfaceView(context) {
                 RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal, a1 =
                 if (loading) R.string.ioLoadError else R.string.ioSaveError
             )
+        } else if(loading) {
+            // установить имя активного диска
+            if(name.substringAfterLast('.').toLowerCase(Locale.ROOT) == "trd")
+                "disk${ZxWnd.props[ZX_PROP_ACTIVE_DISK]}".s = name
         }
         return result
     }
 
     fun updateJoy() {
-/*
         var show = !ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean
         if(show) show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
-*/
-        val show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
+//        val show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
         val isv = if (show) View.VISIBLE else View.GONE
         val size = 80 + ZxWnd.props[ZX_PROP_JOY_SIZE].toInt() * 40
         val mx = wnd.main.measuredWidth

@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <string>
+#include <unistd.h>
 #include <sys/time.h>
 
 #include "zxFile.h"

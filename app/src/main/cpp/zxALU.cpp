@@ -114,7 +114,7 @@ bool zxALU::load(const char *path, int type) {
             break;
         case ZX_CMD_IO_TAPE:
             ret = tape->openTAP(path);
-            if(ret) ret = openZ80("tapLoader.zx");
+            if(ret && opts[ZX_PROP_TRAP_TAPE]) ret = openZ80("tapLoader.zx");
             break;
         case ZX_CMD_IO_STATE:
             ret = openState(path);
@@ -264,10 +264,8 @@ bool zxALU::openZ80(const char *path) {
                     break;
                 case MODEL_128:
                 case MODEL_PENTAGON:
-                    isValidPage = (numPage >= 0 && numPage <= 7);
-                    break;
                 case MODEL_SCORPION:
-                    isValidPage = (numPage >= 0 && numPage <= 15);
+                    isValidPage = numPage == i;
                     break;
             }
             if(!isValidPage) {
@@ -295,14 +293,15 @@ bool zxALU::openZ80(const char *path) {
     // меняем модель памяти и иинициализируем регистры
     auto isZ80 = strcasecmp(path + strlen(path) - 4, ".z80") == 0;
     changeModel(model, *_MODEL, isZ80);
-    *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL; *cpu->_AF = head1->AF;
+    *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL;
+    *cpu->_A = head1->A; *cpu->_F = head1->F; opts[RA_] = head1->A_; opts[RF_] = head1->F_;
     *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY;
     *cpu->_I = head1->I; *cpu->_IM = (uint8_t)(head1->STATE2 & 3);
     *cpu->_IFF1 = head1->IFF1; *cpu->_IFF2 = head1->IFF2;
     if(head1->STATE1 == 255) head1->STATE1 = 1;
     *cpu->_R |= (head1->STATE1 << 7) | (head1->R & 0x7F);
     writePort(0xfe, 0, (uint8_t)(224 | ((head1->STATE1 & 14) >> 1)));
-    memcpy(&opts[RC_], &head1->BC_, 8);
+    memcpy(&opts[RC_], &head1->BC_, 6);
     *cpu->_PC = PC;
     LOG_INFO("Z80 Start PC: %i", PC);
     if(head2) {
@@ -345,12 +344,13 @@ bool zxALU::saveZ80(const char *path) {
 
     auto buf = TMP_BUF;
     // основные
-    head1->BC = *cpu->_BC; head1->DE = *cpu->_DE; head1->HL = *cpu->_HL; head1->AF = *cpu->_AF;
+    head1->BC = *cpu->_BC; head1->DE = *cpu->_DE; head1->HL = *cpu->_HL;
+    head1->A = *cpu->_A; head1->F = *cpu->_F; head1->A_ = opts[RA_]; head1->F_ = opts[RF_];
     head1->SP = *cpu->_SP; head1->IX = *cpu->_IX; head1->IY = *cpu->_IY; head1->PC = 0;
     head1->STATE2 = *cpu->_IM; head1->IFF1 = *cpu->_IFF1; head1->IFF2 = *cpu->_IFF2;
     head1->I = *cpu->_I; head1->R = (uint8_t)(*cpu->_R & 127);
     head1->STATE1 = (uint8_t)((*cpu->_R & 128) >> 7) | (uint8_t)((*_FE & 7) << 1);
-    memcpy(&head1->BC_, &opts[RC_], 8);
+    memcpy(&head1->BC_, &opts[RC_], 6);
     // для режима 128К
     head2->PC = *cpu->_PC;
     head2->hardMode = models[*_MODEL];
@@ -395,16 +395,22 @@ void zxALU::updateProps(int filter) {
             48 * 224, 8 + 16, 40 + 16, 40 * 224,// 16
             32 * 224, 8 +  8, 40 +  8, 24 * 224,// 32
             16 * 224,      8,      40,  8 * 224,// 48
+            // 16 * 224 + (8 + 24 + 128 + 24 + 40) * 48 + (8 + 24 + 128 + 24 + 40) * 192 + (8 + 24 + 128 + 24 + 40) * 48 + 8 * 224 =
+            // = 3584 + 10752 + 43008 + 10752 + 1792 = 69888
             // 128K
-            64 * 224, 24, 48 + 24, 56 * 224,// 0
-            48 * 224, 16, 48 + 16, 40 * 224,// 16
-            32 * 224,  8, 48 + 8,  24 * 224,// 32
-            16 * 224,  0, 48,       8 * 224,// 48
+            63 * 228, 8 + 24, 44 + 24, 56 * 228,// 0
+            47 * 228, 8 + 16, 44 + 16, 40 * 228,// 16
+            31 * 228, 8 +  8, 44 +  8, 24 * 228,// 32
+            15 * 228,      8,      44,  8 * 228,// 48
+            // 15 * 228 + (8 + 24 + 128 + 24 + 44) * 48 + (8 + 24 + 128 + 24 + 44) * 192 + (8 + 24 + 128 + 24 + 44) * 48 + 8 * 228 =
+            // = 3420 + 10944 + 43776 + 10944 + 1824 = 70908
             // PENTAGON
-            64 * 224, 24, 48 + 24, 56 * 224,// 0
-            48 * 224, 16, 48 + 16, 40 * 224,// 16
-            32 * 224,  8, 48 + 8,  24 * 224,// 32
-            16 * 224,  0, 48,       8 * 224,// 48
+            80 * 224, 8 + 24, 40 + 24, 48 * 224,// 0
+            64 * 224, 8 + 16, 40 + 16, 32 * 224,// 16
+            48 * 224, 8 +  8, 40 +  8, 16 * 224,// 32
+            32 * 224,      8,      40,  0 * 224,// 48
+            // 32 * 224 + (8 + 24 + 128 + 24 + 40) * 48 + (8 + 24 + 128 + 24 + 40) * 192 + (8 + 24 + 128 + 24 + 40) * 48 + 0 * 224 =
+            // 7168 + 10752 + 43008 + 10752 + 0 = 71680
             // SCORPION
             64 * 224, 24, 48 + 24, 56 * 224,// 0
             48 * 224, 16, 48 + 16, 40 * 224,// 16
@@ -416,10 +422,6 @@ void zxALU::updateProps(int filter) {
             32 * 224,  8, 48 + 8,  24 * 224,// 32
             16 * 224,  0, 48,       8 * 224,// 48
             // OLDER
-            8960, 8, 56, 7168, // 69888, 16192  KOMPANION
-            8960, 8, 56, 7168, // 69888, 16192  48K
-            8960, 8, 56, 7168, // 69888, 16192  48KN
-            8892, 8, 60, 7296, // 70908, 16256  128K
             12544,52,12, 5376, // 71680, 17984  Pentagon
             8960, 48,16, 7168, // 69888  16192  Scorpion
             8960, 48,16, 7168, // 69888  16192  Profi
@@ -438,7 +440,7 @@ void zxALU::updateProps(int filter) {
     stateDP = params[3] * periodCPU / 10;
 
     gpu->updateProps(sizeBorder, filter);
-    snd->updateProps(periodCPU);
+    snd->updateProps();
     tape->updateProps();
     disk->updateProps();
 }
@@ -900,7 +902,10 @@ void zxALU::trap() {
             }
             bool success = false;
             if (PC == 1218) success = tape->trapSave();
-            else if (PC == 1366 || PC == 1378) success = tape->trapLoad();
+            else if (PC == 1366 || PC == 1378) {
+                //saveZ80("tapLoader.zx");
+                success = tape->trapLoad();
+            }
             if (success) {
                 auto psp = cpu->_SP;
                 auto addr = rm16(*psp);
@@ -925,7 +930,6 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
         //LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i)", A8A15, A0A7, val, *_ROM, *_RAM, *_VID);
     } else if((port & 0xD027) == 0x5025) {
         write7FFD(val);
-        //LOG_DEBUG("(%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
     } else if(checkSTATE(ZX_TRDOS) && (A0A7 == 0x1F || A0A7 == 0x3F || A0A7 == 0x5F || A0A7 == 0x7F || A0A7 == 0xFF)) {
         disk->writePort(A0A7, val);
     } else if (port == 0xBFFD) {
@@ -969,18 +973,20 @@ void zxALU::write7FFD(uint8_t val) {
     // 8 - экран 5/7
     // 16 - ПЗУ 0 - 128К 1 - 48К
     // 32 - блокировка
-    if (*_MODEL < MODEL_128) return;
-    if (*_7FFD & 32) return;
-    *_7FFD = val;
-    *_VID = (uint8_t) ((val & 8) ? 7 : 5);
-    *_RAM = (uint8_t) (val & 7);
-    if (*_MODEL == MODEL_SCORPION) {
-        if (!(*_1FFD & 2)) *_ROM = (uint8_t) ((val & 16) >> 4);
-        *_RAM += (uint8_t) ((*_1FFD & 16) >> 1);
-    } else {
-        *_ROM = (uint8_t) ((val & 16) >> 4);
+    if(*_MODEL >= MODEL_128) {
+        if (*_7FFD & 32) return;
+        *_7FFD = val;
+        *_VID = (uint8_t) ((val & 8) ? 7 : 5);
+        *_RAM = (uint8_t) (val & 7);
+        if (*_MODEL == MODEL_SCORPION) {
+            if (!(*_1FFD & 2)) *_ROM = (uint8_t) ((val & 16) >> 4);
+            *_RAM += (uint8_t) ((*_1FFD & 16) >> 1);
+        } else {
+            *_ROM = (uint8_t) ((val & 16) >> 4);
+        }
+        setPages();
+    //LOG_DEBUG("7FFD ROM: %i RAM: %i VID: %i PC: %i", *_ROM, *_RAM, *_VID, PC);
     }
-    setPages();
 }
 
 uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {

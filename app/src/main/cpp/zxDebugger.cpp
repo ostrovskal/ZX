@@ -18,7 +18,10 @@ static MNEMONIC* skipPrefix(int& entry, int& prefix, int& code, int& offset) {
         if(m->ops != O_PREF) break;
         entry++;
         offset = m->flags << 8;
-        if(offset == 256 && prefix) continue;
+        if(offset == 256 && prefix) {
+            entry++;
+//            continue;
+        }
         prefix = m->tiks & 31;
     }
     return m;
@@ -29,7 +32,7 @@ static int computeCmdLength(int address) {
     int prefix, code, offs;
     auto m = skipPrefix(entry, prefix, code, offs);
     // displacement
-    entry += (uint8_t)(prefix && (m->regSrc == _RPHL || m->regDst == _RPHL || offs == 256));
+    entry += (uint8_t)(prefix && (m->regSrc == _RPHL || m->regDst == _RPHL));
     // operands
     entry += (m->tiks >> 5);
     return entry;
@@ -141,6 +144,7 @@ int zxDebugger::jump(uint16_t entry, int mode, bool isCall) {
         case ZX_DEBUGGER_MODE_PC:
             // взять инструкцию по адресу
             m = skipPrefix(addr, prefix, code, offs);
+            entry = (uint16_t)(addr + 1);
             switch(m->ops) {
                 case O_SAVE: case O_LOAD:
                     if(m->regDst == _C16 || m->regSrc == _C16) {

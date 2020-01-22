@@ -91,7 +91,7 @@ public:
     int signalINT();
 
     // запрос на немаскируемое прерывание
-    int signalNMI();
+    //int signalNMI();
 
     // триггеры
     uint8_t* _IFF1, *_IFF2;
@@ -165,8 +165,8 @@ protected:
     // обработанные флаги
     uint8_t execFlags;
 
-    // значения обработанных флагов
-    uint8_t nFlags;
+    // значения установленных флагов
+    int setFlags;
 
     // результат операций
     uint8_t res;
