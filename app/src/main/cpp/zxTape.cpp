@@ -357,7 +357,9 @@ bool zxTape::trapLoad() {
         if (de < len) len = *cpu->_DE;
         for (int i = 0; i < len; i++) ::wm8(realPtr((uint16_t) (ix + i)), data[i]);
         LOG_DEBUG("trapLoad PC: %i load: %i type: %i addr: %i size: %i", zxALU::PC, *cpu->_F & 1, *cpu->_A, ix, len);
-        *cpu->_F |= 1;
+        *cpu->_AF = 0x00B3;
+        *cpu->_BC = 0xB001;
+        opts[_RH] = 0; opts[_RL] = data[len];
         if (nextBlock()) updateImpulseBuffer(false);
         ALU->pauseBetweenTapeBlocks = 50;
         modifySTATE(ZX_PAUSE, 0);

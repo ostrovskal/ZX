@@ -149,13 +149,13 @@ class ZxFormSettings : Form() {
         var volBp: Seek? = null
         var volAy: Seek? = null
         cellLayout(10, 21) {
-            text(textsSnd[0], style_text_settings).lps(6, 0, 4, 3)
+            text(textsSnd[0], style_text_settings).lps(1, 0, 4, 3)
             spinner(R.id.spinner3) {
                 adapter = ArrayListAdapter(context, Popup(), Item(), settingsFreq)
                 itemClickListener = { _, _, p, _ ->
                     ZxWnd.props[settingsSnd[0]] = p.toByte()
                 }
-            }.lps(5, 3, 4, 4)
+            }.lps(0, 3, 4, 4)
             repeat(2) { x ->
                 text(textsSnd[x + 1], style_text_settings).lps(x * 5, 9, 4, 3)
                 val sk = seek(idSeeks[x], if(x == 0) 0..16 else 0..28, true) {
@@ -165,14 +165,14 @@ class ZxFormSettings : Form() {
                 }.lps(x * 5, 12, 5, 4)
                 if(x == 0) volBp = sk else volAy = sk
             }
-            repeat(3) { x ->
+            repeat(2) { x ->
                 check(idNulls[x + 2], textsSnd[x + 3]) {
                     setOnClickListener {
                         ZxWnd.props[settingsCheckSnd[x]] = if(isChecked) 1 else 0
                         if(x == 0) volBp?.apply { isEnabled = this@check.isChecked }
                         else if(x == 1) volAy?.apply { isEnabled = this@check.isChecked }
                     }
-                }.lps(1 + x * 3, 16, 4, 4)
+                }.lps(1 + x * 5, 16, 4, 4)
             }
         }
     }
@@ -347,7 +347,7 @@ class ZxFormSettings : Form() {
     }
 
     private fun defaultSound(content: View, settings: Array<String>, reset: Boolean) {
-        for (idx in 8 downTo 0) {
+        for (idx in 7 downTo 0) {
             val opt = settingsAllSnd[idx]
             if(opt > 0) {
                 if(reset) {
@@ -358,7 +358,7 @@ class ZxFormSettings : Form() {
                 when (idx) {
                     1        -> content.byIdx<Spinner>(idx).selection   = v
                     3, 5     -> content.byIdx<Seek>(idx).progress       = v
-                    6, 7, 8  -> content.byIdx<Check>(idx).isChecked     = v != 0
+                    6, 7     -> content.byIdx<Check>(idx).isChecked     = v != 0
                 }
             }
         }

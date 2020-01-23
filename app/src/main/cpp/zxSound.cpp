@@ -45,7 +45,6 @@ void zxSound::updateProps() {
             0x2B4C, 0x43C1, 0x5A4B, 0x732F,
             0x9204, 0xAFF1, 0xD921, 0xFFFF
     };
-    static u_long cpu_clock[7] = { 3500000, 3500000, 3500000, 3546900, 3575000, 3546900, 3546900 };
 
     int f;
 
@@ -54,7 +53,7 @@ void zxSound::updateProps() {
     reset();
 
     isEnabled       = opts[ZX_PROP_SND_LAUNCH] != 0;
-    tsmax           = cpu_clock[*ALU->_MODEL] / 50;
+    tsmax           = ALU->machine->cpuClock / 50;
     isAyEnabled     = opts[ZX_PROP_SND_AY];
     isBpEnabled     = opts[ZX_PROP_SND_BP];
     ay_clock        = opts[ZX_PROP_TURBO_MODE] ? 1773400 * 2 : 1773400;

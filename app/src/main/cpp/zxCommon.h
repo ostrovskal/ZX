@@ -51,7 +51,6 @@ extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
 extern BREAK_POINT*			            bps;
 extern uint8_t                          numBits[8];
-extern int                              currentCmdPos;
 extern int                              frequencies[3];
 
 #define ZX_TOTAL_RAM                    262144
@@ -89,23 +88,13 @@ constexpr int ZX_BP_OPS_LSE             = 5; // <=
 // Биты состояний
 enum ZX_STATE {
     ZX_SCR  = 0x01, // когда рисуется экран
-    ZX_NMI 	= 0x02, //
+    ZX_PAUSE= 0x02, // пауза между загрузкой блоков TAP
     ZX_HALT = 0x04, // останов. ждет прерывания
     ZX_TRDOS= 0x08, // режим диска
     ZX_BP   = 0x10, // сработала точка останова
     ZX_DEBUG= 0x20, // режим отладки активирован
-    ZX_PAUSE= 0x40, // пауза между загрузкой блоков TAP
-    ZX_TAPE = 0x80  // операции с лентой(запись/загрузка)
 };
 
-// Позиция ПЗУ различных моделей
-constexpr int ZX_ROM_KOMPANION			= 0;
-constexpr int ZX_ROM_48 				= 16384;
-constexpr int ZX_ROM_48N 				= 32768;
-constexpr int ZX_ROM_128				= 49152;
-constexpr int ZX_ROM_PENTAGON			= 81920;
-constexpr int ZX_ROM_SCORPION			= 114688;
-constexpr int ZX_ROM_PROFI   			= 180224;
 constexpr int ZX_ROM_TRDOS              = 245760;
 
 // Разделяемые свойства
@@ -130,13 +119,12 @@ constexpr int ZX_PROP_TURBO_MODE      = 132; // Признак турбо-реж
 constexpr int ZX_PROP_SND_LAUNCH      = 133; // Признак запуска звукового процессора
 constexpr int ZX_PROP_SND_BP          = 134; // Признак запуска бипера
 constexpr int ZX_PROP_SND_AY          = 135; // Признак запуска AY
-constexpr int ZX_PROP_SND_SAVE        = 136; // Признак прямой записи
-constexpr int ZX_PROP_EXECUTE         = 137; // Признак выполнения программы
-constexpr int ZX_PROP_SHOW_HEX        = 138; // Признак 16-тиричного вывода
-//constexpr int ZX_PROP_SHOW_DEBUGGER   = 139; // Признак режима отладчика
-//constexpr int ZX_PROP_SHOW_ADDRESS    = 140; // Признак отображения адреса инструкции
-//constexpr int ZX_PROP_SHOW_CODE       = 141; // Признак отображения кода инструкции
-//constexpr int ZX_PROP_SHOW_CODE_VALUE = 142; // Признак отображения содержимого по коду
+constexpr int ZX_PROP_EXECUTE         = 136; // Признак выполнения программы
+constexpr int ZX_PROP_SHOW_HEX        = 137; // Признак 16-тиричного вывода
+//constexpr int ZX_PROP_SHOW_DEBUGGER   = 138; // Признак режима отладчика
+//constexpr int ZX_PROP_SHOW_ADDRESS    = 139; // Признак отображения адреса инструкции
+//constexpr int ZX_PROP_SHOW_CODE       = 140; // Признак отображения кода инструкции
+//constexpr int ZX_PROP_SHOW_CODE_VALUE = 141; // Признак отображения содержимого по коду
 
 // 2. Байтовые значения
 constexpr int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -159,14 +147,13 @@ constexpr int ZX_PROP_BPS             = 192; // значения точек ос
 constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 
 // Модели памяти
-constexpr int MODEL_KOMPANION         = 0; // Компаньон 2.02 48К
+//constexpr int MODEL_KOMPANION         = 0; // Компаньон 2.02 48К
 constexpr int MODEL_48                = 1; // Синклер 48К
-constexpr int MODEL_48N               = 2; // Новый синклер 48К
+//constexpr int MODEL_48N               = 2; // Новый синклер 48К
 constexpr int MODEL_128               = 3; // Синклер 128К
 constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
 constexpr int MODEL_SCORPION          = 5; // Скорпион 256К
-constexpr int MODEL_PROFI             = 6; // Profi 256К
-constexpr int MODEL_16                = 7; // Синклер 16К(только для загрузки)
+//constexpr int MODEL_PROFI             = 6; // Profi 256К
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -183,7 +170,7 @@ constexpr uint8_t MODE_CE             = 10;
 
 // Варианты форматирования чисел
 //constexpr int ZX_FV_CODE_LAST			= 0; // "3X", "2X"
-constexpr int ZX_FV_CODE				= 2; // "3X ", "2X "
+//constexpr int ZX_FV_CODE				= 2; // "3X ", "2X "
 constexpr int ZX_FV_PADDR16				= 4; // "5(X)", "4(#X)"
 //constexpr int ZX_FV_PADDR8				= 6; // "3(X)", "2(#X)"
 constexpr int ZX_FV_OFFS				= 8; // "3+-X)", "2+-#X)"
@@ -256,31 +243,6 @@ bool unpackBlock(uint8_t* ptr, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool pa
 
 uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_t& newSize);
 
-/*
-Целочисленное переполнение со знаком выражения x + y + c (где c равно 0 или 1) происходит тогда и только тогда,
-когда x и y имеют одинаковый знак, а результат имеет знак, противоположный знаку операндов, и
-Целочисленное переполнение со знаком выражения x - y - c (где c снова равно 0 или 1) происходит тогда и только тогда,
-когда x и y имеют противоположные знаки, а знак результата противоположен знаку x (или, что эквивалентно, такой же как у у )
-
-inline uint8_t overflow(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
-    static uint8_t tbl[16] = { 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0 };
-    return tbl[((x ^ (y + c)) >> 7) | ((x ^ z) >> 6) | (n << 3)];
-    //fpv = (n ? (uint8_t)(xy & xz) : (uint8_t)(xy ^ xz)) >> 7; }
-}
-
-*/
-
-inline uint8_t overflow(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
-    static uint8_t tbl[] = { 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0 };
-    return tbl[((x >> 5) & 4) | (((y + c) >> 6) & 2) | (z >> 7) | (n << 3)];
-}
-
-// вычисление полупереноса
-inline uint8_t hcarry(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
-    static uint8_t tbl[16] = { 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1 };
-    return tbl[((x & 0x8) >> 1) | (((y + c) & 0x8) >> 2) | ((z & 0x8) >> 3) | (n << 3)];
-}
-
 // вернуть реальный адрес памяти
 inline uint8_t* realPtr(uint16_t address) { return &zxALU::memPAGES[address >> 14][address & 16383]; }
 
@@ -295,8 +257,8 @@ inline uint16_t rm16(uint16_t address) { return (rm8(address) | (rm8((uint16_t) 
 
 // пишем в память 8 битное значение
 inline void wm8(uint8_t* address, uint8_t val) {
-    auto broms = ALU->ROMS;
-    auto eroms = &ALU->ROMS[262144];
+    auto broms = ALU->ROMs;
+    auto eroms = &ALU->ROMs[262144];
     if (address >= broms && address < eroms) return;
     *address = val;
 }

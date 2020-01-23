@@ -56,7 +56,6 @@
         <item>@string/settingsSndVolAY</item>
         <item>@string/settingsSoundBeeper</item>
         <item>@string/settingsSoundAY</item>
-        <item>@string/settingsSoundSave</item>
     </array>
 
     <string-array name="settings" translatable="false">
@@ -68,7 +67,6 @@
         <item>snd_launch,true</item>
         <item>snd_bp,true</item>
         <item>snd_ay,true</item>
-        <item>snd_save,false</item>
         <item>execute,true</item>
         <item>hex,false</item>
         <item>debugger,false</item>
@@ -76,6 +74,7 @@
         <item>debugger_code,true</item>
         <item>debugger_value,false</item>
 
+        <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>

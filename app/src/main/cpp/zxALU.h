@@ -12,6 +12,27 @@
 #include "zxDisk.h"
 #include "zxGPU.h"
 
+struct ZX_MACHINE {
+    struct ZX_TSTATE { int up, lp, rp, dp; };
+    struct ZX_PORT { int msk, val, num; };
+    // стейты, в зависимости от размера границы
+    ZX_TSTATE ts[4];
+    // несколько портов
+    ZX_PORT ports[8];
+    // задержки стейтов для пикселей экрана
+    int tsDelay[8];
+    // номера страниц ПЗУ
+    int romPages[4];
+    // всего стейтов на кадр
+    int tsTotal;
+    // частота процессора
+    u_long cpuClock;
+    // всего страниц ОЗУ
+    int ramPages;
+    // имя
+    const char* name;
+};
+
 struct BREAK_POINT {
     // начальный адрес
     uint16_t address1;
@@ -83,9 +104,6 @@ public:
     // быстрая проверка на точку останова
     BREAK_POINT* quickCheckBPs(uint16_t address, uint8_t flg);
 
-    // ПЗУ
-    uint8_t* ROMS;
-
     // модель памяти
     uint8_t* _MODEL;
 
@@ -104,11 +122,20 @@ public:
     // адрес возврата
     static uint16_t* _CALL;
 
+    // текущая машина
+    ZX_MACHINE* machine;
+
     // страницы ПЗУ
     uint8_t* PAGE_ROM[4];
 
     // буфер ОЗУ
     uint8_t* RAMs;
+
+    // буфер ПЗУ
+    uint8_t* ROMs;
+
+    // 8 страница скорпиона
+    uint8_t *page8;
 
     // процессор
     zxCPU* cpu;

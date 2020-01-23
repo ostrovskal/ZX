@@ -122,7 +122,8 @@ extern "C" {
             copyAssetsFile(amgr, "tapLoader.zx", "tapLoader.zx");
         }
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
-        copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMS);
+        copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMs);
+        copyAssetsFile(amgr, "scorpion8.mem", nullptr, &ALU->page8);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
         if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
         LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());

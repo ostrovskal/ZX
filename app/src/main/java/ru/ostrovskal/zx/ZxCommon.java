@@ -145,13 +145,12 @@ public final class ZxCommon {
     private static final int ZX_PROP_SND_LAUNCH     = 133; // Признак запуска звукового процессора
     private static final int ZX_PROP_SND_BP         = 134; // Признак запуска бипера
     private static final int ZX_PROP_SND_AY         = 135; // Признак трехканального AY
-    private static final int ZX_PROP_SND_SAVE       = 136; // Признак прямой записи
-    public static final int ZX_PROP_EXECUTE         = 137; // Признак выполнения программы
-    public static final int ZX_PROP_SHOW_HEX        = 138; // Признак 16-тиричного вывода
-    public static final int ZX_PROP_SHOW_DEBUGGER   = 139; // Признак режима отладчика
-    public static final int ZX_PROP_SHOW_LABEL      = 140; // Признак отображения меток инструции
-    public static final int ZX_PROP_SHOW_CODE       = 141; // Признак режима кода инструкции
-    public static final int ZX_PROP_SHOW_CODE_VALUE = 142; // Признак режима содержимого кода
+    public static final int ZX_PROP_EXECUTE         = 136; // Признак выполнения программы
+    public static final int ZX_PROP_SHOW_HEX        = 137; // Признак 16-тиричного вывода
+    public static final int ZX_PROP_SHOW_DEBUGGER   = 138; // Признак режима отладчика
+    public static final int ZX_PROP_SHOW_LABEL      = 139; // Признак отображения меток инструции
+    public static final int ZX_PROP_SHOW_CODE       = 140; // Признак режима кода инструкции
+    public static final int ZX_PROP_SHOW_CODE_VALUE = 141; // Признак режима содержимого кода
 
     // 2. Байтовые значения
     public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
@@ -502,10 +501,10 @@ public final class ZxCommon {
                                                     "↓", "0", "N/A", "N/A", "N/A", "N/A", "N/A"};
 
     public static final int[] settingsCommon    = { ZX_PROP_CPU_SPEED, ZX_PROP_JOY_SIZE, ZX_PROP_BORDER_SIZE, ZX_PROP_KEY_SIZE};
-    public static final int[] settingsCheckSnd  = { ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_SAVE };
+    public static final int[] settingsCheckSnd  = { ZX_PROP_SND_BP, ZX_PROP_SND_AY };
     public static final int[] settingsSnd       = { ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
     public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
-                                                    ZX_PROP_SND_BP, ZX_PROP_SND_AY, ZX_PROP_SND_SAVE};
+                                                    ZX_PROP_SND_BP, ZX_PROP_SND_AY};
 
     public static final int[] debuggerLand = {
             30, 14,

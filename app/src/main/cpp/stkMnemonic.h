@@ -178,7 +178,7 @@ enum MNEMONIC_FLAGS {
 #define F_LDI       F5 | FH | F3 | FPV | FN
 #define F_CPL       F5 | FH | F3 | FN
 
-#define STK_NONI    { _N_, _N_, 255, _T(1, 8), C_ED_NONI }
+#define STK_NONI    { _N_, _N_, O_UNDEF, _T(1, 8), C_ED_NONI }
 
 #define _RBC        (_R16 | _RC)
 #define _RDE        (_R16 | _RE)
@@ -425,8 +425,8 @@ static MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_3
         { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_3
         { _RPHL,_RA,    O_SPEC, _T(1, 18), C_RLD,  F_RLRD  },  // RLD
-        { _N_,  _N_,    O_SPEC, _T(1, 12), C_IN,   F_F_PC  },  // IN_F_PC
-        { _N_,  _N_,    O_SPEC, _T(1, 12), C_OUT           },  // OUT_BC_0
+        { _RF,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_F_BC
+        { _N_,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_0
         { _RHL, _RSP,   O_SBC,  _T(1, 15), C_SBC,  F_ADSBC16}, // SBC_HL_SP
         { _C16, _RSP,   O_SAVE, _T(3, 20), C_LD            },  // LD_PNN_SP
         { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_6

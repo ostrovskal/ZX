@@ -70,15 +70,9 @@ enum MNEMONIC_OPS {
     // 28
     O_JMP, O_JR, O_CALL, O_RET, O_RETN,
     // 33
-    O_LDI, O_CPI, O_INI, O_OTI
+    O_LDI, O_CPI, O_INI, O_OTI,
+    O_UNDEF
 };
-
-#define _FP(val)				fpv = tbl_parity[(uint8_t)(val)]
-#define _FH(x, y, z, c, n)	    fh  = hcarry((uint8_t)(x), (uint8_t)(y), (uint8_t)(z), (uint8_t)(c), (uint8_t)(n))
-#define _FZ(val)                fz  = (uint8_t)((val) == 0)
-#define _FS(val)                fs  = (uint8_t)((val) >> 7)
-#define _FC(val)                fc  = (uint8_t)((val) > 255)
-#define _FV(x, y, z, c, n)      fpv = overflow((uint8_t)(x), (uint8_t)(y), (uint8_t)(z), (uint8_t)(c), (uint8_t)(n))
 
 class zxCPU {
 public:
@@ -91,7 +85,7 @@ public:
     int signalINT();
 
     // запрос на немаскируемое прерывание
-    //int signalNMI();
+    int signalNMI();
 
     // триггеры
     uint8_t* _IFF1, *_IFF2;
@@ -103,7 +97,34 @@ public:
     // адреса регистров
     static uint8_t*  regs[36];
 
-    void shutdown();
+    void shutdown() { }
+
+    // стандартные операции
+    void opsStd();
+
+    // XOR/OR/AND
+    void opsLogic();
+
+    // ADD/ADC/SUB/SBC
+    void opsAddSub();
+
+    // блочные операции
+    void opsBlock();
+
+    // JMP/CALL/JR/RST/RET/RETN
+    void opsJump();
+
+    // IN/OUT
+    void opsPort();
+
+    // операции обменая регистров
+    void opsExchange();
+
+    // специальные операции
+    void opsSpecial();
+
+    // битовые операции
+    void opsBits();
 
 protected:
 
@@ -113,24 +134,6 @@ protected:
 
     // вызов подпрограммы
     int call(uint16_t address);
-
-    // блочные операции
-    void opsBlock();
-
-    // операции передачи управления
-    void opsJump();
-
-    // операции с портами
-    void opsPort(uint8_t regSrc);
-
-    // операции с портами
-    void opsExchange();
-
-    // операции с портами
-    void opsSpecial();
-
-    // битовые операции
-    void opsBits(bool prefCB, uint8_t regDst);
 
     // инициализация операнда
     uint8_t* initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, uint8_t& v8);
@@ -157,7 +160,7 @@ protected:
     int codeOps;
 
     // флаги
-    uint8_t fc, fn, fpv, fx, fh, fy, fz, fs;
+    //uint8_t fc, fn, fpv, fx, fh, fy, fz, fs;
 
     // такты
     int ticks;
@@ -170,7 +173,6 @@ protected:
 
     // результат операций
     uint8_t res;
-
-    // значение FC для установки
-    uint16_t  _fc;
 };
+
+typedef void (zxCPU::*fnOps)();

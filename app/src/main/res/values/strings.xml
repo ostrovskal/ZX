@@ -87,11 +87,9 @@
 
     <string name="settingsSoundBeeper">Beeper</string>
     <string name="settingsSoundAY" translatable="false">AY</string>
-    <string name="settingsSoundSave">Save</string>
     <string name="settingsSndVolAY">Volume AY</string>
     <string name="settingsSndVolBP">Volume BP</string>
     <string name="settingsSndFreq">Frequency</string>
-    <string name="settingsSndTypeAY">Stereo AY</string>
 
     <string name="settingsTapeCaption">CAPTION</string>
     <string name="settingsTapeLine">LINE</string>

@@ -72,11 +72,9 @@
     <string name="settingsColorLWhite">СВ. БЕЛЫЙ</string>
 
     <string name="settingsSoundBeeper">Бипер</string>
-    <string name="settingsSoundSave">Запись</string>
     <string name="settingsSndVolAY">Громкость AY</string>
     <string name="settingsSndVolBP">Громкость бипера</string>
     <string name="settingsSndFreq">Частота</string>
-    <string name="settingsSndTypeAY">Стерео AY</string>
 
     <string name="settingsTapeCaption">ЗАГОЛОВОК</string>
     <string name="settingsTapeLine">ЛИНИЯ</string>
