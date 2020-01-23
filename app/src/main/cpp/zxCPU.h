@@ -71,6 +71,7 @@ enum MNEMONIC_OPS {
     O_JMP, O_JR, O_CALL, O_RET, O_RETN,
     // 33
     O_LDI, O_CPI, O_INI, O_OTI,
+    O_RRLLD,
     O_UNDEF
 };
 
@@ -101,6 +102,9 @@ public:
 
     // стандартные операции
     void opsStd();
+
+    // RLD/RRD
+    void opsRRLLD();
 
     // XOR/OR/AND
     void opsLogic();

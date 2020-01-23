@@ -29,50 +29,50 @@ ZX_MACHINE machines[] = {
             {   { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 0, 10, 10, 10 },
-            69888, 3500000, 8, "KOMPANION" },
+            { 0, 0, 0, 0 },
+            69888, 3500000, 8, 1, "KOMPANION" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 1, 10, 10, 10 },
-            69888, 3500000, 8, "SINCLER 48K" },
+            { 1, 1, 1, 1 },
+            69888, 3500000, 8, 1, "SINCLER 48K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 2, 10, 10, 10 },
-            69888, 3500000, 8, "SINCLER 48K 2006" },
+            { 2, 2, 2, 2 },
+            69888, 3500000, 8, 1, "SINCLER 48K 2006" },
         {   {   { 63 * 228, 8 + 24, 44 + 24, 56 * 228 }, { 47 * 228, 8 + 16, 44 + 16, 40 * 228 },
                 { 31 * 228, 8 + 8, 44 + 8, 24 * 228 }, { 15 * 228, 8, 44, 8 * 228 } },
             {   { 0, 0, 0x7FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 3, 4, 10, 10 },
-            70908, 3546900, 8, "SINCLER 128K" },
+            { 3, 4, 255, 255 },
+            70908, 3546900, 8, 0, "SINCLER 128K" },
         {   {   { 80 * 224, 8 + 24, 40 + 24, 48 * 224 }, { 64 * 224, 8 + 16, 40 + 16, 32 * 224 },
                 { 48 * 224, 8 + 8, 40 + 8, 16 * 224 }, { 32 * 224, 8, 40, 0 * 224 } },
             {   { 0, 0, 0x7FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 5, 6, 10, 10 },
-            71680, 3575000, 8, "PENTAGON 128K" },
+            { 5, 6, 255, 255 },
+            71680, 3575000, 8, 0, "PENTAGON 128K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0, 0, 0x7FFD }, { 0, 0, 0x1FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
             { 7, 8, 9, 10 },
-            69888, 3546900, 16, "SCORPION 256K" },
+            69888, 3546900, 16, 0, "SCORPION 256K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0, 0, 0x7FFD }, { 0, 0, 0x1FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
             { 11, 12, 13, 14 },
-            69888, 3546900, 8, "PROFI" }
+            69888, 3546900, 8, 0, "PROFI" }
 };
 
 static uint8_t semiRows[] = {
@@ -167,7 +167,7 @@ bool zxALU::openState(const char *path) {
     auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[262144], false);
     if(!ptr) return false;
     // меняем модель
-    changeModel(ptr[MODEL], *_MODEL, true);
+    changeModel(ptr[MODEL], true);
     // грузим регистры
     memcpy(opts, ptr, COUNT_REGS); ptr += COUNT_REGS;
     // грузим банки ОЗУ
@@ -327,7 +327,7 @@ bool zxALU::openZ80(const char *path) {
     }
     // меняем модель памяти и иинициализируем регистры
     auto isZ80 = strcasecmp(path + strlen(path) - 4, ".z80") == 0;
-    changeModel(model, *_MODEL, isZ80);
+    changeModel(model, isZ80);
     *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL;
     *cpu->_A = head1->A; *cpu->_F = head1->F; opts[RA_] = head1->A_; opts[RF_] = head1->F_;
     *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY;
@@ -539,20 +539,15 @@ int zxALU::updateKeys(int key, int action) {
     return 0;
 }
 
-bool zxALU::changeModel(uint8_t _new, uint8_t _old, bool resetTape) {
-    auto result = _new != _old;
-    if(result) {
-        *_MODEL = _new;
-        opts[ZX_PROP_MODEL_TYPE] = _new;
-        machine = &machines[_new];
-        for (int i = 0; i < 4; i++) PAGE_ROM[i] = &ROMs[(machine->romPages[i] << 14)];
-    }
+void zxALU::changeModel(uint8_t _new, bool resetTape) {
+    *_MODEL = _new;
+    opts[ZX_PROP_MODEL_TYPE] = _new;
+    machine = &machines[_new];
+    for (int i = 0; i < 4; i++) PAGE_ROM[i] = &ROMs[(machine->romPages[i] << 14)];
     signalRESET(resetTape);
-    return result;
 }
 
 void zxALU::signalRESET(bool resetTape) {
-    LOG_INFO("RESET %i", *_MODEL);
     // сброс устройств
     if(resetTape) tape->reset();
     snd->reset();
@@ -568,8 +563,8 @@ void zxALU::signalRESET(bool resetTape) {
     opts[ZX_PROP_JOY_ACTION_VALUE] = 0; opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
     joyOldButtons = 0;
     // инициализаруем переменные
-    *cpu->_SP = 65534; *_FE = 0b11100111; *_VID = 5; *_RAM = 7;
-    *_7FFD = 0b00000111;
+    *cpu->_SP = 65534; *_FE = 0b11100111; *_VID = 5; *_RAM = 7; *_ROM = machine->startRom;
+    *_7FFD = *_RAM | (*_ROM << 4);
     memPAGES[1] = &RAMs[5 << 14]; memPAGES[2] = &RAMs[2 << 14];
     // сброс состояния с сохранением статуса отладчика
     *_STATE &= ZX_DEBUG;
@@ -820,7 +815,7 @@ void zxALU::trap() {
         // активность TR DOS
         if (!checkSTATE(ZX_TRDOS)) {
             if (PC >= 15616 && PC <= 15871) {
-                if((*_MODEL >= MODEL_128 && *_ROM != 0) || *_MODEL < MODEL_128) {
+                if(*_ROM == 1) {
                     *_STATE |= ZX_TRDOS;
                     setPages();
                 }

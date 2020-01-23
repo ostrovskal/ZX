@@ -416,7 +416,7 @@ static MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_4
         { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_2=101
         { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_2
-        { _RPHL,_RA,    O_SPEC, _T(1, 18), C_RRD,  F_RLRD  },  // RRD
+        { _RPHL,_RA,    O_RRLLD,_T(1, 18), C_RRD,  F_RLRD  },  // RRD=103
         { _RL,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_L_BC
         { _RL,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_L
         { _RHL, _RHL,   O_ADC,  _T(1, 15), C_ADC,  F_ADSBC16}, // ADC_HL_HL
@@ -424,7 +424,7 @@ static MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_5
         { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_3
         { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_3
-        { _RPHL,_RA,    O_SPEC, _T(1, 18), C_RLD,  F_RLRD  },  // RLD
+        { _RPHL,_RA,    O_RRLLD,_T(1, 18), C_RLD,  F_RLRD  },  // RLD=111
         { _RF,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_F_BC
         { _N_,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_0
         { _RHL, _RSP,   O_SBC,  _T(1, 15), C_SBC,  F_ADSBC16}, // SBC_HL_SP

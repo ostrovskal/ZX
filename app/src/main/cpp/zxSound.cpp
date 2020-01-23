@@ -2,8 +2,8 @@
 #include "zxCommon.h"
 #include "zxSound.h"
 
-#define CLOCK_RESET(clock)  ay_tick_incr = (int)(65536. * clock / sound_freq)
-#define AY_GET_SUBVAL(chan)	(level * 2 * ay_tone_tick[chan] / tone_count)
+#define CLOCK_RESET(clock)  tickAY = (int)(65536. * clock / frequency)
+#define AY_GET_SUBVAL(chan)	(level * 2 * toneTick[chan] / tone_count)
 
 static const SLboolean pIDsRequired[1]  = { SL_BOOLEAN_TRUE };
 static SLresult slres;
@@ -13,19 +13,19 @@ static SLresult slres;
     if(is_on) {                                         \
         (var) = 0;                                      \
         if(level) {                                     \
-            if(ay_tone_high[chan])                      \
+            if(toneHigh[chan])                      \
                 (var) = (level);                        \
             else								        \
                 (var) = -(level), is_low = 1;           \
         }                                               \
     }                                                   \
-    ay_tone_tick[chan] += tone_count;                   \
+    toneTick[chan] += tone_count;                   \
     count = 0;                                          \
-    while(ay_tone_tick[chan] >= ay_tone_period[chan]) { \
+    while(toneTick[chan] >= tonePeriod[chan]) { \
         count++;								        \
-        ay_tone_tick[chan] -= ay_tone_period[chan];     \
-        ay_tone_high[chan] =! ay_tone_high[chan];       \
-        if(is_on && count == 1 && level && ay_tone_tick[chan] < tone_count)	{ \
+        toneTick[chan] -= tonePeriod[chan];     \
+        toneHigh[chan] =! toneHigh[chan];       \
+        if(is_on && count == 1 && level && toneTick[chan] < tone_count)	{ \
             if(is_low)							        \
                 (var) += AY_GET_SUBVAL(chan);           \
             else                                        \
@@ -35,7 +35,24 @@ static SLresult slres;
     if(is_on && count > 1) (var) =- (level)
 
 zxSound::zxSound() : isInit(false), isEnabled(false), tsmax(0),
-                    sound_freq(0), sndBuf(nullptr), psgap(250), beeperLastPos(0) {
+                    engineObj(nullptr), mixObj(nullptr), playerObj(nullptr),
+                    frequency(0), sndBuf(nullptr), psgap(250), beeperLastPos(0) {
+}
+
+zxSound::~zxSound() {
+    SAFE_A_DELETE(sndBuf);
+    if(playerObj) {
+        (*playerObj)->Destroy(playerObj);
+        playerObj = nullptr;
+    }
+    if(mixObj) {
+        (*mixObj)->Destroy(mixObj);
+        mixObj = nullptr;
+    }
+    if(engineObj) {
+        (*engineObj)->Destroy(engineObj);
+        engineObj = nullptr;
+    }
 }
 
 void zxSound::updateProps() {
@@ -46,9 +63,9 @@ void zxSound::updateProps() {
             0x9204, 0xAFF1, 0xD921, 0xFFFF
     };
 
-    int f;
-
     if(!isInit) initDriver();
+
+    int f;
 
     reset();
 
@@ -56,7 +73,7 @@ void zxSound::updateProps() {
     tsmax           = ALU->machine->cpuClock / 50;
     isAyEnabled     = opts[ZX_PROP_SND_AY];
     isBpEnabled     = opts[ZX_PROP_SND_BP];
-    ay_clock        = opts[ZX_PROP_TURBO_MODE] ? 1773400 * 2 : 1773400;
+    clockAY        = opts[ZX_PROP_TURBO_MODE] ? 1773400 * 2 : 1773400;
 
     //auto vAy        = opts[ZX_PROP_SND_VOLUME_AY] * 256;
     auto vBp        = opts[ZX_PROP_SND_VOLUME_BP];
@@ -64,23 +81,23 @@ void zxSound::updateProps() {
 
     ampBeeper = (int)((2.5f * vBp) * 256);
     volBeeper = ampBeeper * 2;
-    CLOCK_RESET(ay_clock);
+    CLOCK_RESET(clockAY);
 
-    if(freq != sound_freq) {
-        sound_freq = freq;
+    if(freq != frequency) {
+        frequency = freq;
         for (f = 0; f < 16; f++) ay_tone_levels[f] = (uint32_t) ((levels[f] * AMPL_AY_TONE + 0x8000) / 0xffff);
-        ay_noise_tick = ay_noise_period = 0;
-        ay_env_internal_tick = ay_env_tick = ay_env_period = 0;
+        noiseTick = noisePeriod = 0;
+        envIntTick = envTick = envPeriod = 0;
         ay_tone_subcycles = ay_env_subcycles = 0;
         for (f = 0; f < 3; f++) {
-            ay_tone_tick[f] = ay_tone_high[f] = 0;
-            ay_tone_period[f] = 1;
+            toneTick[f] = toneHigh[f] = 0;
+            tonePeriod[f] = 1;
         }
         countSamplers = 0;
 
         SAFE_A_DELETE(sndBuf);
 
-        sndBufSize = sound_freq / 50;
+        sndBufSize = frequency / 50;
         sndBuf = new short[sndBufSize];
 
         beeperOldVal = beeperOrigVal = 0;
@@ -107,7 +124,7 @@ void zxSound::ay_overlay() {
     int frametime = (int)(tsmax * 50);
     uint32_t tone_count, noise_count;
 
-    for(f = 0; f < countSamplers; f++) samplers[f].ofs = (uint16_t)((samplers[f].tstates * sound_freq) / frametime);
+    for(f = 0; f < countSamplers; f++) samplers[f].ofs = (uint16_t)((samplers[f].tstates * frequency) / frametime);
     for(f = 0, ptr = sndBuf; f < sndBufSize; f++) {
         while(changes_left && f >= change_ptr->ofs) {
             sound_ay_registers[reg = change_ptr->reg] = change_ptr->val;
@@ -115,19 +132,19 @@ void zxSound::ay_overlay() {
             switch(reg) {
                 case AFINE: case ACOARSE: case BFINE: case BCOARSE: case CFINE: case CCOARSE:
                     r = reg >> 1;
-                    ay_tone_period[r] = (uint32_t)((sound_ay_registers[reg & ~1] | (sound_ay_registers[reg | 1] & 15) << 8));
-                    if(!ay_tone_period[r]) ay_tone_period[r]++;
-                    if(ay_tone_tick[r] >= ay_tone_period[r] * 2) ay_tone_tick[r] %= ay_tone_period[r] * 2;
+                    tonePeriod[r] = (uint32_t)((sound_ay_registers[reg & ~1] | (sound_ay_registers[reg | 1] & 15) << 8));
+                    if(!tonePeriod[r]) tonePeriod[r]++;
+                    if(toneTick[r] >= tonePeriod[r] * 2) toneTick[r] %= tonePeriod[r] * 2;
                     break;
                 case NOISEPER:
-                    ay_noise_tick = 0;
-                    ay_noise_period = (uint32_t)(sound_ay_registers[reg] & 31);
+                    noiseTick = 0;
+                    noisePeriod = (uint32_t)(sound_ay_registers[reg] & 31);
                     break;
                 case EFINE: case ECOARSE:
-                    ay_env_period = sound_ay_registers[11] | (sound_ay_registers[12] << 8);
+                    envPeriod = sound_ay_registers[11] | (sound_ay_registers[12] << 8);
                     break;
                 case ESHAPE:
-                    ay_env_internal_tick = ay_env_tick = ay_env_subcycles = 0;
+                    envIntTick = envTick = ay_env_subcycles = 0;
                     env_first = 1;
                     env_rev = 0;
                     env_counter = (sound_ay_registers[13] & AY_ENV_ATTACK) ? 0 : 15;
@@ -139,14 +156,14 @@ void zxSound::ay_overlay() {
         level = ay_tone_levels[env_counter];
         for(g = 0; g < 3; g++)
             if(sound_ay_registers[AVOL + g] & 16) tone_level[g] = level;
-        ay_env_subcycles += ay_tick_incr;
+        ay_env_subcycles += tickAY;
         noise_count = 0;
         while(ay_env_subcycles >= (16 << 16)) {
             ay_env_subcycles -= (16 << 16);
             noise_count++;
-            ay_env_tick++;
-            while(ay_env_tick>=ay_env_period) {
-                ay_env_tick -= ay_env_period;
+            envTick++;
+            while(envTick>=envPeriod) {
+                envTick -= envPeriod;
                 if(env_first || ((envshape & AY_ENV_CONT) && !(envshape & AY_ENV_HOLD))) {
                     if(env_rev)
                         env_counter -= (envshape & AY_ENV_ATTACK) ? 1 : -1;
@@ -155,9 +172,9 @@ void zxSound::ay_overlay() {
                     if(env_counter < 0) env_counter = 0;
                     if(env_counter > 15) env_counter = 15;
                 }
-                ay_env_internal_tick++;
-                while(ay_env_internal_tick >= 16) {
-                    ay_env_internal_tick -= 16;
+                envIntTick++;
+                while(envIntTick >= 16) {
+                    envIntTick -= 16;
                     if(!(envshape & AY_ENV_CONT)) env_counter = 0;
                     else {
                         if(envshape & AY_ENV_HOLD) {
@@ -171,14 +188,14 @@ void zxSound::ay_overlay() {
                     }
                     env_first = 0;
                 }
-                if(!ay_env_period) break;
+                if(!envPeriod) break;
             }
         }
         chan1 = tone_level[0];
         chan2 = tone_level[1];
         chan3 = tone_level[2];
         mixer = sound_ay_registers[ENABLE];
-        ay_tone_subcycles += ay_tick_incr;
+        ay_tone_subcycles += tickAY;
         tone_count = ay_tone_subcycles >> (3 + 16);
         ay_tone_subcycles &= (8 << 16) - 1;
         level = chan1; is_on = !(mixer & 1);
@@ -194,13 +211,13 @@ void zxSound::ay_overlay() {
         // моно режим
         (*ptr++) += chan1 + chan2 + chan3;
 
-        ay_noise_tick += noise_count;
-        while(ay_noise_tick >= ay_noise_period) {
-            ay_noise_tick -= ay_noise_period;
+        noiseTick += noise_count;
+        while(noiseTick >= noisePeriod) {
+            noiseTick -= noisePeriod;
             if((rng & 1) ^ ((rng & 2) ? 1 : 0)) noise_toggle = !noise_toggle;
             rng |= ((rng & 1) ^ ((rng & 4) ? 1 : 0)) ? 0x20000 : 0;
             rng >>= 1;
-            if(!ay_noise_period) break;
+            if(!noisePeriod) break;
         }
     }
 }
@@ -223,11 +240,11 @@ void zxSound::reset() {
     countSamplers = 0;
 
     for(f = 0; f < 16; f++) ayWrite((uint8_t)f, 0);
-    for(f = 0; f < 3; f++) ay_tone_high[f] = 0;
+    for(f = 0; f < 3; f++) toneHigh[f] = 0;
 
     ay_tone_subcycles = ay_env_subcycles = 0;
     beeperOldVal = beeperOrigVal = 0;
-    CLOCK_RESET(ay_clock);
+    CLOCK_RESET(clockAY);
 }
 
 int zxSound::update() {

@@ -29,6 +29,8 @@ struct ZX_MACHINE {
     u_long cpuClock;
     // всего страниц ОЗУ
     int ramPages;
+    // страница ПЗУ при старте
+    uint8_t startRom;
     // имя
     const char* name;
 };
@@ -78,7 +80,7 @@ public:
     int updateKeys(int key, int action);
 
     // смена модели памяти
-    bool changeModel(uint8_t _new, uint8_t  _old, bool isReset);
+    void changeModel(uint8_t _new, bool isReset);
 
     // выполнение
     void execute();

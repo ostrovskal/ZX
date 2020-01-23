@@ -33,6 +33,7 @@ fnOps funcs[] = {
         &zxCPU::opsBits, &zxCPU::opsBits, &zxCPU::opsBits, &zxCPU::opsBits,
         &zxCPU::opsJump, &zxCPU::opsJump, &zxCPU::opsJump, &zxCPU::opsJump, &zxCPU::opsJump,
         &zxCPU::opsBlock, &zxCPU::opsBlock, &zxCPU::opsBlock, &zxCPU::opsBlock,
+        &zxCPU::opsRRLLD,
         &zxCPU::opsStd
 };
 
@@ -70,8 +71,19 @@ void zxCPU::wm8(uint16_t address, uint8_t val) {
     ::wm8(realPtr(address), val);
 }
 
+static uint8_t tet[768];
+
 zxCPU::zxCPU() {
     makeTblParity();
+
+    memset(tet, 0, sizeof(tet));
+    for(int i = 0 ; i < 256; i++) {
+        auto i1 = (uint8_t)(i & 240);
+        tet[i] = i1 >> 4;
+        i1 = (uint8_t)(i & 15);
+        tet[i + 256] = i1 << 4;
+        tet[i + 512] = (uint8_t)i;
+    }
 
     _I = &opts[RI]; _R = &opts[RR]; _IM = &opts[IM];
 
@@ -376,20 +388,6 @@ void zxCPU::opsExchange() {
 
 void zxCPU::opsSpecial() {
     switch (codeOps) {
-        case RLD:
-            // SZ503P0-
-            wm8(vDst, (uint8_t) ((v8Dst << 4) | (v8Src & 15)));
-            *_A = res = (uint8_t)((v8Src & 240) | ((v8Dst & 240) >> 4));
-            execFlags = FH | FPV;
-            setFlags = tbl_parity[res];
-            break;
-        case RRD:
-            // SZ503P0-
-            wm8(vDst, (uint8_t)((v8Dst >> 4) | (v8Src << 4)));
-            *_A = res = (uint8_t)((v8Src & 240) | (v8Dst & 15));
-            execFlags = FH | FPV;
-            setFlags = tbl_parity[res];
-            break;
         case CPL:
             // --*1*-1-
             res = *_A = ~*_A;
@@ -586,4 +584,39 @@ void zxCPU::opsLogic() {
     setFlags |= tbl_parity[res];
 }
 
+void zxCPU::opsRRLLD() {
+    // SZ503P0-
+//    static int rd[] = { 256, 512, 0 };
+    static int rd[] = { 0, 4, 0 };
+    auto r = (codeOps & 8) >> 3;
+/*
+    wm8(vDst, tet[v8Dst + (r << 8)] | tet[v8Src + rd[r]]);
+    *_A = res = (uint8_t)(v8Src & 240) | tet[v8Dst + rd[r + 1]];
+*/
+    auto _1 = ((uint16_t)(v8Dst) << 4);
+    auto _2 = (uint8_t)(_1 >> (rd[r + 1] << 1));
+    auto _3 = (uint8_t)((v8Src & 15) << rd[r + 1]);
+
+//    auto _1 = tet[((v8Dst >> rd[r + 1]) & 15) + s] | tet[(v8Src & 15) + (s ^ 16)];
+//    auto _2 = (v8Src & 240) | ((v8Dst >> rd[r]) & 15);
+    wm8(vDst, _2 | _3);
+    *_A = res = (uint8_t) ((v8Src & 240) | ((v8Dst >> rd[r]) & 15));
+    execFlags = FH | FPV;
+    setFlags = tbl_parity[res];
+}
+
+/*
+case RLD:
+            // SZ503P0-
+            execFlags = FH | FPV;
+            setFlags = tbl_parity[res];
+            break;
+        case RRD:
+            // SZ503P0-
+            wm8(vDst, (uint8_t)((v8Dst >> 4) | (v8Src << 4)));
+            wm8(vDst, (uint8_t) ((v8Dst << 4) | (v8Src & 15)));
+            execFlags = FH | FPV;
+            setFlags = tbl_parity[res];
+            break; *
+ */
 #pragma clang diagnostic pop

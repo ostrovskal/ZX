@@ -116,12 +116,12 @@ uint8_t zxDisk::readPort(uint8_t A0A7) {
             ret = readData();
             break;
         case PORT_SYS: {
-            auto psys = opts[TRDOS_IN];
-            ret = (currentTimeMillis() < cmd_done) ? (uint8_t)(psys & ~0x40) : psys;
+//            auto psys = opts[TRDOS_IN];
+//            ret = (currentTimeMillis() < cmd_done) ? (uint8_t)(psys & ~0x40) : psys;
             break;
         }
     }
-    LOG_INFO("port: %X ret: %i", A0A7, ret);
+    //LOG_INFO("port: %X ret: %i", A0A7, ret);
     return ret;
 }
 

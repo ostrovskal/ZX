@@ -124,7 +124,7 @@ extern "C" {
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
         copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMs);
         copyAssetsFile(amgr, "scorpion8.mem", nullptr, &ALU->page8);
-        ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], 255, true);
+        ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true);
         if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
         LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
@@ -202,7 +202,7 @@ extern "C" {
             case ZX_CMD_POKE:       ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
             case ZX_CMD_UPDATE_KEY: ALU->updateKeys(arg1, arg2); break;
             case ZX_CMD_PROPS:      ALU->updateProps(arg1); break;
-            case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], *ALU->_MODEL, true); break;
+            case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true); break;
             case ZX_CMD_RESET:      ALU->signalRESET(true); break;
             case ZX_CMD_QUICK_BP:   ALU->quickBP((uint16_t)arg1); break;
             case ZX_CMD_TRACE_X:    ALU->debugger->trace(arg1); break;

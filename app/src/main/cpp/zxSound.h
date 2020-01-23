@@ -20,7 +20,7 @@ public:
     };
 
     zxSound();
-    virtual ~zxSound() { }
+    ~zxSound();
 
     enum {
         AFINE, ACOARSE, BFINE, BCOARSE, CFINE, CCOARSE, NOISEPER, ENABLE, AVOL,
@@ -58,11 +58,8 @@ protected:
     // амплитуда/громкость звукового процессора
     int ampAy, volAy;
 
-    // частота звукового процессора
-    int ay_clock;
-
     // частота звука
-    int sound_freq;
+    int frequency;
 
     // массив сэмплов
     AY_SAMPLER samplers[AY_CHANGE_MAX];
@@ -78,18 +75,20 @@ protected:
     // буфер звука
     signed short *sndBuf;
 
-    uint32_t ay_tone_levels[16];
-
     // параметры формирование сигнала бипера
     int beeperOldPos, beeperPos, beeperOldVal, beeperOrigVal;
     int beeperLastPos;
 
-    uint32_t ay_tone_tick[3], ay_tone_high[3], ay_noise_tick;
+    // параметры 3-х канального AY
+    uint32_t toneTick[3], toneHigh[3], noiseTick;
+    uint32_t tonePeriod[3], noisePeriod, envPeriod;
+    uint32_t envIntTick, envTick, tickAY;
     uint32_t ay_tone_subcycles, ay_env_subcycles;
-    uint32_t ay_env_internal_tick,ay_env_tick;
-    uint32_t ay_tick_incr;
-    uint32_t ay_tone_period[3], ay_noise_period, ay_env_period;
     uint8_t sound_ay_registers[16];
+    uint32_t ay_tone_levels[16];
+
+    // частота звукового процессора
+    int clockAY;
 
     // движок
     SLObjectItf engineObj;
