@@ -51,6 +51,7 @@
         <item>@string/settingsJoyB</item>
     </array>
     <array name="settingsSndTexts">
+        <item>@string/settingsSoundAY</item>
         <item>@string/settingsSndFreq</item>
         <item>@string/settingsSndVolBP</item>
         <item>@string/settingsSndVolAY</item>
@@ -86,7 +87,7 @@
         <item>active_disk,0</item>
         <item>border_size,3</item>
         <item>model_type,1</item>
-        <item>snd_type_ay,2</item>
+        <item>snd_type_ay,1</item>
         <item>snd_freq,1</item>
         <item>snd_vol_bp,10</item>
         <item>snd_vol_ay,25</item>

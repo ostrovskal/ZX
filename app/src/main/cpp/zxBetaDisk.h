@@ -10,7 +10,7 @@
 #define SEC_LENGTH_0x0400   3
 
 extern "C" {
-    u_long getTimeMillis();
+    u_long currentTimeMillis();
 };
 
 class SectorData {
@@ -77,8 +77,7 @@ private:
 
 class zxDiskImage {
 public:
-    zxDiskImage(const char* _filename, int _head_count, int _cyl_count, bool _write_protect, const char* _description) {
-        filename    = _filename;
+    zxDiskImage(int _head_count, int _cyl_count, bool _write_protect, const char* _description) {
         description = _description;
         head_count  = _head_count;
         cyl_count   = _cyl_count;
@@ -102,11 +101,9 @@ public:
     // сохранить в формате FDI
     static uint8_t* saveToFDI(zxDiskImage* image, uint32_t* length);
     // восстановить состояние
-    static zxDiskImage* openState(uint8_t* ptr);
+    //static zxDiskImage* openState(uint8_t* ptr);
     // сохранить состояние
-    static uint8_t* saveState(uint8_t* ptr);
-    // вернуть имя файла
-    const char* get_filename() { return filename.c_str(); }
+    //static uint8_t* saveState(uint8_t* ptr);
     // вернуть признак защиты от записи
     bool is_write_protected() { return write_protect; }
     // вернуть количество цилиндров
@@ -134,8 +131,6 @@ protected:
     bool write_protect;
     // массив массивов треков
     TrackData** cylinders;
-    // имя файла
-    std::string filename;
     // описание диска
     std::string description;
 };
@@ -143,13 +138,12 @@ protected:
 class zxBetaDisk {
 public:
     struct STATE {
-        STATE() : data(nullptr) { }
-        ~STATE() { delete[] data; data = nullptr; }
+        STATE(bool _action) : action(_action) { }
         bool action;
-        int index, length;
-        uint8_t* data;
     };
     struct DISK {
+        DISK() : image(nullptr), track(0) { }
+        ~DISK() { delete image; image = nullptr; }
         zxDiskImage* image;
         int track;
     };
@@ -160,50 +154,48 @@ public:
     void eject(int drive_code);
     void vg93_write(uint8_t address, uint8_t data);
     void process_command(uint8_t cmd);
-    void read_sectors_begin();
-    void read_sectors_end(bool multiple, uint8_t expected_side, bool check_side);
-    void write_sectors_begin();
-    void write_sectors_end(bool multiple, uint8_t expected_side, bool check_side, bool deleted_address_mark);
-    void read_address();
-    void read_track();
-    void write_next_byte();
-    void read_next_byte();
-    void write_track();
     void store_sector_data(SectorData* sec_data, uint8_t* data);
-    void write_sysreg(uint8_t data);
     void hardware_reset_controller();
     void reset();
     bool open(int active, const char* path, int type);
-    uint8_t vg93_read(uint8_t address);
-    size_t extract_sector_data(SectorData* sec_data);
     uint8_t* extract_sector_address(SectorData* sec_data);
     size_t build_GAP(int gap_num);
     size_t build_SYNC();
-    uint8_t to_bit(int b) { return (uint8_t)(b ? 1 : 0); }
+    size_t extract_sector_data(SectorData* sec_data);
+    uint8_t vg93_read(uint8_t address);
+    uint8_t to_bit(int b) { return (uint8_t)(b != 0); }
     uint8_t get_status();
-    uint8_t read_sysreg(uint8_t data);
-    SectorData* get_sector_data(uint8_t expected_side, bool check_side);
-    void schedule_data(bool read, SectorData* sec, uint8_t* data, size_t length, bool multiple, uint8_t expected_side, bool check_side, bool action, bool mark);
-
+    void schedule_data(bool read, uint8_t* data, size_t length, bool action);
     bool save(uint8_t active, const char *path, int type);
-
 protected:
+    void read_sectors_begin();
+    void read_sectors_end();
+    void read_next_byte();
+    void read_track();
+    void read_address();
+    void write_sectors_begin();
+    void write_sectors_end();
+    void write_next_byte();
+    void write_track();
     void on_drive_ready(int drive_index) { if(drive_index == drive && int_on_ready) { intrq = 1; int_on_ready = false; } }
     void on_drive_unready(int drive_index) { if(drive_index == drive && int_on_unready) { intrq = 1; int_on_unready = false; } }
     void set_current_track(int value) { disks[drive].track = value; }
-    void set_busy(int value) { busy = to_bit(value); if(value) hld = get_hld(); else idle_since = getTimeMillis(); }
+    void set_busy(int value) { busy = to_bit(value); if(value) hld = get_hld(); else idle_since = currentTimeMillis(); }
     bool ready() { return disks[drive].image != nullptr; }
-    bool index_pointer() { return ((getTimeMillis() - last_index_pointer_time ) < index_pointer_length); }
+    bool index_pointer() { return ((currentTimeMillis() - last_index_pointer_time ) < index_pointer_length); }
     bool is_busy() { return to_bool(busy); }
     bool to_bool(int b) { return b != 0; }
     int get_current_track() { return disks[drive].track; }
+    SectorData* get_sector_data();
     zxDiskImage* get_current_image() { return disks[drive].image; }
-    uint8_t get_hld() { if(is_busy()) return hld; return (uint8_t)(hld && (getTimeMillis() - idle_since) < hld_extratime); }
+    uint8_t get_hld() { if(is_busy()) return hld; return (uint8_t)(hld && (currentTimeMillis() - idle_since) < hld_extratime); }
 
     DISK disks[4];
     int drive;
-    int head; // 0 - нижняя головка, 1 - верхняя
-    bool mfm; // 0 - MFM, 1 - FM ( UNDONE: not sure )
+    // 0 - нижняя головка, 1 - верхняя
+    int head;
+    // 0 - MFM, 1 - FM ( UNDONE: not sure )
+    bool mfm;
     // интервал появления индексного отверстия (ms)
     int index_pointer_interval;
     // длина индексного отверстия (ms)
@@ -214,23 +206,23 @@ protected:
     // Реальное время чтения/записи одного байта в режиме MFM составляет 0.032 ms, но из-за низкой производительности js используется большее число.
     //double rw_timeout;
     int hld_extratime;
-    int intrq;
-    int drq;
-    int hlt; // приходит с порта 0xff
+    uint8_t intrq, drq, hlt; // приходит с порта 0xff
     // После прекращения выполнения команды, использующей загрузку головки, сигнал hld ещё держится 15 оборотов
     // диска (если только не осуществлен аппаратный сброс). Эмуляция данного поведения.
-    uint8_t busy;
-    uint8_t hld;
+    uint8_t busy, hld;
     u_long idle_since;
     uint8_t seek_error;
     uint8_t crc_error;
     uint8_t rnf_error;
     uint8_t lost_data_error;
     uint8_t write_fault;
-    uint8_t record_type; // 0 - normal, 1 - deleted
-    uint8_t dirc; // 1 - перемещение к центру, 0 - к краю
+    // 0 - normal, 1 - deleted
+    uint8_t record_type;
+    // 1 - перемещение к центру, 0 - к краю
+    uint8_t dirc;
     u_long last_index_pointer_time;
-    uint8_t r_sector; // для TR-DOS: от 1 по 16
+    // для TR-DOS: от 1 по 16
+    uint8_t r_sector;
     uint8_t r_track;
     uint8_t r_command;
     uint8_t r_data;
@@ -241,7 +233,6 @@ protected:
     int addr_sec_index;
     STATE* read_state;
     STATE* write_state;
-    bool int_on_ready;
-    bool int_on_unready;
+    bool int_on_ready, int_on_unready;
     //bool int_on_index_pointer;
 };

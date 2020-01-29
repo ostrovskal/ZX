@@ -101,18 +101,20 @@ extern "C" {
             std::string out("games/");
             std::string z80("Z80/");
             std::string tap("TAP/");
-            std::string trd("TRD/");
+            std::string trdos("TRDOS/");
             std::string path("");
             zxFile::makeDir(zxFile::makePath("Z80", true).c_str());
             zxFile::makeDir(zxFile::makePath("TAP", true).c_str());
-            zxFile::makeDir(zxFile::makePath("TRD", true).c_str());
+            zxFile::makeDir(zxFile::makePath("TRDOS", true).c_str());
             auto dir = AAssetManager_openDir(amgr, "games");
             const char* file;
             while ((file = AAssetDir_getNextFileName(dir))) {
                 switch(parseExtension(file)) {
-                    case ZX_CMD_IO_Z80: path    = z80 + file; break;
-                    case ZX_CMD_IO_TAPE: path   = tap + file; break;
-                    case ZX_CMD_IO_TRD: path    = trd + file; break;
+                    case ZX_CMD_IO_Z80:  path    = z80 + file; break;
+                    case ZX_CMD_IO_TAPE: path    = tap + file; break;
+                    case ZX_CMD_IO_TRD:
+                    case ZX_CMD_IO_SCL:
+                    case ZX_CMD_IO_FDI:  path    = trdos + file; break;
                     default: path = file; break;
                 }
                 copyAssetsFile(amgr, (out + file).c_str(), path.c_str());

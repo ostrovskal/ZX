@@ -504,8 +504,8 @@ public final class ZxCommon {
 
     public static final int[] settingsCommon    = { ZX_PROP_CPU_SPEED, ZX_PROP_JOY_SIZE, ZX_PROP_BORDER_SIZE, ZX_PROP_KEY_SIZE};
     public static final int[] settingsCheckSnd  = { ZX_PROP_SND_BP, ZX_PROP_SND_AY };
-    public static final int[] settingsSnd       = { ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
-    public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
+    public static final int[] settingsSnd       = { ZX_PROP_SND_TYPE_AY, ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
+    public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_TYPE_AY, 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
                                                     ZX_PROP_SND_BP, ZX_PROP_SND_AY};
 
     public static final int[] debuggerLand = {
