@@ -25,7 +25,7 @@ static int prefix;
 static MNEMONIC* m;
 
 fnOps funcs[] = {
-        &zxCPU::opsAddSub, &zxCPU::opsAddSub, &zxCPU::opsAddSub, &zxCPU::opsAddSub, &zxCPU::opsStd, &zxCPU::opsLogic,
+        &zxCPU::opsAddSub, &zxCPU::opsAddSub, &zxCPU::opsAdcSbc, &zxCPU::opsAdcSbc, &zxCPU::opsStd, &zxCPU::opsLogic,
         &zxCPU::opsStd, &zxCPU::opsLogic, &zxCPU::opsLogic, &zxCPU::opsStd, &zxCPU::opsStd, &zxCPU::opsStd, &zxCPU::opsJump,
         &zxCPU::opsStd, &zxCPU::opsStd, &zxCPU::opsStd, &zxCPU::opsStd, &zxCPU::opsStd, &zxCPU::opsStd, &zxCPU::opsStd,
         &zxCPU::opsExchange, &zxCPU::opsSpecial,
@@ -33,7 +33,6 @@ fnOps funcs[] = {
         &zxCPU::opsBits, &zxCPU::opsBits, &zxCPU::opsBits, &zxCPU::opsBits,
         &zxCPU::opsJump, &zxCPU::opsJump, &zxCPU::opsJump, &zxCPU::opsJump, &zxCPU::opsJump,
         &zxCPU::opsBlock, &zxCPU::opsBlock, &zxCPU::opsBlock, &zxCPU::opsBlock,
-        &zxCPU::opsRRLLD,
         &zxCPU::opsStd
 };
 
@@ -71,19 +70,8 @@ void zxCPU::wm8(uint16_t address, uint8_t val) {
     ::wm8(realPtr(address), val);
 }
 
-static uint8_t tet[768];
-
 zxCPU::zxCPU() {
     makeTblParity();
-
-    memset(tet, 0, sizeof(tet));
-    for(int i = 0 ; i < 256; i++) {
-        auto i1 = (uint8_t)(i & 240);
-        tet[i] = i1 >> 4;
-        i1 = (uint8_t)(i & 15);
-        tet[i + 256] = i1 << 4;
-        tet[i + 512] = (uint8_t)i;
-    }
 
     _I = &opts[RI]; _R = &opts[RR]; _IM = &opts[IM];
 
@@ -137,11 +125,9 @@ uint8_t * zxCPU::initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, u
     switch(o) {
         // константа 8 бит
         case _C8: v8 = rm8PC(); break;
-            // константа/адрес 16 бит
+        // константа/адрес 16 бит
         case _C16: v16 = rm16PC(); break;
-            // вычисление бита
-        case _BT: v8 = numBits[(codeOps >> 3) & 7]; break;
-            // без операнда
+        // без операнда
         case _N_: break;
         case _RPHL: {
             uint8_t offs(0);
@@ -331,6 +317,7 @@ void zxCPU::opsJump() {
 }
 
 void zxCPU::opsBits() {
+    v8Src = numBits[(codeOps >> 3) & 7];
     if(fch) v8Dst = cb8;
     switch(ops) {
         case O_ROTX:
@@ -425,6 +412,18 @@ void zxCPU::opsSpecial() {
             setFlags |= tbl_parity[res] | n;
             break;
         }
+        case RLD: case RRD: {
+            // SZ503P0-
+            auto r0 = (codeOps & 8) >> 1;
+            auto r1 = r0 ^ 4;
+            auto _1 = ((uint16_t) (v8Dst) << 4);
+            auto _2 = _1 >> (r1 << 1);
+            wm8(vDst, (uint8_t) (_2 | ((v8Src & 15) << r1)));
+            *_A = res = (uint8_t) ((v8Src & 240) | ((v8Dst >> r0) & 15));
+            execFlags = FH | FPV;
+            setFlags = tbl_parity[res];
+            break;
+        }
         case EI: case DI:
             *_IFF1 = *_IFF2 = (uint8_t) ((codeOps & 8) >> 3);
             break;
@@ -498,7 +497,7 @@ void zxCPU::opsStd() {
         case O_SAVE:
             // LD [NN], SRC16
             if(regSrc & _R16) wm16(vDst, vSrc);
-                // LD [NN], A / LD (BC/DE), A / LD [HL/IX/IY + D], SRC
+            // LD [NN], A / LD (BC/DE), A / LD [HL/IX/IY + D], SRC
             else wm8(vDst, v8Src);
             break;
         case O_INC: case O_DEC:
@@ -540,31 +539,44 @@ void zxCPU::opsStd() {
         case O_IM:
             v8Src = (uint8_t)((codeOps >> 3) & 3);
             *_IM = (uint8_t)(v8Src ? v8Src - 1 : 0);
-            LOG_INFO("IM %i %i", *_IM, codeOps);
             break;
         default: LOG_DEBUG("found NONI(%i) from PC: %i", m->name, zxALU::PC);
     }
 }
 
 void zxCPU::opsAddSub() {
-    if(ops > O_SUB) {
-        // SZ***V0C / SZ***V1C
-        fch = (uint8_t)(*_F & 1);
-    }
-    // --***-0C
-    cb8 = ((uint8_t) ((ops - O_ADD) & 1) << 1);
+    cb8 = (uint8_t)((ops - O_ADD) << 1);
     if (regDst & _R16) {
-        if(ops == O_ADD) opts[RTMP] = (uint8_t)(vDst >> 8);
+        // --***-0C
+        *(uint16_t*)dst = (uint16_t)(n32 = (vDst + vSrc));
+        v8Dst = (uint8_t) (vDst >> 8);
+        v8Src = (uint8_t) (vSrc >> 8);
+        res   = (uint8_t)(n32 >> 8);
+        if(ops == O_ADD) opts[RTMP] = v8Dst;
+    } else {
+        // SZ5H3V0C / SZ5H3V1C
+        v8Dst = *_A;
+        res = *_A = (uint8_t)(n32 = cb8 ? (v8Dst - v8Src) : (v8Dst + v8Src));
+        n32 <<= 8;
+    }
+    setFlags = cb8 | (n32 > 65535);
+}
+
+void zxCPU::opsAdcSbc() {
+    // SZ***V0C / SZ***V1C
+    fch = (uint8_t)(*_F & 1);
+    cb8 = (uint8_t)((ops - O_ADC) << 1);
+    if (regDst & _R16) {
         *(uint16_t*)dst = (uint16_t)(n32 = cb8 ? (vDst - (vSrc + fch)) : (vDst + (vSrc + fch)));
         v8Dst = (uint8_t) (vDst >> 8);
         v8Src = (uint8_t) (vSrc >> 8);
-        res = (uint8_t) (n32 >> 8);
+        res = (uint8_t)(n32 >> 8);
         execFlags = FZ;
         setFlags = ((n32 == 0) << 6);
     } else {
         // SZ5H3V0C / SZ5H3V1C
         v8Dst = *_A;
-        *_A = res = (uint8_t)(n32 = cb8 ? (v8Dst - (v8Src + fch)) : (v8Dst + (v8Src + fch)));
+        res = *_A = (uint8_t)(n32 = cb8 ? (v8Dst - (v8Src + fch)) : (v8Dst + (v8Src + fch)));
         n32 <<= 8;
     }
     setFlags |= cb8 | (n32 > 65535);
@@ -584,39 +596,4 @@ void zxCPU::opsLogic() {
     setFlags |= tbl_parity[res];
 }
 
-void zxCPU::opsRRLLD() {
-    // SZ503P0-
-//    static int rd[] = { 256, 512, 0 };
-    static int rd[] = { 0, 4, 0 };
-    auto r = (codeOps & 8) >> 3;
-/*
-    wm8(vDst, tet[v8Dst + (r << 8)] | tet[v8Src + rd[r]]);
-    *_A = res = (uint8_t)(v8Src & 240) | tet[v8Dst + rd[r + 1]];
-*/
-    auto _1 = ((uint16_t)(v8Dst) << 4);
-    auto _2 = (uint8_t)(_1 >> (rd[r + 1] << 1));
-    auto _3 = (uint8_t)((v8Src & 15) << rd[r + 1]);
-
-//    auto _1 = tet[((v8Dst >> rd[r + 1]) & 15) + s] | tet[(v8Src & 15) + (s ^ 16)];
-//    auto _2 = (v8Src & 240) | ((v8Dst >> rd[r]) & 15);
-    wm8(vDst, _2 | _3);
-    *_A = res = (uint8_t) ((v8Src & 240) | ((v8Dst >> rd[r]) & 15));
-    execFlags = FH | FPV;
-    setFlags = tbl_parity[res];
-}
-
-/*
-case RLD:
-            // SZ503P0-
-            execFlags = FH | FPV;
-            setFlags = tbl_parity[res];
-            break;
-        case RRD:
-            // SZ503P0-
-            wm8(vDst, (uint8_t)((v8Dst >> 4) | (v8Src << 4)));
-            wm8(vDst, (uint8_t) ((v8Dst << 4) | (v8Src & 15)));
-            execFlags = FH | FPV;
-            setFlags = tbl_parity[res];
-            break; *
- */
 #pragma clang diagnostic pop

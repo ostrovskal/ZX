@@ -152,6 +152,10 @@
         </menu>
     </item>
     <item
+        android:id="@integer/MENU_MAGIC"
+        android:title="@string/menuMagic"
+        android:showAsAction="never" />
+    <item
         android:id="@integer/MENU_POKES"
         android:title="@string/menuPokes"
         android:showAsAction="never" />

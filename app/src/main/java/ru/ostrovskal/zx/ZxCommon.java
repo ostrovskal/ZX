@@ -93,6 +93,7 @@ public final class ZxCommon {
     public final static int MENU_MRU                = 1020;
     public final static int MENU_POKES              = 1021;
     public final static int MENU_DEBUGGER1          = 1022;
+    public final static int MENU_MAGIC              = 1023;
 
     public final static int MENU_DISK_A             = 1200;
     public final static int MENU_DISK_B             = 1201;
@@ -192,6 +193,7 @@ public final class ZxCommon {
     public static final int ZX_CMD_STEP_DEBUG       = 10; // Выполнение в отладчике
     public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
+    public static final int ZX_CMD_MAGIC            = 13; // Нажатие на кнопку MAGIC
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП

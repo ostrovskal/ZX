@@ -8,7 +8,7 @@ static jobject objProps = nullptr;
 static int parseExtension(const char* name) {
     auto l = strlen(name);
     const char* ext = (l > 2 ? name + (l - 3) : "123");
-    const char* lst[] = {".zx", "z80", "tap", "wav", "trd"};
+    const char* lst[] = {".zx", "z80", "tap", "wav", "trd", "scl", "fdi"};
     int ret = 0;
     for(auto& e: lst) {
         if(!strcasecmp(ext, e)) break;
@@ -212,6 +212,7 @@ extern "C" {
             case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_INIT_GL:    ALU->gpu->initGL(); break;
             case ZX_CMD_TAPE_COUNT: ret = ALU->tape->countBlocks; break;
+            case ZX_CMD_MAGIC:      ALU->cpu->signalNMI(); break;
         }
         return ret;
     }

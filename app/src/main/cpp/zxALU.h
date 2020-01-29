@@ -9,8 +9,8 @@
 #include "zxDebugger.h"
 #include "zxTape.h"
 #include "zxSound.h"
-#include "zxDisk.h"
 #include "zxGPU.h"
+#include "zxBetaDisk.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -212,7 +212,7 @@ protected:
     zxSound* snd;
 
     // дисковод
-    zxDisk* disk;
+    zxBetaDisk* disk;
 
     // имя проги
     std::string name;

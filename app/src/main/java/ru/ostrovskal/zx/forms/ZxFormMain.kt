@@ -89,6 +89,7 @@ class ZxFormMain: Form() {
             ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal,
             ZxWnd.ZxMessages.ACT_RESET.ordinal,
             ZxWnd.ZxMessages.ACT_MODEL.ordinal,
+            ZxWnd.ZxMessages.ACT_PRESS_MAGIC.ordinal,
             ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal,
             ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal            -> zxview?.callAction(msg)
             ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()

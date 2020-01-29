@@ -44,6 +44,9 @@ class ZxView(context: Context) : GLSurfaceView(context) {
                 ACT_INIT_SURFACE                                    -> {
                     update = true
                 }
+                ZxWnd.ZxMessages.ACT_PRESS_MAGIC.ordinal            -> {
+                    ZxWnd.zxCmd(ZX_CMD_MAGIC, 0, 0, "")
+                }
                 ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal          -> {
                     ZxWnd.zxCmd(ZX_CMD_PROPS, "filter".i, 0, "")
                 }

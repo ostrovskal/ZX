@@ -35,7 +35,7 @@ class ZxFormSettings : Form() {
         private var countTapeBlocks             = 0
 
         private val tapeTypes       = listOf("BASIC", "NumberArray", "StringArray", "Bytes")
-        private val settingsFreq    = listOf("44100", "22050", "11025")
+        private val settingsFreq    = listOf("48000", "44100", "22050")
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
 

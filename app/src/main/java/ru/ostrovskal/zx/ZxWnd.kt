@@ -69,7 +69,9 @@ class ZxWnd : Wnd() {
         // установка текста инструкции
         ACT_DEBUGGER_ASSEMBLER_TEXT,
         // выделение элемента в списке отладчика
-        ACT_DEBUGGER_SELECT_ITEM
+        ACT_DEBUGGER_SELECT_ITEM,
+        // нажатие на кнопку MAGIC
+        ACT_PRESS_MAGIC
     }
 
     // главная разметка
@@ -276,6 +278,7 @@ class ZxWnd : Wnd() {
             MENU_RESTORE                            -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
             MENU_RESET                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_RESET.ordinal)
             MENU_EXIT                               -> { nameAutoSave = ZX_AUTO_SAVE; finish() }
+            MENU_MAGIC                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_PRESS_MAGIC.ordinal)
             MENU_PROPS_DEBUGGER                     -> {
                 // спрятать/показать элемент клавы
                 // вытащить/спрятать элемент отладчика
@@ -290,7 +293,7 @@ class ZxWnd : Wnd() {
             MENU_DISK_A, MENU_DISK_B,
             MENU_DISK_C, MENU_DISK_D                -> {
                 props[ZX_PROP_ACTIVE_DISK] = (id - MENU_DISK_A).toByte()
-                instanceForm(FORM_IO, "filter", ".trd,.z80", "disk", true)
+                instanceForm(FORM_IO, "filter", ".trd,.scl,.fdi", "disk", true)
             }
             MENU_MODEL_48KK, MENU_MODEL_48KS,
             MENU_MODEL_48KSN, MENU_MODEL_128K,

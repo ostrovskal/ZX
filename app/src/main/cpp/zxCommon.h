@@ -70,7 +70,7 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 
 #define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
 
-constexpr int ZX_SIZE_TMP_BUF           = 524288;
+constexpr int ZX_SIZE_TMP_BUF           = 1024 * 1024;
 
 constexpr int ZX_BP_NONE                = 0; // не учитывается
 constexpr int ZX_BP_EXEC                = 1; // исполнение
@@ -197,6 +197,7 @@ constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
 constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
 constexpr int ZX_CMD_MOVE_PC            = 11;// Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12;// Получение адреса в памяти/адреса перехода в инструкции
+constexpr int ZX_CMD_MAGIC              = 13;// Нажатие на кнопку MAGIC
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
@@ -215,6 +216,8 @@ constexpr int ZX_CMD_IO_Z80             = 1; // Загрузить/сохран�
 constexpr int ZX_CMD_IO_TAPE            = 2; // Загрузить/сохранить ленту
 constexpr int ZX_CMD_IO_WAVE            = 3; // Загрузить/сохранить звук
 constexpr int ZX_CMD_IO_TRD             = 4; // Загрузить/сохранить образ диска
+constexpr int ZX_CMD_IO_SCL             = 5; // Загрузить/сохранить образ диска
+constexpr int ZX_CMD_IO_FDI             = 6; // Загрузить/сохранить образ диска
 
 // Система счистления для преобразования строк/чисел
 constexpr int RADIX_DEC 				= 0;

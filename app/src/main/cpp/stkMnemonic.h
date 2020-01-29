@@ -148,9 +148,9 @@ enum MNEMONIC_FLAGS {
 #define ROT_PX(c)       { _RPHL, _N_, O_ROTX, _T(1, 15), c, F_ROTX }
 
 #define ROT_X(x, c)     { x, _N_, O_ROTX, _T(1, 8), c, F_ROTX }
-#define BIT_X(x)        { x, _BT, O_BIT, _T(1, 8), C_BIT, F_BIT }
-#define RES_X(x)        { x, _BT, O_RES, _T(1, 8), C_RES }
-#define SET_X(x)        { x, _BT, O_SET, _T(1, 8), C_SET }
+#define BIT_X(x)        { x, _N_, O_BIT, _T(1, 8), C_BIT, F_BIT }
+#define RES_X(x)        { x, _N_, O_RES, _T(1, 8), C_RES }
+#define SET_X(x)        { x, _N_, O_SET, _T(1, 8), C_SET }
 
 
 #define F_ADSBC16   FS | FZ | F5 | FH | F3 | FPV | FN | FC
@@ -168,7 +168,6 @@ enum MNEMONIC_FLAGS {
 #define F_IN        FS | FZ | F5 | FH | F3 | FPV | FN
 #define F_BIT       FS | FZ | F5 | FH | F3 | FPV | FN
 #define F_RLRD      FS | FZ | F5 | FH | F3 | FPV | FN
-#define F_F_PC      FS | FZ | F5 | FH | F3 | FPV | FN
 #define F_CPI       FS | FZ | F5 | FH | F3 | FPV | FN
 #define F_DAA       FS | FZ | F5 | FH | F3 | FPV | FC
 #define F_ADD16     F5 | FH | F3 | FN | FC
@@ -344,32 +343,32 @@ static MNEMONIC mnemonics[] = {
         ROT_X(_RB, C_SLI), ROT_X(_RC, C_SLI), ROT_X(_RD, C_SLI), ROT_X(_RE, C_SLI), ROT_X(_RH, C_SLI), ROT_X(_RL, C_SLI), ROT_PX(C_SLI), ROT_X(_RA, C_SLI),
         ROT_X(_RB, C_SRL), ROT_X(_RC, C_SRL), ROT_X(_RD, C_SRL), ROT_X(_RE, C_SRL), ROT_X(_RH, C_SRL), ROT_X(_RL, C_SRL), ROT_PX(C_SRL), ROT_X(_RA, C_SRL),
 
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
-        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _BT, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
+        BIT_X(_RB), BIT_X(_RC), BIT_X(_RD), BIT_X(_RE), BIT_X(_RH), BIT_X(_RL), { _RPHL, _N_, O_BIT, _T(1, 12), C_BIT, F_BIT }, BIT_X(_RA),
 
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
-        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _BT, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
+        RES_X(_RB), RES_X(_RC), RES_X(_RD), RES_X(_RE), RES_X(_RH), RES_X(_RL), { _RPHL, _N_, O_RES, _T(1, 15), C_RES }, RES_X(_RA),
 
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
-        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _BT, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
+        SET_X(_RB), SET_X(_RC), SET_X(_RD), SET_X(_RE), SET_X(_RH), SET_X(_RL), { _RPHL, _N_, O_SET, _T(1, 15), C_SET }, SET_X(_RA),
 
         // 237
         STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI, STK_NONI,
@@ -416,7 +415,7 @@ static MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_4
         { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_2=101
         { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_2
-        { _RPHL,_RA,    O_RRLLD,_T(1, 18), C_RRD,  F_RLRD  },  // RRD=103
+        { _RPHL,_RA,    O_SPEC, _T(1, 18), C_RRD,  F_RLRD  },  // RRD=103
         { _RL,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_L_BC
         { _RL,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_L
         { _RHL, _RHL,   O_ADC,  _T(1, 15), C_ADC,  F_ADSBC16}, // ADC_HL_HL
@@ -424,7 +423,7 @@ static MNEMONIC mnemonics[] = {
         { _N_,  _N_,    O_NEG,  _T(1, 4),  C_NEG,  F_NEG   },  // NEG_5
         { _N_,  _N_,    O_RET,  _T(1, 14), C_RET           },  // RET_3
         { _N_,  _N_,    O_IM,   _T(1, 8),  C_IM            },  // IM0_3
-        { _RPHL,_RA,    O_RRLLD,_T(1, 18), C_RLD,  F_RLRD  },  // RLD=111
+        { _RPHL,_RA,    O_SPEC, _T(1, 18), C_RLD,  F_RLRD  },  // RLD=111
         { _RF,  _RC,    O_IN,   _T(1, 12), C_IN,   F_IN    },  // IN_F_BC
         { _N_,  _RC,    O_OUT,  _T(1, 12), C_OUT           },  // OUT_BC_0
         { _RHL, _RSP,   O_SBC,  _T(1, 15), C_SBC,  F_ADSBC16}, // SBC_HL_SP

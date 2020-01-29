@@ -14,8 +14,8 @@ extern "C" {
 enum MNEMONIC_REGS {
     _RC, _RE, _RL, _RF, _RS, _RB, _RD, _RH, _RA, _RI, _RR, _RPHL,
     // 12
-    _N_, _BT,
-    // 14
+    _N_,
+    // 13
     _C8, _C16,
     // 16
     _R16 = 16
@@ -71,7 +71,6 @@ enum MNEMONIC_OPS {
     O_JMP, O_JR, O_CALL, O_RET, O_RETN,
     // 33
     O_LDI, O_CPI, O_INI, O_OTI,
-    O_RRLLD,
     O_UNDEF
 };
 
@@ -109,7 +108,10 @@ public:
     // XOR/OR/AND
     void opsLogic();
 
-    // ADD/ADC/SUB/SBC
+    // ADC/SBC
+    void opsAdcSbc();
+
+    // ADD/SUB
     void opsAddSub();
 
     // блочные операции

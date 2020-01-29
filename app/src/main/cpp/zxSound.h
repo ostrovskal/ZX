@@ -4,14 +4,15 @@
 
 #pragma once
 
-#define AMPL_AY_TONE		    (28 * 256)
-#define AY_CHANGE_MAX		    8000
-#define AY_ENV_CONT	            8
-#define AY_ENV_ATTACK	        4
-#define AY_ENV_ALT	            2
-#define AY_ENV_HOLD	            1
+#define AMPL_AY_TONE	(28 * 256)
+#define AY_SAMPLERS     8000
+#define AY_ENV_CONT	    8
+#define AY_ENV_ATTACK	4
+#define AY_ENV_ALT	    2
+#define AY_ENV_HOLD	    1
 
 class zxSound {
+    friend void callback_ay8912(SLBufferQueueItf pBufferQueue, void* pThis);
 public:
     struct AY_SAMPLER {
         u_long   tstates;
@@ -34,7 +35,7 @@ public:
     void updateProps();
 protected:
     void initDriver();
-    void ay_overlay();
+    void apply();
     void makePlayer();
 
     // признак инициализации драйвер
@@ -62,7 +63,7 @@ protected:
     int frequency;
 
     // массив сэмплов
-    AY_SAMPLER samplers[AY_CHANGE_MAX];
+    AY_SAMPLER samplers[AY_SAMPLERS];
 
     // текущее количество сэмплов
     int countSamplers;
@@ -83,9 +84,9 @@ protected:
     uint32_t toneTick[3], toneHigh[3], noiseTick;
     uint32_t tonePeriod[3], noisePeriod, envPeriod;
     uint32_t envIntTick, envTick, tickAY;
-    uint32_t ay_tone_subcycles, ay_env_subcycles;
-    uint8_t sound_ay_registers[16];
-    uint32_t ay_tone_levels[16];
+    uint32_t toneSubCycles, envSubCycles;
+    uint8_t  ayRegs[16];
+    uint32_t toneLevels[16];
 
     // частота звукового процессора
     int clockAY;

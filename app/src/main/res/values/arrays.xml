@@ -87,9 +87,9 @@
         <item>border_size,3</item>
         <item>model_type,1</item>
         <item>snd_type_ay,2</item>
-        <item>snd_freq,0</item>
-        <item>snd_vol_bp,12</item>
-        <item>snd_vol_ay,100</item>
+        <item>snd_freq,1</item>
+        <item>snd_vol_bp,10</item>
+        <item>snd_vol_ay,25</item>
         <item>cpu_speed,10</item>
         <item>key_size,4</item>
         <item>joy_size,2</item>

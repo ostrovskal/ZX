@@ -22,6 +22,8 @@
     <integer name="MENU_MRU">1020</integer>
     <integer name="MENU_POKES">1021</integer>
     <integer name="MENU_DEBUGGER1">1022</integer>
+    <integer name="MENU_MAGIC">1023</integer>
+
     <integer name="MENU_DISK_A">1200</integer>
     <integer name="MENU_DISK_B">1201</integer>
     <integer name="MENU_DISK_C">1202</integer>
