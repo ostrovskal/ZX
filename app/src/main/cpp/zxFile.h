@@ -51,6 +51,8 @@ public:
         set_pos(pos, flags);
         return write(buf, size);
     }
+    // признак открытия
+    bool isOpen() const { return fd != nullptr; }
     // сервис
     size_t get_pos() const { return (size_t)ftell(fd); }
     // вернуть длину

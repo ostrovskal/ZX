@@ -24,8 +24,6 @@ import ru.ostrovskal.zx.ZxCommon.*
 @Suppress("unused")
 class ZxFormMain: Form() {
 
-    //override val surface: Surface? get() = zxview
-
     // Клавиатура
     private val keyboard                = ZxKeyboard()
 
@@ -67,6 +65,10 @@ class ZxFormMain: Form() {
         }
         root.requestLayout()
         root.invalidate()
+        if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean)
+            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL, delay = 100)
+        else if(ZxWnd.props[ZX_PROP_SHOW_KEY].toBoolean)
+            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal, delay = 100)
     }
 
     override fun inflateContent(container: LayoutInflater) = ui {
@@ -76,10 +78,6 @@ class ZxFormMain: Form() {
             keyLyt = keyboard.layout(this).lps(0, 10, 11, 4)
         }
         wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
-        if(ZxWnd.props[ZX_PROP_SHOW_KEY].toBoolean)
-            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal)
-        if(ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean)
-            wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL, delay = 100)
     }
 
     @SuppressLint("SetTextI18n")

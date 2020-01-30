@@ -24,14 +24,16 @@ class ZxKeyboard {
             tile?.apply {
                 val pos = ZX_PROP_VALUES_BUTTON + index * 2
                 val icon = ZxWnd.props[pos + 1].toInt()
-                if (icon == 0) {
-                    var text = ZxWnd.props[pos].toInt()
-                    if(text < 0) text += 256
-                    setText(names[text])
-                    tileIcon = -1
-                } else {
-                    tileIcon = icon
-                    text = ""
+                if(measuredWidth > 0) {
+                    if (icon == 0) {
+                        var text = ZxWnd.props[pos].toInt()
+                        if (text < 0) text += 256
+                        setText(names[text])
+                        tileIcon = -1
+                    } else {
+                        tileIcon = icon
+                        text = ""
+                    }
                 }
             }
         }

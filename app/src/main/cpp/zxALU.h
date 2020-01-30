@@ -10,7 +10,7 @@
 #include "zxTape.h"
 #include "zxSound.h"
 #include "zxGPU.h"
-#include "zxBetaDisk.h"
+#include "zxBeta128.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -212,7 +212,7 @@ protected:
     zxSound* snd;
 
     // дисковод
-    zxBetaDisk* disk;
+    zxBeta128* disk;
 
     // имя проги
     std::string name;

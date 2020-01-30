@@ -15,7 +15,7 @@ std::string FOLDER_FILES("");
 std::string FOLDER_CACHE("");
 
 // кэш адресов перехода и текущая позиция занесения в кэш
-int frequencies[3]      = { 48000, 44100, 22050 };
+int frequencies[3]      = { 44100, 22050, 11025 };
 uint8_t numBits[8]      = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
 static uint8_t sym[] =  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };

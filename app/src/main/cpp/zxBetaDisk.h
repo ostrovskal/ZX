@@ -48,20 +48,26 @@ public:
     }
     bool is_data_index_valid(int index) {
         if(index < 0) return false;
-        return index < (0x0080 << length_byte);
+        return index < (128 << length_byte);
     }
 private:
+    // номер дорожки
     uint8_t cyl_byte;
+    // номер головки
     uint8_t head_byte;
+    // номер сектора
     uint8_t sec_byte;
+    // длина сектора
     uint8_t length_byte;
+    // признак удаленного сектора
     uint8_t flags;
-    // sector data bytes
+    // данные сектора
     uint8_t data[1024];
 };
 
 class TrackData {
 public:
+    TrackData() : sec_pos(0) { }
     ~TrackData() { clear(); }
     int get_sec_count() { return sec_pos; }
     void clear() {
@@ -71,7 +77,7 @@ public:
     void add_sector(SectorData* sector) { sectors[sec_pos++] = sector; }
     SectorData* get_sector(int index) { if(index < sec_pos) return sectors[index]; return nullptr; }
 private:
-    SectorData** sectors;
+    SectorData* sectors[16];
     int sec_pos;
 };
 
@@ -113,7 +119,12 @@ public:
     // очистить массив цилиндров
     void clear() { for(int i = 0 ; i < cyl_pos; i++) delete [] cylinders[i]; cyl_pos = 0; }
     // добавить цилиндр
-    TrackData* add_cyl() { TrackData* cyl(nullptr); if(cyl_pos < cyl_count) cylinders[cyl_pos++] = cyl = new TrackData[head_count]; return cyl; }
+    TrackData* add_cyl() {
+        TrackData* cyl(nullptr);
+        cyl = new TrackData[head_count];
+        if(cyl_pos < cyl_count) cylinders[cyl_pos++] = cyl;
+        return cyl;
+    }
     // вернуть трек из цилиндра
     TrackData* get_track(int cyl_index, int head_index) {
         if(cyl_index < 0 || head_index < 0) return nullptr;
@@ -137,10 +148,7 @@ protected:
 
 class zxBetaDisk {
 public:
-    struct STATE {
-        STATE(bool _action) : action(_action) { }
-        bool action;
-    };
+    struct STATE { bool action; };
     struct DISK {
         DISK() : image(nullptr), track(0) { }
         ~DISK() { delete image; image = nullptr; }
@@ -150,24 +158,22 @@ public:
     zxBetaDisk();
     ~zxBetaDisk() { }
 
-    void insert(int drive_code, zxDiskImage* image);
-    void eject(int drive_code);
     void vg93_write(uint8_t address, uint8_t data);
-    void process_command(uint8_t cmd);
-    void store_sector_data(SectorData* sec_data, uint8_t* data);
-    void hardware_reset_controller();
     void reset();
     bool open(int active, const char* path, int type);
-    uint8_t* extract_sector_address(SectorData* sec_data);
     size_t build_GAP(int gap_num);
     size_t build_SYNC();
-    size_t extract_sector_data(SectorData* sec_data);
     uint8_t vg93_read(uint8_t address);
     uint8_t to_bit(int b) { return (uint8_t)(b != 0); }
     uint8_t get_status();
-    void schedule_data(bool read, uint8_t* data, size_t length, bool action);
     bool save(uint8_t active, const char *path, int type);
 protected:
+    void hardware_reset_controller();
+    void insert(int drive_code, zxDiskImage* image);
+    void eject(int drive_code);
+    void process_command(uint8_t cmd);
+    void schedule_data(bool read, uint8_t* data, size_t length, bool action);
+
     void read_sectors_begin();
     void read_sectors_end();
     void read_next_byte();
@@ -177,20 +183,29 @@ protected:
     void write_sectors_end();
     void write_next_byte();
     void write_track();
+
     void on_drive_ready(int drive_index) { if(drive_index == drive && int_on_ready) { intrq = 1; int_on_ready = false; } }
     void on_drive_unready(int drive_index) { if(drive_index == drive && int_on_unready) { intrq = 1; int_on_unready = false; } }
     void set_current_track(int value) { disks[drive].track = value; }
     void set_busy(int value) { busy = to_bit(value); if(value) hld = get_hld(); else idle_since = currentTimeMillis(); }
     bool ready() { return disks[drive].image != nullptr; }
-    bool index_pointer() { return ((currentTimeMillis() - last_index_pointer_time ) < index_pointer_length); }
+    bool index_pointer() {
+        auto is = ((currentTimeMillis() - last_index_pointer_time) < index_pointer_length);
+        if(int_on_index_pointer) intrq = 1;
+        last_index_pointer_time = currentTimeMillis();
+        return is;
+    }
     bool is_busy() { return to_bool(busy); }
     bool to_bool(int b) { return b != 0; }
     int get_current_track() { return disks[drive].track; }
     SectorData* get_sector_data();
     zxDiskImage* get_current_image() { return disks[drive].image; }
-    uint8_t get_hld() { if(is_busy()) return hld; return (uint8_t)(hld && (currentTimeMillis() - idle_since) < hld_extratime); }
-
+    uint8_t get_hld() {
+        if(is_busy()) return hld;
+        return (uint8_t)(hld && ((currentTimeMillis() - idle_since) < hld_extratime));
+    }
     DISK disks[4];
+    STATE _state;
     int drive;
     // 0 - нижняя головка, 1 - верхняя
     int head;
@@ -211,10 +226,11 @@ protected:
     // диска (если только не осуществлен аппаратный сброс). Эмуляция данного поведения.
     uint8_t busy, hld;
     u_long idle_since;
+    // ошибка позиционирования
     uint8_t seek_error;
-    uint8_t crc_error;
-    uint8_t rnf_error;
-    uint8_t lost_data_error;
+    // сектор не найден
+    uint8_t sec_error;
+    // ошибка записи
     uint8_t write_fault;
     // 0 - normal, 1 - deleted
     uint8_t record_type;
@@ -234,5 +250,7 @@ protected:
     STATE* read_state;
     STATE* write_state;
     bool int_on_ready, int_on_unready;
-    //bool int_on_index_pointer;
+    bool int_on_index_pointer;
+
+    void exec();
 };

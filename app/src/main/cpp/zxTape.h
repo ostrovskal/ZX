@@ -45,7 +45,7 @@ public:
     bool saveTAP(const char *path);
 
     // загрузить состояние
-    bool loadState(uint8_t *ptr);
+    uint8_t* loadState(uint8_t *ptr);
 
     // сохранить состояние
     uint8_t *saveState(uint8_t *ptr);
@@ -106,7 +106,7 @@ protected:
     size_t calcSizeBufferImpulse(bool isSkip);
 
     // общий загрузчик
-    bool load(uint8_t *ptr, bool unpacked);
+    uint8_t *load(uint8_t *ptr, bool unpacked);
 
     // общий сохранитель:))
     uint8_t *save(int root, uint8_t *buf, bool packed);

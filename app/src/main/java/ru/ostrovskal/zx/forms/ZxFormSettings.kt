@@ -163,7 +163,7 @@ class ZxFormSettings : Form() {
                 text(textsSnd[x + 2], style_text_settings).lps(x * 5, 9, 4, 3)
                 val sk = seek(idSeeks[x], if(x == 0) 0..16 else 0..28, true) {
                     setOnClickListener {
-                        ZxWnd.props[settingsSnd[x + 1]] = progress.toByte()
+                        ZxWnd.props[settingsSnd[x + 2]] = progress.toByte()
                     }
                 }.lps(x * 5, 12, 5, 4)
                 if(x == 0) volBp = sk else volAy = sk

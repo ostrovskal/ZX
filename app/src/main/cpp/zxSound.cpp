@@ -16,13 +16,9 @@ static const SLboolean pIDsRequired[1]  = { SL_BOOLEAN_TRUE };
 static SLresult slres;
 static bool isPlaying = false;
 
-zxSound::zxSound() : isInit(false), isEnabled(false), tsmax(0),
+zxSound::zxSound() : isInit(false), isEnabled(false), tsmax(0), sound_stereo_ay(-1),
                     engineObj(nullptr), mixObj(nullptr), playerObj(nullptr),
                     frequency(1), sndBuf(nullptr), sndPlayBuf(nullptr), psgap(250), beeperLastPos(0) {
-    sound_stereo = 1;
-    sound_stereo_beeper = 0;
-    sound_stereo_ay = 1;
-    sound_stereo_ay_abc = 0;
     sound_stereo_ay_narrow = 0;
 }
 
@@ -64,18 +60,21 @@ void zxSound::updateProps() {
     isBpEnabled     = isEnabled && opts[ZX_PROP_SND_BP];
     clockAY         = opts[ZX_PROP_TURBO_MODE] ? 1773400 * 2 : 1773400;
 
+    auto modeAy     = opts[ZX_PROP_SND_TYPE_AY];
     auto vAy        = opts[ZX_PROP_SND_VOLUME_AY] * 256;
     auto vBp        = opts[ZX_PROP_SND_VOLUME_BP];
     auto freq       = frequencies[opts[ZX_PROP_SND_FREQUENCY]];
-    auto change     = freq != frequency;
+    auto change     = freq != frequency || modeAy != sound_stereo_ay;
 
     frequency = freq;
+    sound_stereo_ay = modeAy;
     ampBeeper = (int)((2.5f * vBp) * 256);
     volBeeper = ampBeeper * 2;
     for (f = 0; f < 16; f++) toneLevels[f] = (uint32_t) ((levels[f] * vAy + 0x8000) / 0xffff);
     CLOCK_RESET(clockAY);
 
     if(change) {
+        if(player) (*player)->SetPlayState(player, SL_PLAYSTATE_STOPPED);
         beeperOldVal = beeperOrigVal = 0;
         beeperOldPos = -1;
         beeperPos = 0;
@@ -88,58 +87,47 @@ void zxSound::updateProps() {
             toneTick[f] = toneHigh[f] = 0;
             tonePeriod[f] = 1;
         }
-        countSamplers = 0;
 
         SAFE_A_DELETE(sndBuf);
         SAFE_A_DELETE(sndPlayBuf);
 
         sndBufSize  = frequency / 50;
-        sndBuf      = new short[sndBufSize * (sound_stereo + 1)];
-        sndPlayBuf  = new short[sndBufSize * (sound_stereo + 1)];
-        memset(sndBuf, 0, sndBufSize * (sound_stereo + 1) * 2);
+        sndBuf      = new short[sndBufSize * 2];
+        sndPlayBuf  = new short[sndBufSize * 2];
+        memset(sndBuf, 0, sndBufSize * sizeof(uint32_t));
+        if(bufferQueue) (*bufferQueue)->Clear(bufferQueue);
 
-        sound_stereo_ay = sound_stereo;
-        sound_stereo_beeper = sound_stereo;
-
-        if(sound_stereo_beeper) {
-            for(f = 0; f < STEREO_BUF_SIZE; f++) pstereobuf[f] = 0;
-            pstereopos = 0;
-            pstereobufsiz = (frequency * psgap) / 22000;
+        memset(pstereobuf, 0, sizeof(pstereobuf));
+        memset(rstereobuf_l, 0, sizeof(rstereobuf_l));
+        memset(rstereobuf_r, 0, sizeof(rstereobuf_r));
+        for(f = 0 ; f < STEREO_BUF_SIZE; f++) pstereobuf[f] = ampBeeper;
+        pstereopos = 0;
+        pstereobufsiz = (frequency * psgap) / 22050;
+        int pos = (sound_stereo_ay_narrow ? 3 : 6) * frequency / 8000;
+        rstereopos = 0;
+        rchan1pos = -pos;
+        if(sound_stereo_ay == 1) {
+            rchan2pos = 0; rchan3pos = pos;
+        } else if(sound_stereo_ay == 2) {
+            rchan2pos = pos; rchan3pos = 0;
         }
-        if(sound_stereo_ay) {
-            int pos = (sound_stereo_ay_narrow ? 3 : 6) * frequency / 8000;
-            for(f = 0; f < STEREO_BUF_SIZE; f++) rstereobuf_l[f] = rstereobuf_r[f] = 0;
-            rstereopos = 0;
-            // the actual ACB/ABC bit :-)
-            rchan1pos = -pos;
-            if(sound_stereo_ay_abc) rchan2pos = 0, rchan3pos = pos; else rchan2pos = pos, rchan3pos = 0;
-        }
-
-        makePlayer(sound_stereo != 0);
+        makePlayer(true);
     }
 }
 
-short* zxSound::writeBufBeeper(short* ptr, int val) {
-    if(sound_stereo_beeper) {
-        write_buf_pstereo(ptr, val);
-        ptr += 2;
-    } else {
-        *ptr++ = (short)val;
-        if(sound_stereo) *ptr++ = (short)val;
-    }
-    return ptr;
-}
-
-void zxSound::write_buf_pstereo(signed short *out, int c) {
+short* zxSound::write_buf_pstereo(signed short *out, int c) {
+//    *out++ = (short)c;
+//    *out++ = (short)c;
     int bl = (c - pstereobuf[pstereopos]) / 2;
     int br = (c + pstereobuf[pstereopos]) / 2;
     if(bl < -ampBeeper) bl = -ampBeeper;
     if(br < -ampBeeper) br = -ampBeeper;
     if(bl > ampBeeper)  bl = ampBeeper;
     if(br > ampBeeper)  br = ampBeeper;
-    out[0] = (short)bl; out[1] = (short)br;
+    *out++ = (short)bl; *out++ = (short)br;
     pstereobuf[pstereopos++] = c;
     if(pstereopos >= pstereobufsiz) pstereopos = 0;
+    return out;
 }
 
 void zxSound::reset() {
@@ -147,12 +135,9 @@ void zxSound::reset() {
 
     countSamplers = 0;
 
-    if(bufferQueue) (*bufferQueue)->Clear(bufferQueue);
     isPlaying = false;
 
-    //memset(sndBuf, 0, (size_t)sndBufSize * (sound_stereo + 1) * 2);
-
-    for(f = 0; f < 16; f++) ayWrite((uint8_t)f, 0);
+    for(f = 0; f < 16; f++) ayWrite((uint8_t)f, 0, 0);
     for(f = 0; f < 3; f++) toneHigh[f] = 0;
 
     toneSubCycles = envSubCycles = 0;
@@ -161,11 +146,11 @@ void zxSound::reset() {
     CLOCK_RESET(clockAY);
 }
 
-void zxSound::ayWrite(uint8_t reg, uint8_t val) {
+void zxSound::ayWrite(uint8_t reg, uint8_t val, uint32_t tick) {
     if(bufferQueue && isAyEnabled) {
         if (reg < 16) {
             if (countSamplers < AY_SAMPLERS) {
-                samplers[countSamplers].tstates = zxALU::_TICK;
+                samplers[countSamplers].tstates = tick;
                 samplers[countSamplers].reg = reg;
                 samplers[countSamplers].val = val;
                 countSamplers++;
@@ -281,29 +266,19 @@ void zxSound::apply() {
             chans[chan] = channel;
             channelSum += channel;
         }
-        if(!sound_stereo) {
-            // моно режим
+        if(sound_stereo_ay == 0) {
             (*ptr++) += channelSum;
+            (*ptr++) += channelSum;
+        } else {
+            GEN_STEREO(rchan1pos, chans[0]);
+            GEN_STEREO(rchan2pos, chans[1]);
+            GEN_STEREO(rchan3pos, chans[2]);
+            (*ptr++) += rstereobuf_l[rstereopos];
+            (*ptr++) += rstereobuf_r[rstereopos];
+            rstereobuf_l[rstereopos] = rstereobuf_r[rstereopos] = 0;
+            rstereopos++;
+            if(rstereopos >= STEREO_BUF_SIZE) rstereopos = 0;
         }
-        else {
-            if(!sound_stereo_ay) {
-                (*ptr++) += channelSum;
-                (*ptr++) += channelSum;
-            }
-            else {
-                GEN_STEREO(rchan1pos, chans[0]);
-                GEN_STEREO(rchan2pos, chans[1]);
-                GEN_STEREO(rchan3pos, chans[2]);
-                (*ptr++) += rstereobuf_l[rstereopos];
-                (*ptr++) += rstereobuf_r[rstereopos];
-                rstereobuf_l[rstereopos] = rstereobuf_r[rstereopos] = 0;
-                rstereopos++;
-                if(rstereopos >= STEREO_BUF_SIZE) rstereopos = 0;
-            }
-        }
-
-        (*ptr++) += channelSum;
-
         noiseTick += noise_count;
         while(noiseTick >= noisePeriod) {
             noiseTick -= noisePeriod;
@@ -323,7 +298,6 @@ void zxSound::beeperWrite(uint8_t on) {
 
         auto val = (on ? -ampBeeper : ampBeeper);
         if(val == beeperOrigVal) return;
-
         int newPos = (tstates * sndBufSize) / tsmax;
         int subPos = (int) ((((long long) tstates) * sndBufSize * volBeeper) / tsmax - volBeeper * newPos);
 
@@ -332,11 +306,11 @@ void zxSound::beeperWrite(uint8_t on) {
         } else beeperLastPos = (on ? volBeeper - subPos : subPos);
         int subVal = ampBeeper - beeperLastPos;
         if(newPos >= 0) {
-            auto ptr = sndBuf + beeperPos * (sound_stereo + 1);
-            for(f = beeperPos; f < newPos && f < sndBufSize; f++) ptr = writeBufBeeper(ptr, beeperOldVal);
+            auto ptr = sndBuf + beeperPos * 2;
+            for(f = beeperPos; f < newPos && f < sndBufSize; f++) ptr = write_buf_pstereo(ptr, beeperOldVal);
             if(newPos < sndBufSize) {
-                ptr = sndBuf + newPos * (sound_stereo + 1);
-                writeBufBeeper(ptr, subVal);
+                ptr = sndBuf + newPos * 2;
+                write_buf_pstereo(ptr, subVal);
             }
         }
         beeperOldPos = newPos;
@@ -345,33 +319,35 @@ void zxSound::beeperWrite(uint8_t on) {
     }
 }
 
+short tmpBuf[4096];
 
 int zxSound::update() {
     static int silent_level = -1;
     signed short *ptr;
-    int f, silent(1), chk;
+    int f, silent(1);
 
     if(bufferQueue && isEnabled && opts[ZX_PROP_EXECUTE]) {
-        int fulllen = sndBufSize * (sound_stereo + 1);
-        ptr = sndBuf + beeperPos * (sound_stereo + 1);
-        for (f = beeperPos; f < sndBufSize; f++) ptr = writeBufBeeper(ptr, beeperOldVal);
+        int fulllen = sndBufSize * 2;
+        ptr = sndBuf + beeperPos * 2;
+        for (f = beeperPos; f < sndBufSize; f++) ptr = write_buf_pstereo(ptr, beeperOldVal);
 
         apply();
 
         ptr = sndBuf;
-        chk = *ptr++;
-        for (f = 1; f < fulllen; f++) {
+        auto chk = *ptr;
+        for (f = 1; f < sndBufSize; f++) {
             if (*ptr++ != chk) { silent = 0; break; }
+            ptr++;
         }
         if (chk != silent_level) silent = 0;
         silent_level = sndBuf[fulllen - 1];
 
         if(!silent) {
-            //while(isPlaying) { }
+            while (isPlaying) {}
             isPlaying = true;
             memcpy(sndPlayBuf, sndBuf, fulllen * sizeof(short));
             slres = (*bufferQueue)->Enqueue(bufferQueue, sndPlayBuf, (uint32_t) fulllen * sizeof(short));
-            if(slres != SL_RESULT_SUCCESS) isPlaying = false;
+            if (slres != SL_RESULT_SUCCESS) isPlaying = false;
         }
     }
     beeperOldPos = -1;
@@ -397,15 +373,14 @@ void zxSound::initDriver() {
 }
 
 void zxSound::makePlayer(bool stereo) {
-    static uint32_t freqs[3] = { SL_SAMPLINGRATE_48, SL_SAMPLINGRATE_44_1, SL_SAMPLINGRATE_22_05 };
+    static uint32_t freqs[3] = { SL_SAMPLINGRATE_44_1, SL_SAMPLINGRATE_22_05, SL_SAMPLINGRATE_11_025 };
 
     if (engine) {
-        if (playerObj) {
-            (*playerObj)->Destroy(playerObj);
-            playerObj = nullptr;
-        }
+        if (playerObj) (*playerObj)->Destroy(playerObj);
+        playerObj = nullptr;
+        bufferQueue = nullptr;
         // Данные, которые необходимо передать в CreateAudioPlayer() для создания буферизованного плеера
-        SLDataLocator_AndroidSimpleBufferQueue locatorBufferQueue = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2 };
+        SLDataLocator_AndroidSimpleBufferQueue locatorBufferQueue = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 1 };
         SLDataLocator_OutputMix locatorOutMix = { SL_DATALOCATOR_OUTPUTMIX, mixObj };
         SLDataFormat_PCM formatPCMMono = { SL_DATAFORMAT_PCM, 1, freqs[opts[ZX_PROP_SND_FREQUENCY]], SL_PCMSAMPLEFORMAT_FIXED_16,
                                       SL_PCMSAMPLEFORMAT_FIXED_16, SL_SPEAKER_FRONT_CENTER, SL_BYTEORDER_LITTLEENDIAN };
@@ -428,5 +403,6 @@ void zxSound::makePlayer(bool stereo) {
         SL_SUCCESS((*bufferQueue)->RegisterCallback(bufferQueue, callback_ay8912, this), "Error RegisterCallback (%X)");
 
         SL_SUCCESS((*player)->SetPlayState(player, SL_PLAYSTATE_PLAYING), "Error SetPlayState(%X)");
+        isPlaying = false;
     }
 }

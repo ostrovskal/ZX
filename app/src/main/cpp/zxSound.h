@@ -29,7 +29,7 @@ public:
     };
 
     int update();
-    void ayWrite(uint8_t reg, uint8_t value);
+    void ayWrite(uint8_t reg, uint8_t value, uint32_t tick);
     void reset();
     void beeperWrite(uint8_t on);
     void updateProps();
@@ -37,8 +37,7 @@ protected:
     void initDriver();
     void apply();
     void makePlayer(bool stereo);
-    short* writeBufBeeper(short* ptr, int val);
-    void write_buf_pstereo(signed short *out, int c);
+    short* write_buf_pstereo(signed short *out, int c);
 
     // признак инициализации драйвер
     bool isInit;
@@ -52,13 +51,8 @@ protected:
     // признак активного бипера
     bool isBpEnabled;
 
-    // стерео режим
-    int sound_stereo;
-    // псевдо стерео для бипера
-    int sound_stereo_beeper;
-    int sound_stereo_ay;
     // режим стерео для AY(ABC=1, ACB =0)
-    int sound_stereo_ay_abc;
+    int sound_stereo_ay;
     int sound_stereo_ay_narrow;
 
     // циклов на кадр
@@ -76,7 +70,6 @@ protected:
     // текущее количество сэмплов
     int countSamplers;
 
-    int psgap;
 
     // размер звукового буфера
     int sndBufSize;
@@ -93,7 +86,7 @@ protected:
     // стерео буфер
     int pstereobuf[STEREO_BUF_SIZE];
     // позиция в буфере и размер стерео буфера
-    int pstereobufsiz, pstereopos;
+    int pstereobufsiz, pstereopos, psgap;
 
     // левый/правый буфер для стерео режима
     int rstereobuf_l[STEREO_BUF_SIZE], rstereobuf_r[STEREO_BUF_SIZE];

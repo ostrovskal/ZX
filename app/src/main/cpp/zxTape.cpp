@@ -55,7 +55,7 @@ void zxTape::reset() {
     sizeBufImpulse = 0;
 }
 
-bool zxTape::load(uint8_t* ptr, bool unpacked) {
+uint8_t* zxTape::load(uint8_t* ptr, bool unpacked) {
     reset();
 
     while(true) {
@@ -66,7 +66,7 @@ bool zxTape::load(uint8_t* ptr, bool unpacked) {
         if(unpacked) {
             len	= *(uint16_t*)ptr; ptr += sizeof(uint16_t);
             if(!unpackBlock(ptr, TMP_BUF, TMP_BUF + size, len, true))
-                return false;
+                return nullptr;
             data = TMP_BUF;
         }
 /*
@@ -81,7 +81,7 @@ bool zxTape::load(uint8_t* ptr, bool unpacked) {
     if(unpacked) {
 
     }
-    return true;
+    return ptr;
 }
 
 uint8_t* zxTape::save(int root, uint8_t* buf, bool packed) {
@@ -107,7 +107,7 @@ uint8_t* zxTape::save(int root, uint8_t* buf, bool packed) {
     return buf;
 }
 
-bool zxTape::loadState(uint8_t *ptr) {
+uint8_t *zxTape::loadState(uint8_t *ptr) {
     return load(ptr, true);
 }
 
@@ -118,7 +118,7 @@ uint8_t *zxTape::saveState(uint8_t *ptr) {
 bool zxTape::openTAP(const char *path) {
     auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[262144], true);
     if(!ptr) return false;
-    return load(ptr, false);
+    return load(ptr, false) != nullptr;
 }
 
 bool zxTape::saveTAP(const char *path) {
