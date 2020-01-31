@@ -94,12 +94,8 @@ public:
     static uint8_t* saveToSCL(zxDiskImage* image, uint32_t* length);
     // сохранить в формате FDI
     static uint8_t* saveToFDI(zxDiskImage* image, uint32_t* length);
-    // восстановить состояние
-    //static zxDiskImage* openState(uint8_t* ptr);
-    // сохранить состояние
-    //static uint8_t* saveState(uint8_t* ptr);
-    // вернуть признак защиты от записи
-    bool is_write_protected() { return write; }
+    // признак защиты от записи
+    bool is_protected() { return write; }
     // вернуть количество цилиндров
     int get_cyl_count() { return ntrk; }
     // вернуть количество головок
@@ -143,6 +139,10 @@ public:
     void reset();
     bool open(int active, const char* path, int type);
     bool save(uint8_t active, const char *path, int type);
+    // восстановить состояние
+    uint8_t * openState(uint8_t* ptr);
+    // сохранить состояние
+    uint8_t* saveState(uint8_t* ptr);
     uint8_t vg93_read(uint8_t address);
 protected:
     size_t buildGAP(int gap);
@@ -155,7 +155,6 @@ protected:
     void read_sectors();
     void read_next_byte();
     void read_track();
-    void read_address();
     void write_sectors();
     void write_next_byte();
     void step(int cmd);
@@ -167,7 +166,7 @@ protected:
     void on_drive_ready(int drive_index) { if(drive_index == drive && int_on_ready) { intrq = 1; int_on_ready = false; } }
     void on_drive_unready(int drive_index) { if(drive_index == drive && int_on_unready) { intrq = 1; int_on_unready = false; } }
     void set_current_track(int value) { disks[drive].track = value; }
-    bool ready() { return disks[drive].image != nullptr; }
+    bool ready() { return image != nullptr; }
     void set_busy(int value);
     bool index_pointer();
     int  current_track() { return disks[drive].track; }
@@ -177,7 +176,6 @@ protected:
     uint8_t to_bit(int b) { return (uint8_t)(b != 0); }
     uint8_t get_status();
     zxDiskSector* find_sector();
-    zxDiskImage* current_image() { return disks[drive].image; }
     // массив дисков
     DISK disks[4];
     // текущий диск
