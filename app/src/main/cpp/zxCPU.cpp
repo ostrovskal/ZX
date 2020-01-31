@@ -43,6 +43,7 @@ fnOps funcs[] = {
 когда x и y имеют противоположные знаки, а знак результата противоположен знаку x (или, что эквивалентно, такой же как у у )
 */
 
+// вычисление арифметического переполнения
 inline uint8_t overflow(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
     static uint8_t tbl[] = { 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 4, 4, 0, 0, 0 };
     return tbl[((x >> 5) & 4) | (((y + c) >> 6) & 2) | (z >> 7) | (n << 2)];
@@ -54,6 +55,7 @@ inline uint8_t hcarry(uint8_t x, uint8_t y, uint8_t z, uint8_t c, uint8_t n) {
     return tbl[((x & 0x8) >> 1) | (((y + c) & 0x8) >> 2) | ((z & 0x8) >> 3) | (n << 2)];
 }
 
+// вычисление таблицы паритета
 static void makeTblParity() {
     for(int a = 0; a < 256; a++) {
         uint8_t val = (uint8_t)a;
@@ -129,6 +131,7 @@ uint8_t * zxCPU::initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, u
         case _C16: v16 = rm16PC(); break;
         // без операнда
         case _N_: break;
+        // (HL)/(IX/IY +- d)
         case _RPHL: {
             uint8_t offs(0);
             if (prefix) { ticks += 8; offs = rm8PC(); }
@@ -152,6 +155,7 @@ uint8_t * zxCPU::initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, u
     return nullptr;
 }
 
+// выполнение инструкции процессора
 int zxCPU::step() {
     if(checkSTATE(ZX_HALT)) return 4;
 
@@ -163,6 +167,7 @@ int zxCPU::step() {
     execFlags = 0;
     setFlags = 0;
 
+    // пропустить префикс(ы)
     while(true) {
         codeOps = rm8PC();
         incrementR();
@@ -189,6 +194,7 @@ int zxCPU::step() {
 
     (this->*funcs[ops])();
 
+    // установить флаги
     if(mskFlags) {
         auto flg = mskFlags & ~execFlags;
         if(flg & FS)  setFlags |= (res & 0x80);
@@ -227,8 +233,8 @@ void zxCPU::opsBlock() {
     uint8_t fpv;
     switch(ops) {
         // PV=1 если после декремента BC<>0
-        // F3=бит 3 операции переданный байт + A
-        // F5=бит 1 операции переданный байт + A
+        // FX=бит 3 операции переданный байт + A
+        // FY=бит 1 операции переданный байт + A
         case O_LDI:
             // --*0**0-
             wm8(*_DE, v8Src); *_DE += dir; *_HL += dir; *_BC -= 1;
@@ -239,11 +245,10 @@ void zxCPU::opsBlock() {
             if(rep && fpv) { *_PC -= 2; ticks = 21; }
             break;
         // PV=1 если после декремента BC<>0
-        // S,Z,HC из A-[HL]
-        // F3=бит 3 операции A-[HL]-HC, где HC взят из F после предыдущей операции
-        // F5=бит 1 операции A-[HL]-HC
+        // S,Z,HC из A - [HL]
+        // FX=бит 3 операции A - [HL] - HC, где HC взят из F после предыдущей операции
+        // FY=бит 1 операции A - [HL] - HC
         case O_CPI:
-//            LOG_INFO("O_CPI", 0);
             // SZ*H**1-
             res = v8Dst - v8Src; *_HL += dir; *_BC -= 1;
             execFlags = F5 | F3 | FPV;
@@ -444,9 +449,6 @@ void zxCPU::opsSpecial() {
 
 void zxCPU::opsPort() {
     auto A8A15 = (regSrc == _RC ? *_B : v8Dst);
-    if(codeOps == 113 || codeOps == 112) {
-        LOG_INFO("113 || 112 PC %i", zxALU::PC);
-    }
     if(ops == O_IN) {
         // IN DST, NA/IN DST, CB
         *dst = res = ALU->readPort(v8Src, A8A15);

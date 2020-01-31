@@ -23,7 +23,7 @@
 // SYNC			0x00 * 6  (exact)	0x00 * 12 (exact)
 
 // 0000 HVXX - восстановление
-//          переход на нулевую дорожку
+//     переход на нулевую дорожку
 // позиционирование:
 // I=1 дорожка меняет свое значение
 // H - определяет положение магнитной головки дисковода во время выполнения команды
@@ -58,26 +58,9 @@
 #include "zxBetaDisk.h"
 
 // текущая дорожка
-static TrackData* track_data;
+static zxDiskTrack* track_data;
 // текущий сектор
-static SectorData* sec_data;
-
-// признак вычисленной CRC
-static bool crc_just_stored;
-// признак адресной зоны сектора
-static bool sector_address_zone;
-// признак зоны данных сектора
-static bool sector_data_zone;
-// длина сектора в байтах
-static int sec_length;
-// длина трека
-static int max_bytes;
-// текущее количество отформатированных треков
-static int format_counter;
-
-static uint8_t cyl_byte;
-static uint8_t head_byte;
-static uint8_t sec_byte;
+static zxDiskSector* sec_data;
 
 size_t zxBetaDisk::buildGAP(int num) {
     static size_t GAP[] = { 0, 0, 0, 16, 0xFF, 0x4E, 11, 0xFF, 0x4E, 12, 0xFF, 0x4E, 16, 0xFF, 0x4E, 6, 0, 0 };
@@ -95,44 +78,33 @@ void zxBetaDisk::crc_add(uint8_t v8) {
 
 void zxBetaDisk::set_busy(int value) {
     busy = to_bit(value);
-    if(value) hld = get_hld(); else idle_since = currentTimeMillis();
+    if(value) hld = get_hld(); else cmd_time = currentTimeMillis();
 }
 
 bool zxBetaDisk::index_pointer() {
     static u_long time = 0;
     auto is = ((currentTimeMillis() - time) < 10);
-    if(int_on_index_pointer) intrq = 1;
+    if(int_on_index_pointer) intrq = sINTRQ;
     time = currentTimeMillis();
     return is;
 }
 
 uint8_t zxBetaDisk::get_hld() {
-    if(is_busy()) return hld;
-    return (uint8_t)(hld && ((currentTimeMillis() - idle_since) < HLD_EXTRA_TIME));
+    if(busy) return hld;
+    return (uint8_t)(hld && ((currentTimeMillis() - cmd_time) < HLD_EXTRA_TIME));
 }
-
-static char buf_str[16384];
 
 void zxBetaDisk::read_next_byte() {
     if(state_index < state_length) {
-        opts[TRDOS_DAT] = (states & ST_DATA) ? TMP_BUF[ZX_BETADISK_INDEX + state_index] : sec_data->get(state_index); drq = 1;
+        opts[TRDOS_DAT] = (states & ST_DATA) ? TMP_BUF[ZX_BETADISK_INDEX + state_index] : sec_data->get(state_index); drq = sDRQ;
         state_index++;
     } else {
-/*
-        auto s = &buf_str[0];
-        for(int i = 0 ; i < state_length; i++) {
-            int d = TMP_BUF[i];
-            auto str = ssh_ntos(&d, RADIX_DEC, nullptr);
-            ssh_strcpy(&s, str);
-            auto v = (uint8_t)((d < 32 || d > 127) ? '.' : d);
-            *s++ = '('; *s++ = v; *s++ = ')';
-            *s++ = ' ';
+        if(state_mult) {
+            opts[TRDOS_SEC]++;
+            LOG_INFO("state_mult s:%i", opts[TRDOS_SEC]);
+            read_sectors();
         }
-        *s = 0;
-        LOG_INFO("read sector t:%i s:%i h:%i -- %s", sec_data->ntrk, sec_data->nsec, sec_data->nhead, buf_str);
-*/
-        if(state_mult) { opts[TRDOS_SEC]++; read_sectors(); }
-        else { states = ST_NONE; intrq = 1; drq = 0; set_busy(false); }
+        else { states = ST_NONE; intrq = sINTRQ; drq = 0; set_busy(false); }
     }
 }
 
@@ -140,20 +112,17 @@ void zxBetaDisk::write_next_byte() {
     if(states & ST_FORMAT) format();
     else {
         sec_data->put(state_index++, opts[TRDOS_DAT]);
-        if(state_index < state_length) drq = 1;
-        else {
-            if(state_mult) { opts[TRDOS_SEC]++; write_sectors(); }
-            else { states = ST_NONE; drq = 0; intrq = 1; set_busy(false); }
-        }
+        if(state_index < state_length) drq = sDRQ;
+        else if(state_mult) { opts[TRDOS_SEC]++; write_sectors(); }
+        else { states = ST_NONE; drq = 0; intrq = sINTRQ; set_busy(false); }
     }
 }
 
-SectorData* zxBetaDisk::get_sector_data() {
+zxDiskSector* zxBetaDisk::find_sector() {
     if(!ready()) return nullptr;
-
-    auto image = get_current_image();
-    auto track_data = image->get_track(get_current_track(), head);
-    SectorData* sec_data = nullptr;
+    auto image = current_image();
+    auto track_data = image->get_track(current_track(), head);
+    zxDiskSector* sec_data = nullptr;
     if(track_data) {
         auto sec_count = track_data->get_sec_count();
         for(int sec_index = 0; sec_index < sec_count; sec_index++) {
@@ -168,16 +137,17 @@ SectorData* zxBetaDisk::get_sector_data() {
 }
 
 zxBetaDisk::zxBetaDisk() {
-    drive = head = trec = addr_sec_index = 0;
+    drive = head = trec = 0;
+    addr_sec_index = 0;
     lcmd = VG_NONE;
-    idle_since = currentTimeMillis();
-    hardware_reset_controller();
+    cmd_time = currentTimeMillis();
+    reset_controller();
 }
 
-void zxBetaDisk::hardware_reset_controller() {
+void zxBetaDisk::reset_controller() {
     int_on_ready = int_on_unready = int_on_index_pointer = false;
     intrq = drq = busy = hld = 0;
-    dirc = eseek = esector = ewrite = 0;
+    dirc = eseek = esector = ewrite = elost = trec = 0;
     opts[TRDOS_SEC] = 1; opts[TRDOS_TRK] = 0; opts[TRDOS_CMD] = 0x03; opts[TRDOS_DAT] = 0;
     states = ST_NONE;
     process_command(0x03);
@@ -207,17 +177,17 @@ uint8_t zxBetaDisk::get_status() {
     // 0 - занято
     // 7 - готовность дисковода
     auto rdy    = (uint8_t)ready();
-    auto pwrite = ((uint8_t)(rdy && get_current_image()->is_write_protected()) << 6);
-    auto reqd   = drq << 1;
-    int status = 0;
+    auto pwrite = ((uint8_t)(rdy && current_image()->is_write_protected()) << 6);
+    auto reqd   = drq >> 5;
+    int status  = 0;
     switch(lcmd) {
         case VG_INTERRUPT:
         case VG_RESTORE: case VG_SEEK:
         case VG_STEP: case VG_STEP0: case VG_STEP1:
-            status = pwrite | ((get_hld() & hlt) << 5) | eseek | ((uint8_t)(get_current_track() == 0) << 2) | ((uint8_t)(rdy && index_pointer()) << 1);
+            status = pwrite | ((get_hld() & hlt) << 5) | eseek | ((uint8_t)(current_track() == 0) << 2) | ((uint8_t)(rdy && index_pointer()) << 1);
             break;
         case VG_RADDRESS:   status = esector | elost | reqd; break;
-        case VG_RSECTOR:    status = trec | esector | elost | reqd; break;
+        case VG_RSECTOR:    status = trec | esector | elost | state_mark | reqd; break;
         case VG_RTRACK:     status = elost | reqd; break;
         case VG_WSECTOR:    status = pwrite | ewrite | esector | elost | reqd; break;
         case VG_WTRACK:     status = pwrite | ewrite | elost | reqd; break;
@@ -253,17 +223,17 @@ void zxBetaDisk::process_command(uint8_t cmd) {
     // проверка не команду прерывания
     if((cmd & 0xf0) == 0xd0) {
         // прерывание команды
-        if(is_busy()) states = ST_NONE; else { eseek = 0; lcmd = VG_INTERRUPT; }
+        if(busy) states = ST_NONE; else { eseek = 0; lcmd = VG_INTERRUPT; }
         set_busy(false);
         int_on_ready        = (cmd & 0x01) != 0;
         int_on_unready      = (cmd & 0x02) != 0;
         int_on_index_pointer= (cmd & 0x04) != 0;
-        if(cmd & 0x08) intrq = 1;
+        if(cmd & 0x08) intrq = sINTRQ;
         LOG_INFO("INTERRUPT cmd:%i", cmd & 15);
         return;
     }
     // другие команды не принимаются, если контроллер занят
-    if(is_busy()) return;
+    if(busy) return;
     int_on_ready = int_on_unready = int_on_index_pointer = false;
     set_busy(true);
     drq = intrq = eseek = esector = ewrite = elost = 0;
@@ -274,7 +244,7 @@ void zxBetaDisk::process_command(uint8_t cmd) {
             dirc = opts[TRDOS_TRK] = opts[TRDOS_DAT] = 0;
             addr_sec_index = 0;
             set_current_track(0);
-            intrq = 1;
+            intrq = sINTRQ;
             set_busy(false);
             break;
         case 0x10:
@@ -286,16 +256,16 @@ void zxBetaDisk::process_command(uint8_t cmd) {
             set_current_track(opts[TRDOS_TRK]);
             addr_sec_index = 0;
             if(cmd & 0x04) {
-                eseek = 1;
+                eseek = sESEEK;
                 // проверяем соответствие идентификаторов на диске и в регистре дорожки
                 if (ready()) {
                     hld = 1;
-                    auto track_data = get_current_image()->get_track(get_current_track(), head);
+                    auto track_data = current_image()->get_track(current_track(), head);
                     auto sec_data = track_data ? track_data->get_sector(0) : nullptr;
-                    if (sec_data) eseek = (uint8_t) (sec_data->ntrk != opts[TRDOS_TRK]);
+                    if(sec_data) eseek = (uint8_t)((sec_data->ntrk != opts[TRDOS_TRK]) << 4);
                 }
             }
-            intrq = 1;
+            intrq = sINTRQ;
             set_busy(false);
             break;
         case 0x40: case 0x50:
@@ -309,24 +279,24 @@ void zxBetaDisk::process_command(uint8_t cmd) {
             break;
         case 0x80: case 0x90:
             lcmd = VG_RSECTOR;
-            state_mult  = to_bool(opts[TRDOS_CMD] & 0x10);
-            state_head  = to_bit( opts[TRDOS_CMD] & 0x08);
-            state_check = to_bool(opts[TRDOS_CMD] & 0x02);
-            state_mark  = to_bool(opts[TRDOS_CMD] & 0x01);
+            state_mult  = to_bit(opts[TRDOS_CMD] & 0x10);
+            state_head  = to_bit(opts[TRDOS_CMD] & 0x08);
+            state_check = to_bit(opts[TRDOS_CMD] & 0x02);
+            state_mark  = (to_bit(opts[TRDOS_CMD] & 0x01) << 5);
             rdy = ready(); set_busy(rdy);
-            if(rdy) { hld = 1; read_sectors(); } else intrq = 1;
+            if(rdy) { hld = 1; read_sectors(); } else intrq = sINTRQ;
             LOG_INFO("RSECTOR mult:%i expext:%i check:%i mark:%i", state_mult, state_head, state_check, state_mark);
             break;
         case 0xa0: case 0xb0:
             lcmd = VG_WSECTOR;
-            state_mult  = to_bool(opts[TRDOS_CMD] & 0x10);
+            state_mult  = to_bit(opts[TRDOS_CMD] & 0x10);
             state_head  = to_bit( opts[TRDOS_CMD] & 0x08);
-            state_check = to_bool(opts[TRDOS_CMD] & 0x02);
-            state_mark  = to_bool(opts[TRDOS_CMD] & 0x01);
-            rdy = ready() && get_current_image()->is_write_protected();
+            state_check = to_bit(opts[TRDOS_CMD] & 0x02);
+            state_mark  = to_bit(opts[TRDOS_CMD] & 0x01);
+            rdy = ready() && !current_image()->is_write_protected();
             set_busy(rdy);
-            if(rdy) { hld = 1; write_sectors(); } else intrq = 1;
-            LOG_INFO("WSECTOR mult:%i expext:%i check:%i mark:%i", state_mult, state_head, state_check, state_mark);
+            if(rdy) { hld = 1; write_sectors(); } else intrq = sINTRQ;
+            LOG_INFO("WSECTOR rdy:%i mult:%i expext:%i check:%i mark:%i", rdy, state_mult, state_head, state_check, state_mark);
             break;
         case 0xc0:
             lcmd = VG_RADDRESS;
@@ -338,21 +308,21 @@ void zxBetaDisk::process_command(uint8_t cmd) {
             break;
         case 0xf0: {
             lcmd = VG_WTRACK;
-            auto image = get_current_image();
+            auto image = current_image();
             rdy = ready() && image->is_write_protected();
             set_busy(rdy);
             if (rdy) {
                 hld = 1;
-                track_data = image->get_track(get_current_track(), head);
-                format_counter = 0;
-                max_bytes = mfm ? 6250 : 3125;
+                track_data = image->get_track(current_track(), head);
+                fmt_counter = 0;
+                fmt_trk_length = mfm ? 6250 : 3125;
+                fmt_crc = fmt_sec_addr = fmt_sec_data = false;
+                fmt_sec_length = 0;
+                fmt_trk = fmt_head = fmt_sec = 0;
                 crc_init();
-                crc_just_stored = sector_address_zone = sector_data_zone = false;
                 set_states(ST_FORMAT, 0);
-                sec_length = 0;
-                cyl_byte = head_byte = sec_byte = 0;
-            } else { intrq = 1; states = ST_NONE; }
-            LOG_INFO("WTRACK", 0);
+            } else { intrq = sINTRQ; states = ST_NONE; }
+            LOG_INFO("FORMAT", 0);
             break;
         }
     }
@@ -362,7 +332,7 @@ void zxBetaDisk::step(int cmd) {
     lcmd = (uint8_t)cmd;
     if(cmd == VG_STEP1) dirc = 1;
     else if(cmd == VG_STEP0) dirc = 0;
-    auto phys_track = get_current_track();
+    auto phys_track = current_track();
     phys_track = (dirc ? (phys_track + 1) : (phys_track - 1));
     if(phys_track < 0) phys_track = 0;
     if(phys_track > 255) phys_track = 255;
@@ -371,37 +341,37 @@ void zxBetaDisk::step(int cmd) {
     if((opts[TRDOS_CMD] & 0x10)) set_current_track(opts[TRDOS_TRK]);
     addr_sec_index = 0;
     if(opts[TRDOS_CMD] & 0x04) {
-        eseek = 1;
+        eseek = sESEEK;
         // проверяем соответствие идентификаторов на диске и в регистре дорожки
         if(ready()) {
             hld = 1;
-            auto track_data = get_current_image()->get_track(get_current_track(), head);
+            auto track_data = current_image()->get_track(current_track(), head);
             auto sec_data = track_data ? track_data->get_sector(0) : nullptr;
-            if(sec_data) eseek = (uint8_t)(sec_data->ntrk != opts[TRDOS_TRK]);
+            if(sec_data) eseek = (uint8_t) ((sec_data->ntrk != opts[TRDOS_TRK]) << 4);
         }
     }
     LOG_INFO("STEP dirc:%i trk:%i hld:%i eseek:%i", dirc, opts[TRDOS_TRK], hld, eseek);
-    intrq = 1;
+    intrq = sINTRQ;
     set_busy(false);
 }
 
 void zxBetaDisk::read_sectors() {
-    //auto track_data = get_current_image()->get_track(get_current_track(), head);
-    sec_data = get_sector_data();
+    sec_data = find_sector();
+    LOG_INFO("s:%i sd:%X", opts[TRDOS_SEC], sec_data);
     if(sec_data) {
         trec = (uint8_t)(sec_data->is_deleted() << 6);
         set_states(ST_READ, sec_data->length());
         read_next_byte();
-    } else { states = ST_NONE; esector = sESECTOR; intrq = 1; drq = 0; set_busy(false); }
+    } else { states = ST_NONE; esector = sESECTOR; intrq = sINTRQ; drq = 0; set_busy(false); }
 }
 
 void zxBetaDisk::write_sectors() {
-    sec_data = get_sector_data();
+    sec_data = find_sector();
     if(sec_data) {
         sec_data->is_deleted(state_mark);
         set_states(ST_WRITE, sec_data->length());
-        drq = 1;
-    } else { states = ST_NONE; esector = sESECTOR; intrq = 1; drq = 0; set_busy(false); }
+        drq = sDRQ;
+    } else { states = ST_NONE; esector = sESECTOR; intrq = sINTRQ; drq = 0; set_busy(false); }
 }
 
 void zxBetaDisk::read_address() {
@@ -409,8 +379,8 @@ void zxBetaDisk::read_address() {
     states = ST_NONE;
     set_busy(false);
     if(ready()) {
-        track_data = get_current_image()->get_track(get_current_track(), head);
-        sec_data = track_data ? track_data->get_sector(opts[TRDOS_SEC]) : nullptr;
+        track_data = current_image()->get_track(current_track(), head);
+        sec_data = track_data ? track_data->get_sector(addr_sec_index) : nullptr;
         if(sec_data) {
             hld = 1;
             set_busy(true);
@@ -422,14 +392,12 @@ void zxBetaDisk::read_address() {
             crc_add(TMP_BUF[ZX_BETADISK_INDEX + 0]); crc_add(TMP_BUF[ZX_BETADISK_INDEX + 1]);
             crc_add(TMP_BUF[ZX_BETADISK_INDEX + 2]); crc_add(TMP_BUF[ZX_BETADISK_INDEX + 3]);
             TMP_BUF[ZX_BETADISK_INDEX + 4] = crc_hi(); TMP_BUF[ZX_BETADISK_INDEX + 5] = crc_lo();
-/*
             addr_sec_index++;
             if(addr_sec_index >= track_data->get_sec_count()) addr_sec_index = 0;
-*/
             set_states(ST_DATA | ST_READ, 6);
             read_next_byte();
         } else {
-//            addr_sec_index = 0;
+            addr_sec_index = 0;
             esector = sESECTOR; intrq = 1; drq = 0;
         }
     } else intrq = 1;
@@ -465,9 +433,9 @@ void zxBetaDisk::read_track() {
     auto rdy = ready();
     set_busy(rdy);
     states = ST_NONE;
-    if(!rdy) { intrq = 1; return; }
+    if(!rdy) { intrq = sINTRQ; return; }
     hld = 1;
-    auto track_data = get_current_image()->get_track(get_current_track(), head);
+    auto track_data = current_image()->get_track(current_track(), head);
     auto sec_count = track_data->get_sec_count();
     auto rw = &TMP_BUF[ZX_BETADISK_INDEX]; auto tmp = rw;
     ssh_memcpy(&tmp, TMP_BUF, buildGAP(GAP_IV));
@@ -551,7 +519,7 @@ zxDiskImage* zxDiskImage::openTRD(const char* path) {
                 auto cyl_byte   = (uint8_t)cyl_index;
                 auto head_byte  = (uint8_t)head_index;
                 auto sec_byte   = (uint8_t)(sec_index + 1);
-                auto sec        = new SectorData(cyl_byte, head_byte, sec_byte, SEC_LENGTH_0x0100, false);
+                auto sec        = new zxDiskSector(cyl_byte, head_byte, sec_byte, SEC_LENGTH_0x0100, false);
                 for(int sec_data_index = 0; sec_data_index < 256; sec_data_index++) {
                     sec->put(sec_data_index, trd_data[data_index]);
                     data_index++;
@@ -600,7 +568,7 @@ zxDiskImage* zxDiskImage::openFDI(const char *path){
                 auto flags              = fdi_data[sec_header_offset + 4];
                 int sec_data_offset     = (track_data_offset + (fdi_data[sec_header_offset + 6] << 8) + fdi_data[sec_header_offset + 5]);
                 int sec_length          = 128 << length_byte;
-                auto sec                = new SectorData(cyl_byte, head_byte, sec_byte, length_byte, (flags & 0x80) != 0);
+                auto sec                = new zxDiskSector(cyl_byte, head_byte, sec_byte, length_byte, (flags & 0x80) != 0);
                 for(int sec_data_index = 0; sec_data_index < sec_length; sec_data_index++) {
                     sec->put(sec_data_index, fdi_data[sec_data_offset]);
                     sec_data_offset++;
@@ -617,7 +585,7 @@ zxDiskImage* zxDiskImage::openFDI(const char *path){
 #define get_next_track(track) \
     if(cur_cyl_index < 0 || cur_head == 1) { cur_cyl = image->add_cyl(); cur_cyl_index++; cur_head = 0; } else cur_head = 1; \
     track = &cur_cyl[cur_head]; \
-    for(int sec_byte = 1; sec_byte <= 16; sec_byte++) track->add_sector(new SectorData(cur_cyl_index, cur_head, sec_byte, SEC_LENGTH_0x0100, false));
+    for(int sec_byte = 1; sec_byte <= 16; sec_byte++) track->add_sector(new zxDiskSector(cur_cyl_index, cur_head, sec_byte, SEC_LENGTH_0x0100, false));
 
 zxDiskImage* zxDiskImage::openSCL(const char *path) {
     // UNDONE: не проверяется контрольная сумма файла
@@ -629,9 +597,9 @@ zxDiskImage* zxDiskImage::openSCL(const char *path) {
         return nullptr;
     }
     auto image = new zxDiskImage(2, 256, false, "");
-    TrackData* cur_cyl = nullptr;
-    TrackData* catalog_track = nullptr;
-    TrackData* data_track = nullptr;
+    zxDiskTrack* cur_cyl = nullptr;
+    zxDiskTrack* catalog_track = nullptr;
+    zxDiskTrack* data_track = nullptr;
     int cur_cyl_index = -1;
     int cur_head = 0;
 
@@ -970,24 +938,27 @@ bool zxBetaDisk::save(uint8_t active, const char *path, int type) {
     return result;
 }
 
+void zxBetaDisk::write_sysreg(uint8_t data) {
+    // 0,1 - номер диска
+    // 2 - апаратный сброс
+    // 3 - блокировка согнала HLT(должна быть 1)
+    // 4 - номер головки 0=первая
+    // 6 - 1=MFM, 0=FM
+    drive   = (uint8_t)(data & 0x03);
+    hlt     = to_bit(data & 0x08);
+    head    = to_bit(!(data & 0x10));
+    mfm     = to_bit(data & 0x40);
+    if(!(data & 0x04)) reset_controller();
+    image   = current_image();
+}
+
 void zxBetaDisk::vg93_write(uint8_t address, uint8_t data) {
     switch(address) {
-        case 0x1f: process_command(data); break;
+        case 0x1f: process_command(data);  break;
         case 0x3f: opts[TRDOS_TRK] = data; break;
-        case 0x5f: opts[TRDOS_SEC] = data; LOG_INFO("set sector %i", data); break;
+        case 0x5f: opts[TRDOS_SEC] = data; break;
         case 0x7f: opts[TRDOS_DAT] = data; if(states) write_next_byte(); break;
-        case 0xff:
-            // 0,1 - номер диска
-            // 2 - апаратный сброс
-            // 3 - блокировка согнала HLT(должна быть 1)
-            // 4 - номер головки 0=первая
-            // 6 - 1=MFM, 0=FM
-            drive   = (uint8_t)(data & 0x03);
-            hlt     = to_bit(data & 0x08);
-            head    = to_bit(!(data & 0x10));
-            mfm     = to_bit(data & 0x40);
-            if(!(data & 0x04)) hardware_reset_controller();
-            break;
+        case 0xff: write_sysreg(data);     break;
     }
 }
 
@@ -998,7 +969,7 @@ uint8_t zxBetaDisk::vg93_read(uint8_t address) {
         case 0x3f: result = opts[TRDOS_TRK]; break;
         case 0x5f: result = opts[TRDOS_SEC]; break;
         case 0x7f: result = opts[TRDOS_DAT]; if(states) read_next_byte(); break;
-        case 0xff: if(intrq) result |= 0x80; if(drq) result |= 0x40; break;
+        case 0xff: result = intrq | drq; break;
     }
     return result;
 }
@@ -1008,7 +979,7 @@ void zxBetaDisk::format() {
 /*
     auto rw = &TMP_BUF[ZX_BETADISK_INDEX + state_index];
     if(byte_counter == 0) {
-        if(!track_data) { states = ST_NONE; ewrite = intrq = 1; drq = 0; set_busy(false); return; }
+        if(!track_data) { states = ST_NONE; ewrite = sEWRITE; intrq = sINTRQ; drq = 0; set_busy(false); return; }
         track_data->clear();
     }
     if(mfm) {
@@ -1040,7 +1011,7 @@ void zxBetaDisk::format() {
                     sector_address_zone = false;
                     sector_data_zone = true;
                     state_index = -1;
-                    sec_data = new SectorData(cyl_byte, head_byte, sec_byte, (uint8_t)state_length, opts[TRDOS_DAT] == 0xf8);
+                    sec_data = new zxDiskSector(cyl_byte, head_byte, sec_byte, (uint8_t)state_length, opts[TRDOS_DAT] == 0xf8);
                     sec_length = 128 << state_length;
                     track_data->add_sector(sec_data);
                 }
@@ -1064,10 +1035,10 @@ void zxBetaDisk::format() {
         crc_add(rw[i]);
         state_index++;
         byte_counter++;
-        if(byte_counter < max_bytes) drq = 1;
-        else { states = ST_NONE; intrq = 1; drq = 0; set_busy(false); return; }
+        if(byte_counter < max_bytes) drq = sDRQ;
+        else { states = ST_NONE; intrq = sINTRQ; drq = 0; set_busy(false); return; }
     }
-    drq = 1;
+    drq = sDRQ;
 */
 }
 
@@ -1084,7 +1055,7 @@ DiskImage.createCustomImage = function ( cyl_count, head_count, trdos_format ) {
 
                 var track = image.get_track(cyl_index, head_index);
                 for ( var sec_byte = 1; sec_byte <= 16; sec_byte++ ) {
-                    var sector = new SectorData(cyl_index, head_index, sec_byte, SectorData.SEC_LENGTH_0x0100, false);
+                    var sector = new zxDiskSector(cyl_index, head_index, sec_byte, zxDiskSector.SEC_LENGTH_0x0100, false);
                     track.add_sector(sector);
                 }
             }
