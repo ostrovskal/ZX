@@ -19,7 +19,6 @@ add_library( # Sets the name of the library.
         zxAssembler.cpp
         zxTape.cpp
         zxSound.cpp
-        zxDisk.cpp
         zxGPU.cpp
         zxSound.cpp
         zxBetaDisk.cpp

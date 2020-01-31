@@ -9,6 +9,20 @@
 #define SEC_LENGTH_0x0200   2
 #define SEC_LENGTH_0x0400   3
 
+#define REQ_MFM             1
+#define REQ_DIRC            2
+#define REQ_BUSY            4
+#define REQ_HLD             8
+#define REQ_HEAD            16
+#define REQ_HLT             32
+#define REQ_DRQ             64
+#define REQ_INTRQ           128
+
+#define REQ(v)              (opts[TRDOS_REQ] & v)
+
+#define STEP_TIME           200
+#define HLD_EXTRA_TIME      STEP_TIME * 15
+
 extern "C" {
     u_long currentTimeMillis();
 };
@@ -190,7 +204,7 @@ protected:
     void set_busy(int value) { busy = to_bit(value); if(value) hld = get_hld(); else idle_since = currentTimeMillis(); }
     bool ready() { return disks[drive].image != nullptr; }
     bool index_pointer() {
-        auto is = ((currentTimeMillis() - last_index_pointer_time) < index_pointer_length);
+        auto is = ((currentTimeMillis() - last_index_pointer_time) < 10);
         if(int_on_index_pointer) intrq = 1;
         last_index_pointer_time = currentTimeMillis();
         return is;
@@ -202,7 +216,7 @@ protected:
     zxDiskImage* get_current_image() { return disks[drive].image; }
     uint8_t get_hld() {
         if(is_busy()) return hld;
-        return (uint8_t)(hld && ((currentTimeMillis() - idle_since) < hld_extratime));
+        return (uint8_t)(hld && ((currentTimeMillis() - idle_since) < HLD_EXTRA_TIME));
     }
     DISK disks[4];
     STATE _state;
@@ -210,18 +224,9 @@ protected:
     // 0 - нижняя головка, 1 - верхняя
     int head;
     // 0 - MFM, 1 - FM ( UNDONE: not sure )
-    bool mfm;
-    // интервал появления индексного отверстия (ms)
-    int index_pointer_interval;
-    // длина индексного отверстия (ms)
-    int index_pointer_length;
-    // таймаут чтения/записи дорожки, после которого происходит прерывание операции
-    //int track_rw_timeout;
-    // Таймаут чтения или записи одного байта (ms). В чистом виде не используется, т.к. слишком мал, а используется на группе байтов.
-    // Реальное время чтения/записи одного байта в режиме MFM составляет 0.032 ms, но из-за низкой производительности js используется большее число.
-    //double rw_timeout;
-    int hld_extratime;
-    uint8_t intrq, drq, hlt; // приходит с порта 0xff
+  //  bool mfm;
+    //uint8_t intrq, drq;
+    uint8_t hlt; // приходит с порта 0xff
     // После прекращения выполнения команды, использующей загрузку головки, сигнал hld ещё держится 15 оборотов
     // диска (если только не осуществлен аппаратный сброс). Эмуляция данного поведения.
     uint8_t busy, hld;
@@ -237,11 +242,6 @@ protected:
     // 1 - перемещение к центру, 0 - к краю
     uint8_t dirc;
     u_long last_index_pointer_time;
-    // для TR-DOS: от 1 по 16
-    uint8_t r_sector;
-    uint8_t r_track;
-    uint8_t r_command;
-    uint8_t r_data;
     // last_command в отличие от r_command не меняется, если поступает команда прерывания во время выполнения другой команды
     uint8_t last_command;
     // При перемещениях головки сбрасывается в 0. При чтении адреса указывает на следующий сектор, с заголовкка
