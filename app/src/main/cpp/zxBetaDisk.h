@@ -251,6 +251,4 @@ protected:
     STATE* write_state;
     bool int_on_ready, int_on_unready;
     bool int_on_index_pointer;
-
-    void exec();
 };

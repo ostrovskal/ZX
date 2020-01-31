@@ -34,8 +34,11 @@ enum CMD {
 class zxBeta128 {
 public:
     struct DISK {
+        DISK() : isOpen(false), write(0), track(0), nsec(0), ntrk(0), nhead(0), nsize(0) { }
         // установка позиции чтения/записи
         void setPos(uint8_t trk, uint8_t head, uint8_t sec);
+        // признак открытого файла
+        bool isOpen;
         // количество секторов, дорожек, головок и байт в секторе
         uint8_t nsec, ntrk, nhead, nsize;
         // текущая дорожка
@@ -54,24 +57,23 @@ public:
     // сброс
     void reset() { }
     // запись в контроллер
-    void vg_write(uint8_t addr, uint8_t val);
+    void vg93_write(uint8_t addr, uint8_t val);
     // чтение из контроллера
-    uint8_t vg_read(uint8_t addr);
+    uint8_t vg93_read(uint8_t addr);
     // восстановить состояние
     uint8_t *loadState(uint8_t* ptr);
     // сохранить состояние
     uint8_t* saveState(uint8_t* ptr);
 protected:
+    void status();
     // сброс контроллера
     void reset_controller();
     // установка системных переменных
     void write_sys(uint8_t val);
-    // фоновое выполнение команд
-    void exec();
     // выполнение команды
     void cmd_exec(uint8_t cmd);
     // признак готовности диска
-    bool ready() { return curDisk()->file.isOpen(); }
+    bool ready() { return curDisk()->isOpen; }
     // текущий диск
     DISK* curDisk() { return &disks[ndsk]; }
 

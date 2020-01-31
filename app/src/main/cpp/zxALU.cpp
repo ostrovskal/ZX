@@ -120,7 +120,7 @@ zxALU::zxALU() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _F
 
     snd = new zxSound();
     tape = new zxTape(snd);
-    disk = new zxBeta128();
+    disk = new zxBetaDisk();
 
     assembler = new zxAssembler();
     debugger = new zxDebugger();
@@ -144,7 +144,7 @@ bool zxALU::load(const char *path, int type) {
     bool ret = false;
     switch(type) {
         case ZX_CMD_IO_TRD:
-            ret = disk->openTRD(opts[ZX_PROP_ACTIVE_DISK], path);
+            ret = disk->open(opts[ZX_PROP_ACTIVE_DISK], path, type);
             break;
         case ZX_CMD_IO_SCL:
         case ZX_CMD_IO_FDI:
@@ -191,12 +191,14 @@ bool zxALU::openState(const char *path) {
         signalRESET(true);
         return false;
     }
+/*
     // восстанавливаем состояние дисков
     if(!(ptr = disk->loadState(ptr))) {
         LOG_DEBUG("Не удалось восстановить состояние дисков!!!", nullptr)
         signalRESET(true);
         return false;
     }
+*/
     // восстанавление страниц
     setPages();
     // загрузить имя сохраненной проги
@@ -220,7 +222,7 @@ bool zxALU::saveState(const char* path) {
     // сохраняем состояние ленты
     buf = tape->saveState(buf);
     // сохраняем состояние дисков
-    buf = disk->saveState(buf);
+//    buf = disk->saveState(buf);
     // записываем
     return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, false);
 }
@@ -860,7 +862,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
         write7FFD(val);
 //        LOG_DEBUG("7FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
     } else if(checkSTATE(ZX_TRDOS) && (A0A7 == 0x1F || A0A7 == 0x3F || A0A7 == 0x5F || A0A7 == 0x7F || A0A7 == 0xFF)) {
-        disk->vg_write(A0A7, val);
+        disk->vg93_write(A0A7, val);
     } else if (port == 0xBFFD) {
         // BFFD
         // записываем значение в текущий регистр
@@ -922,7 +924,7 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
     auto port = (uint16_t)(A0A7 | (A8A15 << 8));
     if(checkSTATE(ZX_DEBUG)) { if(checkBPs(port, ZX_BP_RPORT)) return ret; }
     if(checkSTATE(ZX_TRDOS) && (A0A7 == 0x1F || A0A7 == 0x3F || A0A7 == 0x5F || A0A7 == 0x7F || A0A7 == 0xFF))
-        ret = disk->vg_read(A0A7);
+        ret = disk->vg93_read(A0A7);
     else if(A0A7 == 0x1F) {
         ret = *_KEMPSTON;
     } else if(A0A7 == 0xFE) {
