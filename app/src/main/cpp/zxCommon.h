@@ -55,6 +55,7 @@ extern int                              frequencies[3];
 
 #define ZX_TOTAL_RAM                    262144
 #define LOG_NAME                        "ZX"
+#define ZX_BETADISK_INDEX               524288
 
 // вывод отладочной информации
 void info(const char* msg, const char* file, const char* func, int line, ...);

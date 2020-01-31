@@ -7,6 +7,14 @@
 #define SEC_LENGTH_0x0100   1
 #define STEP_TIME           200
 #define HLD_EXTRA_TIME      STEP_TIME * 15
+#define sBUSY               1
+#define sELOST              4
+#define sESECTOR            16
+#define sESEEK              16
+#define sEWRITE             32
+#define sTREC               64
+#define sPWRITE             64
+#define sREADY              128
 
 enum GAPS { GAP_I, GAP_II, GAP_III, GAP_IV, GAP_SYNC };
 
@@ -213,7 +221,7 @@ protected:
     // данные потеряны
     uint8_t elost;
     // 0 - normal, 1 - deleted
-    uint8_t record_type;
+    uint8_t trec;
     // в отличие от r_cmd не меняется, если поступает команда прерывания во время выполнения другой команды
     uint8_t lcmd;
     // контрольная сумма

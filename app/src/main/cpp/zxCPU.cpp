@@ -243,6 +243,7 @@ void zxCPU::opsBlock() {
         // F3=бит 3 операции A-[HL]-HC, где HC взят из F после предыдущей операции
         // F5=бит 1 операции A-[HL]-HC
         case O_CPI:
+//            LOG_INFO("O_CPI", 0);
             // SZ*H**1-
             res = v8Dst - v8Src; *_HL += dir; *_BC -= 1;
             execFlags = F5 | F3 | FPV;
