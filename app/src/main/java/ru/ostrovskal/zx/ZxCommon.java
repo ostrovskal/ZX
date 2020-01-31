@@ -67,7 +67,7 @@ public final class ZxCommon {
     public final static int ZX_CPU_RI               = 24;
     public final static int ZX_CPU_RR               = 25;
     public final static int ZX_CPU_ROM              = 33;
-    public final static int ZX_CPU_STATE            = 60;
+    public final static int ZX_CPU_STATE            = 61;
 
     public final static int MENU_CLOUD              = 1000;
     public final static int MENU_IO                 = 1001;
