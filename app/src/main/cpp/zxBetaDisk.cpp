@@ -252,7 +252,6 @@ void zxBetaDisk::process_command(uint8_t cmd) {
         int_on_unready      = (cmd & 0x02) != 0;
         int_on_index_pointer= (cmd & 0x04) != 0;
         if(cmd & 0x08) intrq = sINTRQ;
-        LOG_INFO("INTERRUPT cmd:%i", cmd & 15);
         return;
     }
     // другие команды не принимаются, если контроллер занят
@@ -308,7 +307,7 @@ void zxBetaDisk::process_command(uint8_t cmd) {
             state_mark  = (to_bit(opts[TRDOS_CMD] & 0x01) << 5);
             rdy = ready(); set_busy(rdy);
             if(rdy) { hld = 1; read_sectors(); } else intrq = sINTRQ;
-            LOG_INFO("RSECTOR mult:%i expect:%i check:%i mark:%i", state_mult, state_head, state_check, state_mark);
+            LOG_DEBUG("RSECTOR mult:%i expect:%i check:%i mark:%i", state_mult, state_head, state_check, state_mark);
             break;
         case 0xa0: case 0xb0:
             lcmd = VG_WSECTOR;
@@ -319,7 +318,7 @@ void zxBetaDisk::process_command(uint8_t cmd) {
             rdy = ready() && !image->is_protected();
             set_busy(rdy);
             if(rdy) { hld = 1; write_sectors(); } else intrq = sINTRQ;
-            LOG_INFO("WSECTOR mult:%i expect:%i check:%i mark:%i", state_mult, state_head, state_check, state_mark);
+            LOG_DEBUG("WSECTOR mult:%i expect:%i check:%i mark:%i", state_mult, state_head, state_check, state_mark);
             break;
         case 0xc0:
             lcmd = VG_RADDRESS;
@@ -349,7 +348,7 @@ void zxBetaDisk::process_command(uint8_t cmd) {
             rdy = ready() && image->is_protected();
             set_busy(rdy);
             intrq = sINTRQ; states = ST_NONE;
-            LOG_INFO("FORMAT", 0);
+            LOG_DEBUG("FORMAT", 0);
             break;
         }
     }
@@ -1084,7 +1083,7 @@ void zxBetaDisk::write_sysreg(uint8_t data) {
     hlt     = to_bit(data & 0x08);
     head    = to_bit(!(data & 0x10));
     mfm     = to_bit(data & 0x40);
-    if(!(data & 0x04)) reset_controller();
+    if(data & 0x04) reset_controller();
     image   = disks[drive].image;
 }
 

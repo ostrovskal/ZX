@@ -165,7 +165,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
 
     // 4. Значение структур
-    private static final int ZX_PROP_BPS            = 192; // значения точек останова (8 * 8) 258 - 321
+    public static final int ZX_PROP_BPS             = 192; // значения точек останова (8 * 8) 258 - 321
 
     public static final int ZX_PROPS_COUNT          = 410; // Размер буфера свойств
     public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_BPS - ZX_PROP_FIRST_LAUNCH) + 8; // Количество свойств

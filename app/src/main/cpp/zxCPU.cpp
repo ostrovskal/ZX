@@ -309,7 +309,6 @@ void zxCPU::opsJump() {
                 ticks = 17;
                 break;
             case O_RETN:
-                LOG_INFO("RETN PC %i", zxALU::PC);
                 *_IFF1 = *_IFF2;
                 ticks = 8;
             case O_RET:

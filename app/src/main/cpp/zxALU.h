@@ -181,7 +181,7 @@ protected:
     int step(bool allow_int);
 
     // перехватчик
-    void trap();
+    bool trap();
 
     void write1FFD(uint8_t val);
 

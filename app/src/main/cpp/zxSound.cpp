@@ -343,11 +343,11 @@ int zxSound::update() {
         silent_level = sndBuf[fulllen - 1];
 
         if(!silent) {
-            while (isPlaying) {}
+            //while (isPlaying) {}
             isPlaying = true;
             memcpy(sndPlayBuf, sndBuf, fulllen * sizeof(short));
             slres = (*bufferQueue)->Enqueue(bufferQueue, sndPlayBuf, (uint32_t) fulllen * sizeof(short));
-            if (slres != SL_RESULT_SUCCESS) isPlaying = false;
+            //if (slres != SL_RESULT_SUCCESS) isPlaying = false;
         }
     }
     beeperOldPos = -1;
@@ -399,8 +399,8 @@ void zxSound::makePlayer(bool stereo) {
         SL_SUCCESS((*playerObj)->GetInterface(playerObj, SL_IID_PLAY, &player), "Error GetInterface SL_IID_PLAY (%X)");
         SL_SUCCESS((*playerObj)->GetInterface(playerObj, SL_IID_BUFFERQUEUE, &bufferQueue), "Error GetInterface SL_IID_BUFFERQUEUE (%X)");
 
-        SL_SUCCESS((*player)->SetCallbackEventsMask(player, SL_PLAYEVENT_HEADATEND), "Error SetCallbackEventsMask (%X)");
-        SL_SUCCESS((*bufferQueue)->RegisterCallback(bufferQueue, callback_ay8912, this), "Error RegisterCallback (%X)");
+//        SL_SUCCESS((*player)->SetCallbackEventsMask(player, SL_PLAYEVENT_HEADATEND), "Error SetCallbackEventsMask (%X)");
+//        SL_SUCCESS((*bufferQueue)->RegisterCallback(bufferQueue, callback_ay8912, this), "Error RegisterCallback (%X)");
 
         SL_SUCCESS((*player)->SetPlayState(player, SL_PLAYSTATE_PLAYING), "Error SetPlayState(%X)");
         isPlaying = false;

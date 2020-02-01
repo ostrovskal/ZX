@@ -103,7 +103,10 @@ extern "C" {
             }
             AAssetDir_close(dir);
             opts[ZX_PROP_FIRST_LAUNCH] = 0;
-            copyAssetsFile(amgr, "tapLoader.zx", "tapLoader.zx");
+            copyAssetsFile(amgr, "tapLoad128.zx", "tapLoad128.zx");
+            copyAssetsFile(amgr, "tapLoad48.zx", "tapLoad48.zx");
+            copyAssetsFile(amgr, "trdosLoad128.zx", "trdosLoad128.zx");
+            copyAssetsFile(amgr, "trdosLoad48.zx", "trdosLoad48.zx");
         }
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
         copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMs);

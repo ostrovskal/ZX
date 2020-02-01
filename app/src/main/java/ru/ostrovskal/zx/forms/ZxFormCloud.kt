@@ -34,7 +34,7 @@ import ru.ostrovskal.zx.ZxWnd
 class ZxFormCloud : Form() {
     companion object {
         // Допустимые расщирения
-        private val validExt     = listOf(".tap", ".z80", ".trd", ".tga", ".wav")
+        private val validExt     = listOf(".tap", ".z80", ".trd", ".fdi", ".scl", ".tga", ".wav")
     }
 
     // фоновый тред
@@ -96,9 +96,9 @@ class ZxFormCloud : Form() {
                             var sep = ""
                             val name = file.name
                             when(validExt.indexOf(name.substring(name.lastIndexOf('.')))) {
-                                0   -> sep = "TAP/"
-                                1   -> sep = "Z80/"
-                                2   -> sep = "TRD/"
+                                0,6     -> sep = "TAP/"
+                                1,5     -> sep = "Z80/"
+                                2,3,4   -> sep = "TRDOS/"
                             }
                             dbx.download(file, folderFiles + sep + name)
                         }

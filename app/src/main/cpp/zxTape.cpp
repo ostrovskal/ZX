@@ -36,8 +36,6 @@ void zxTape::addBlock(uint8_t *data, uint16_t size) {
             new(&blocks[i]) TAPE_BLOCK(data, size);
             if(countBlocks < 128) {
                 countBlocks++;
-            } else {
-                LOG_INFO("Превышен лимит (%i) TAP блоков!", countBlocks);
             }
             break;
         }

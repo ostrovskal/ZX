@@ -148,7 +148,9 @@ bool zxALU::load(const char *path, int type) {
             break;
         case ZX_CMD_IO_TAPE:
             ret = tape->openTAP(path);
-            if(ret && opts[ZX_PROP_TRAP_TAPE]) ret = openZ80("tapLoader.zx");
+            if(ret && opts[ZX_PROP_TRAP_TAPE]) {
+                ret = openZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
+            }
             break;
         case ZX_CMD_IO_STATE:
             ret = openState(path);
@@ -265,7 +267,7 @@ bool zxALU::openZ80(const char *path) {
             LOG_INFO("Неизвестное оборудование %i в (%s)", mode, path);
             return false;
         }
-        LOG_INFO("version:%i length:%i model:%i pages:%i mode:%i", version, length, model, pages, mode);
+        LOG_DEBUG("version:%i length:%i model:%i pages:%i mode:%i", version, length, model, pages, mode);
         if(version >= 3) {
             head3 = (HEAD3_Z80*)ptr;
             head2 = &head3->head2;
@@ -592,10 +594,10 @@ void zxALU::execute() {
 
 void zxALU::stepDebug() {
     PC = *cpu->_PC;
+    if(trap()) return;
     // убрать отладчик - чтобы не сработала точка останова
     modifySTATE(0, ZX_DEBUG | ZX_HALT);
     // перехват системных процедур
-    trap();
     _TICK += cpu->step();
     modifySTATE(ZX_DEBUG, 0);
 }
@@ -604,9 +606,11 @@ int zxALU::step(bool interrupt) {
     // если отменено выполнение - эмулируем NOP
     if(!opts[ZX_PROP_EXECUTE]) return 4;
     // если пауза - аналогично
-    if(checkSTATE(ZX_PAUSE)) return 4;
+    if(checkSTATE(ZX_PAUSE)) return 0;
     // проверить на точку останова для кода
     PC = *cpu->_PC;
+    // перехват системных процедур
+    if(trap()) return 4;
     if(checkSTATE(ZX_DEBUG)) { if(checkBPs(PC, ZX_BP_EXEC)) return 4; }
     // проверяем на возможность прерывания
     int tick = 0;
@@ -614,8 +618,6 @@ int zxALU::step(bool interrupt) {
         if((tick = cpu->signalINT()))
             return tick;
     }
-    // перехват системных процедур
-    trap();
     // выполнение инструкции процессора
     return cpu->step();
 }
@@ -807,20 +809,22 @@ const char *zxALU::programName(const char *nm) {
     return name.c_str();
 }
 
-void zxALU::trap() {
+bool zxALU::trap() {
     if(PC < 16384) {
         // активность TR DOS
         if (!checkSTATE(ZX_TRDOS)) {
             if (PC >= 15616 && PC <= 15871) {
+//                if(PC == 15616) saveZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx");
                 if(*_ROM == 1) {
                     *_STATE |= ZX_TRDOS;
                     setPages();
+                    return true;
                 }
             }
             bool success = false;
             if (PC == 1218) success = tape->trapSave();
             else if (PC == 1366 || PC == 1378) {
-                //saveZ80("tapLoader.zx");
+//                saveZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
                 success = tape->trapLoad();
             }
             if (success) {
@@ -831,23 +835,25 @@ void zxALU::trap() {
             }
         }
     } else {
-            if (*_STATE & ZX_TRDOS) {
-                *_STATE &= ~ZX_TRDOS;
-                setPages();
-            }
+        if (*_STATE & ZX_TRDOS) {
+            *_STATE &= ~ZX_TRDOS;
+            setPages();
+        }
     }
+    return false;
 }
 
 void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
     auto port = (uint16_t)(A0A7 | (A8A15 << 8));
     if(checkSTATE(ZX_DEBUG)) { if(checkBPs(port, ZX_BP_WPORT)) return; }
-    if(*_MODEL == MODEL_SCORPION && (port & 0xD027) == 0x1025) {
+//    if(*_MODEL == MODEL_SCORPION && (port & 0xD027) == 0x1025) {
+    if(*_MODEL == MODEL_SCORPION && port == 0x1FFD) {
         // A0, A2, A5, A12 = 1; A1, A14, A15 = 0
         write1FFD(val);
         LOG_DEBUG("1FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
     } else if((port & 0xD027) == 0x5025) {
         write7FFD(val);
-//        LOG_DEBUG("7FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
+        LOG_DEBUG("7FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
     } else if(checkSTATE(ZX_TRDOS) && (A0A7 == 0x1F || A0A7 == 0x3F || A0A7 == 0x5F || A0A7 == 0x7F || A0A7 == 0xFF)) {
         disk->vg93_write(A0A7, val);
     } else if (port == 0xBFFD) {
@@ -923,10 +929,10 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
         }
         ret = (A0A7 | tape->readPort());
     } else if((port & 0xD027) == 0x5025) {
-        ret = *_7FFD;
+        ret = 0;//*_7FFD;
         LOG_DEBUG("7FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
     } else if((port & 0xD027) == 0x1025) {
-        ret = *_1FFD;
+        ret = 0;//*_1FFD;
         LOG_DEBUG("1FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
     } else if(port == 0xFFFD) {
         // звук AY
@@ -951,7 +957,7 @@ int zxALU::diskOperation(int num, int ops, const char* path) {
         case 2: ret = (int)disk->open(num, path, parseExtension(path)); break;
         case 3: ret = disk->save(num, path, parseExtension(path)); break;
         case 4: ret = disk->is_readonly(num, (ops & 128)); break;
-        case 5: cpu->call(15616); break;
+        case 5: ret = openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx");
     }
     return ret;
 }

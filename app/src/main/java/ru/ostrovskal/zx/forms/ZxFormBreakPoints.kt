@@ -91,7 +91,8 @@ class ZxFormBreakPoints: Form() {
         isInner = true
 
         val ribbon = root.byIdx<Ribbon>(7)
-        val idx = ribbon.selection * 8 + 258
+        val num = ribbon.selection
+        val idx = num * 8 + 258
 
         val addr1 = root.byIdx<Edit>(1).text.toString()
         var addr2 = root.byIdx<Edit>(2).text.toString()
@@ -116,6 +117,8 @@ class ZxFormBreakPoints: Form() {
             }
             flag
         }
+        // сразу записать
+        "#bp$num".s = ZxWnd.zxSetProp((ZX_PROP_BPS - ZX_PROP_FIRST_LAUNCH) + num)
         ribbon.requestLayout()
 
         isInner = false
@@ -133,8 +136,8 @@ class ZxFormBreakPoints: Form() {
         var mask = ""
         var condition = 0
         if(flag != ZX_BP_NONE) {
-            addr1 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx), ZX_FV_OPS16, true)
-            addr2 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx + 2), ZX_FV_OPS16, true)
+            addr1 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx), ZX_FV_SIMPLE, true)
+            addr2 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx + 2), ZX_FV_SIMPLE, true)
             if(flag != ZX_BP_EXEC) {
                 value = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 4), ZX_FV_OPS8, true)
                 mask = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 5), ZX_FV_OPS8, true)

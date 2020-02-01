@@ -205,10 +205,9 @@ class ZxWnd : Wnd() {
                     // восстанавливаем файлы образов дискет
                     repeat(4) { dsk ->
                         val path = "disk$dsk".s
-                        path.info()
                         if(path.isNotBlank()) {
-                            props[ZX_PROP_ACTIVE_DISK] = dsk.toByte()
-                            zxIO(path, true).info()
+                            if(zxCmd(ZX_CMD_DISK_OPS, dsk, ZX_DISK_OPS_OPEN, path) == 0)
+                                "disk$dsk".s = ""
                         }
                     }
                     // настройки
