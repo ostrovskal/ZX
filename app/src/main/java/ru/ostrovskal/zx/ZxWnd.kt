@@ -204,6 +204,15 @@ class ZxWnd : Wnd() {
             runBlocking {
                 withContext(Dispatchers.IO) {
                     zxProps(props)
+                    // восстанавливаем файлы образов дискет
+                    repeat(4) { dsk ->
+                        val path = "disk$dsk".s
+                        path.info()
+                        if(path.isNotBlank()) {
+                            props[ZX_PROP_ACTIVE_DISK] = dsk.toByte()
+                            zxIO(path, true).info()
+                        }
+                    }
                     settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
                     zxInit(assets, nameAutoSave, folderFiles, folderCache, errors)
                 }

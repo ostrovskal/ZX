@@ -21,8 +21,7 @@ add_library( # Sets the name of the library.
         zxSound.cpp
         zxGPU.cpp
         zxSound.cpp
-        zxBetaDisk.cpp
-        zxBeta128.cpp)
+        zxBetaDisk.cpp)
 
 find_library( # Sets the name of the path variable.
         log-lib

@@ -110,7 +110,7 @@ void zxBetaDisk::read_next_byte() {
                 if(state_index < 4) crc_add(bt);
                 break;
             case VG_RTRACK: break;
-            default: bt = sec_data->get(state_index);
+            default: bt = sec_data->get(get_file(), state_index);
         }
         opts[TRDOS_DAT] = bt; drq = sDRQ;
         state_index++;
@@ -125,7 +125,7 @@ void zxBetaDisk::read_next_byte() {
 void zxBetaDisk::write_next_byte() {
     switch(lcmd) {
         case VG_WTRACK: format(); break;
-        default: sec_data->put(state_index, opts[TRDOS_DAT]); break;
+        default: sec_data->put(get_file(), state_index, opts[TRDOS_DAT]); break;
     }
     state_index++;
     if(state_index < state_length) drq = sDRQ;
@@ -155,8 +155,7 @@ zxDiskSector* zxBetaDisk::find_sector() {
 }
 
 zxBetaDisk::zxBetaDisk() {
-    drive = head = trec = 0;
-    addr_sec_index = lost_timeout = 0;
+    drive = head = trec = addr_sec_index = 0; lost_timeout = 0;
     lcmd = VG_NONE;
     cmd_time = currentTimeMillis();
     reset_controller();
@@ -379,9 +378,10 @@ void zxBetaDisk::step(int cmd) {
 void zxBetaDisk::read_sectors() {
     sec_data = find_sector();
     if(sec_data) {
+        if(get_file()) get_file()->set_pos(sec_data->fpos, zxFile::begin);
         trec = (uint8_t)(sec_data->is_deleted() << 6);
         set_states(ST_READ, sec_data->length());
-        lost_timeout = (int)(sec_data->length() * LOST_TIME);
+        lost_timeout = (uint16_t)(sec_data->length() * LOST_TIME);
         read_next_byte();
     } else { states = ST_NONE; esector = sESECTOR; intrq = sINTRQ; drq = 0; set_busy(false); }
 }
@@ -389,9 +389,10 @@ void zxBetaDisk::read_sectors() {
 void zxBetaDisk::write_sectors() {
     sec_data = find_sector();
     if(sec_data) {
+        if(get_file()) get_file()->set_pos(sec_data->fpos, zxFile::begin);
         sec_data->is_deleted(state_mark);
         set_states(ST_WRITE, sec_data->length());
-        lost_timeout = (int)(sec_data->length() * LOST_TIME);
+        lost_timeout = (uint16_t)(sec_data->length() * LOST_TIME);
         drq = sDRQ;
     } else { states = ST_NONE; esector = sESECTOR; intrq = sINTRQ; drq = 0; set_busy(false); }
 }
@@ -419,12 +420,12 @@ void zxBetaDisk::write_sectors() {
 //  27/54       /   FF/4E  /   Третий пробел
 //  247/598     /   FF/4E  /   Четвертый пробел
 void zxBetaDisk::read_track() {
-    LOG_INFO("", 0);
     state_mult = 0;
-    auto rdy = ready();
-    set_busy(rdy);
+    //auto rdy = ready();
+    set_busy(false);
     states = ST_NONE;
-    if(!rdy) { intrq = sINTRQ; return; }
+    intrq = sINTRQ;
+/*
     hld = 1;
     auto track_data = image->get_track(current_track(), head);
     auto sec_count = track_data->get_sec_count();
@@ -470,6 +471,16 @@ void zxBetaDisk::read_track() {
     auto required_length = (tmp - rw) - len;
     tmp = ssh_memset(tmp, mfm ? 0x4E : 0xFF, required_length);
     read_next_byte();
+*/
+}
+
+zxDiskImage::zxDiskImage(int _head, int _trk, bool _write, const char* _desc, const char* path) : file(nullptr) {
+    desc = _desc; head = _head; trk = _trk; write = _write;
+    tracks = new zxDiskTrack*[trk]; ntrk = 0;
+    if(path) {
+        file = new zxFile();
+        file->open((FOLDER_FILES + path).c_str(), _write ? zxFile::open_read : zxFile::open_read_write);
+    }
 }
 
 zxDiskImage* zxDiskImage::openTRD(const char* path) {
@@ -501,21 +512,15 @@ zxDiskImage* zxDiskImage::openTRD(const char* path) {
             }
             break;
     }
-    auto image = new zxDiskImage(head_count, cyl_count, false, "");
-    int data_index = 0;
+    auto image = new zxDiskImage(head_count, cyl_count, false, "", path);
+    size_t data_index = 0;
     for(int cyl_index = 0; cyl_index < cyl_count; cyl_index++) {
         auto cyl = image->add_cyl();
         for(int head_index = 0; head_index < head_count; head_index++) {
             for(int sec_index = 0; sec_index < 16; sec_index++) {
-                auto cyl_byte   = (uint8_t)cyl_index;
-                auto head_byte  = (uint8_t)head_index;
-                auto sec_byte   = (uint8_t)(sec_index + 1);
-                auto sec        = new zxDiskSector(cyl_byte, head_byte, sec_byte, SEC_LENGTH_0x0100, false);
-                for(int sec_data_index = 0; sec_data_index < 256; sec_data_index++) {
-                    sec->put(sec_data_index, trd_data[data_index]);
-                    data_index++;
-                }
-                cyl[head_index].add_sector(sec);
+                cyl[head_index].add_sector(new zxDiskSector(data_index, (uint8_t)cyl_index, (uint8_t)head_index,
+                        (uint8_t)(sec_index + 1), SEC_LENGTH_0x0100, false));
+                data_index += 256;
             }
         }
     }
@@ -540,7 +545,7 @@ zxDiskImage* zxDiskImage::openFDI(const char *path){
     auto comment            = (char*)&TMP_BUF[700000]; auto tmp = comment;
     while(comment_offset < length && fdi_data[comment_offset] != 0) *tmp++ = fdi_data[comment_offset++];
     *tmp = '\0';
-    auto image = new zxDiskImage(head_count, cyl_count, write_protect, comment);
+    auto image = new zxDiskImage(head_count, cyl_count, write_protect, comment, path);
     for(int cyl_index = 0; cyl_index < cyl_count; cyl_index++) {
         auto cyl = image->add_cyl();
         for(int head_index = 0; head_index < head_count; head_index++) {
@@ -557,14 +562,9 @@ zxDiskImage* zxDiskImage::openFDI(const char *path){
                 auto sec_byte           = fdi_data[sec_header_offset + 2];
                 auto length_byte        = fdi_data[sec_header_offset + 3];
                 auto flags              = fdi_data[sec_header_offset + 4];
-                int sec_data_offset     = (track_data_offset + (fdi_data[sec_header_offset + 6] << 8) + fdi_data[sec_header_offset + 5]);
-                int sec_length          = 128 << length_byte;
-                auto sec                = new zxDiskSector(cyl_byte, head_byte, sec_byte, length_byte, (flags & 0x80) != 0);
-                for(int sec_data_index = 0; sec_data_index < sec_length; sec_data_index++) {
-                    sec->put(sec_data_index, fdi_data[sec_data_offset]);
-                    sec_data_offset++;
-                }
-                cyl[head_index].add_sector(sec);
+                auto sec_data_offset    = (size_t)(track_data_offset + (fdi_data[sec_header_offset + 6] << 8) + fdi_data[sec_header_offset + 5]);
+                cyl[head_index].add_sector(new zxDiskSector(sec_data_offset, cyl_byte, head_byte,
+                        sec_byte, length_byte, (flags & 0x80) != 0));
             }
             // передвигаем смещение на следующий заголовок дорожки
             track_header_offset += (7 + (7 * sec_count));
@@ -576,7 +576,7 @@ zxDiskImage* zxDiskImage::openFDI(const char *path){
 #define get_next_track(track) \
     if(cur_cyl_index < 0 || cur_head == 1) { cur_cyl = image->add_cyl(); cur_cyl_index++; cur_head = 0; } else cur_head = 1; \
     track = &cur_cyl[cur_head]; \
-    for(int sec_byte = 1; sec_byte <= 16; sec_byte++) track->add_sector(new zxDiskSector(cur_cyl_index, cur_head, sec_byte, SEC_LENGTH_0x0100, false));
+    for(int sec_byte = 1; sec_byte <= 16; sec_byte++) track->add_sector(new zxDiskSector(-1, cur_cyl_index, cur_head, sec_byte, SEC_LENGTH_0x0100, false));
 
 zxDiskImage* zxDiskImage::openSCL(const char *path) {
     // UNDONE: не проверяется контрольная сумма файла
@@ -587,7 +587,7 @@ zxDiskImage* zxDiskImage::openSCL(const char *path) {
         LOG_DEBUG("Wrong SCL data", 0);
         return nullptr;
     }
-    auto image = new zxDiskImage(2, 256, false, "");
+    auto image = new zxDiskImage(2, 256, false, "", nullptr);
     zxDiskTrack* cur_cyl = nullptr;
     zxDiskTrack* catalog_track = nullptr;
     zxDiskTrack* data_track = nullptr;
@@ -596,7 +596,7 @@ zxDiskImage* zxDiskImage::openSCL(const char *path) {
 
     get_next_track(catalog_track);
     uint8_t catalog_sec_index = 0;
-    int catalog_sec_data_index = 0;
+    size_t catalog_sec_data_index = 0;
     get_next_track(data_track);
     auto data_track_index = (uint8_t)(cur_cyl_index * 2 + cur_head);
     uint8_t data_sec_index = 0;
@@ -609,10 +609,10 @@ zxDiskImage* zxDiskImage::openSCL(const char *path) {
         int file_sec_count = scl_data[file_header_offset + 13];
         // копируем заголовок в каталог
         auto catalog_sec = catalog_track->get_sector(catalog_sec_index);
+        catalog_sec->fpos = catalog_sec_data_index;
         for(int i = 0; i < 14; i++) {
-            catalog_sec->put(catalog_sec_data_index, scl_data[ file_header_offset ]);
+            catalog_sec->put(catalog_sec_data_index, scl_data[file_header_offset++]);
             catalog_sec_data_index++;
-            file_header_offset++;
         }
         // кроме того, добавляем в каталог номер дорожки и номер сектора, где будет храниться файл
         catalog_sec->put(catalog_sec_data_index, data_sec_index);
@@ -633,10 +633,11 @@ zxDiskImage* zxDiskImage::openSCL(const char *path) {
         // копируем данные файла
         for(int file_sec_index = 0; file_sec_index < file_sec_count; file_sec_index++ ) {
             auto data_sec = data_track->get_sector(data_sec_index);
+            data_sec->fpos = (size_t)file_data_offset;
             for(int i = 0; i < 256; i++ ) {
-                data_sec->put(i, scl_data[ file_data_offset ]);
-                file_data_offset++;
+                data_sec->put(i, scl_data[file_data_offset + i]);
             }
+            file_data_offset += 256;
             // переключаемся на следующий сектор / дорожку
             data_sec_index++;
             if(data_sec_index == 16) {
@@ -711,7 +712,7 @@ uint8_t* zxDiskImage::saveToTRD(zxDiskImage* image, uint32_t* length) {
             auto track = image->get_track(cyl_index, head_index);
             for(int sec_index = 0; sec_index < 16; sec_index++) {
                 auto sector = track->get_sector(sec_index);
-                for(int i = 0; i < 0x0100; i++ ) trd_data[i] = sector->get(i);
+                for(int i = 0; i < 0x0100; i++ ) trd_data[i] = sector->get(image->file, i);
             }
         }
     }
@@ -780,7 +781,7 @@ uint8_t* zxDiskImage::saveToFDI(zxDiskImage* image, uint32_t* length) {
             auto sec_count = track->get_sec_count();
             for(int sec_index = 0; sec_index < sec_count; sec_index++) {
                 auto sector = track->get_sector(sec_index);
-                for(int i = 0; i < sector->length(); i++) *fdi++ = sector->get(i);
+                for(int i = 0; i < sector->length(); i++) *fdi++ = sector->get(image->file, i);
             }
         }
     }
@@ -808,7 +809,7 @@ uint8_t* zxDiskImage::saveToSCL(zxDiskImage* image, uint32_t* length) {
         while(sec_index < 8) {
             auto sector = cat_track->get_sector(sec_index);
             // проверяем первый байт имени файла
-            auto filename_byte = sector->get(sec_offset);
+            auto filename_byte = sector->get(image->file, sec_offset);
             if(filename_byte == 0x00) break; // конец каталога
             if(filename_byte != 0x01) file_count++; // если файл не удален, то учитываем его
             // переходим к следующему файлу
@@ -823,11 +824,11 @@ uint8_t* zxDiskImage::saveToSCL(zxDiskImage* image, uint32_t* length) {
         while(sec_index < 8) {
             auto sector = cat_track->get_sector(sec_index);
             // проверяем первый байт имени файла
-            auto filename_byte = sector->get(sec_offset);
+            auto filename_byte = sector->get(image->file, sec_offset);
             if(filename_byte == 0x00) break; // конец каталога
             if(filename_byte != 0x01) {
                 // если файл не удален, то копируем 14 байт его заголовка
-                for(int i = 0; i < 14; i++) *tmp++ = sector->get(sec_offset + i);
+                for(int i = 0; i < 14; i++) *tmp++ = sector->get(image->file, sec_offset + i);
             }
             // переходим к следующему файлу
             sec_offset += 16;
@@ -839,19 +840,19 @@ uint8_t* zxDiskImage::saveToSCL(zxDiskImage* image, uint32_t* length) {
         while(sec_index < 8) {
             auto sector = cat_track->get_sector(sec_index);
             // проверяем первый байт имени файла
-            auto filename_byte = sector->get(sec_offset);
+            auto filename_byte = sector->get(image->file, sec_offset);
             if(filename_byte == 0x00) break; // конец каталога
             if(filename_byte != 0x01) {
                 // если файл не удален, то копируем его данные
-                auto data_sec_count = sector->get(sec_offset + 13);
-                auto data_sec_index = sector->get(sec_offset + 14);
-                auto data_trk_index = sector->get(sec_offset + 15);
+                auto data_sec_count = sector->get(image->file, sec_offset + 13);
+                auto data_sec_index = sector->get(image->file, sec_offset + 14);
+                auto data_trk_index = sector->get(image->file, sec_offset + 15);
                 while(data_sec_count) {
                     auto data_cyl_index = (int)floorf(data_trk_index / image->get_head_count());
                     auto data_head_index = data_trk_index - ( data_cyl_index * image->get_head_count());
                     auto data_track = image->get_track(data_cyl_index, data_head_index);
                     auto data_sector = data_track->get_sector(data_sec_index);
-                    for(int i = 0; i < 0x0100; i++) *tmp++ = data_sector->get(i);
+                    for(int i = 0; i < 0x0100; i++) *tmp++ = data_sector->get(image->file, i);
                     data_sec_index++;
                     if(data_sec_index == 16) { data_trk_index++; data_sec_index = 0; }
                     data_sec_count--;
@@ -884,11 +885,123 @@ uint8_t* zxDiskImage::saveToSCL(zxDiskImage* image, uint32_t* length) {
     return scl_data;
 }
 
+bool zxBetaDisk::unpackDiskSectors(zxDiskImage* img, uint8_t* ptr) {
+    for(int trk = 0 ; trk < img->ntrk; trk++) {
+        for(int head = 0; head < img->head; head++) {
+            auto track = img->get_track(trk, head);
+            for(int sec = 0 ; sec < track->get_sec_count(); sec++) {
+                auto sector = track->get_sector(sec);
+                auto l = sector->length();
+                auto sz = *(uint16_t*)ptr; ptr += 2;
+                // распаковка
+                if(!unpackBlock(ptr, TMP_BUF, &TMP_BUF[sz], l, true)) {
+                    LOG_INFO("Ошибка при распаковке сектора <t:%i h:%i s:%i>!", trk, head, sec);
+                    return false;
+                }
+                ptr += sz;
+                for(int j = 0; j < l; j++) sector->put(j, TMP_BUF[j]);
+            }
+        }
+    }
+    return true;
+}
+
 uint8_t *zxBetaDisk::loadState(uint8_t *ptr) {
-    return ptr;
+    // 1. переменные
+    // uint8_t
+    mfm         = *ptr++; dirc          = *ptr++; busy          = *ptr++; hld   = *ptr++;
+    head        = *ptr++; hlt           = *ptr++; intrq         = *ptr++; drq   = *ptr++;
+    drive       = *ptr++; eseek         = *ptr++; esector       = *ptr++; ewrite= *ptr++;
+    elost       = *ptr++; trec          = *ptr++; lcmd          = *ptr++;
+    fmt_trk     = *ptr++; fmt_head      = *ptr++; fmt_sec       = *ptr++; 
+    states      = *ptr++; state_mult    = *ptr++; state_check   = *ptr++; 
+    state_head  = *ptr++; state_mark    = *ptr++; addr_sec_index= *ptr++;
+    // bool
+    int_on_ready        = (bool)*ptr++; int_on_unready = (bool)*ptr++;
+    int_on_index_pointer= (bool)*ptr++; fmt_crc        = (bool)*ptr++;
+    fmt_sec_addr        = (bool)*ptr++; fmt_sec_data   = (bool)*ptr++;
+    // uint16_t
+    fmt_sec_length  = *(uint16_t *)(ptr + 0); fmt_trk_length= *(uint16_t *)(ptr + 2);
+    fmt_counter     = *(uint16_t *)(ptr + 4); state_length  = *(uint16_t *)(ptr + 6);
+    state_index     = *(uint16_t *)(ptr + 8); crc           = *(uint16_t *)(ptr + 10);
+    lost_timeout    = *(uint16_t *)(ptr + 12); ptr += 14;
+    // 2. диски
+    for(int i = 0 ; i < 4; i++) {
+        auto img = disks[i].image;
+        if(!img) continue;
+        // смещение данных диска - 4 байта для каждого, если 0 - то нет
+        auto offs = *(uint32_t*)(ptr + i * 4);
+        if(!offs) continue;
+        auto tmp = ptr + offs;
+        // дорожка
+        disks[i].track = *tmp++;
+        // позиция файлового указателя
+        auto fpos = (size_t)(*(uint16_t*)(tmp) | (*(uint16_t*)(tmp + 2) << 16));
+        if(img->file) img->file->set_pos(fpos, zxFile::begin);
+        if(fpos == -1) {
+            // 3. диск в памяти - распаковать по-секторно
+            if(!unpackDiskSectors(img, tmp)) {
+                // не удалось распаковать - удаляем диск
+                eject(i);
+            }
+        }
+    }
+    // смещение конца файла
+    return (ptr + *(uint32_t*)(ptr + 16));
 }
 
 uint8_t *zxBetaDisk::saveState(uint8_t *ptr) {
+    // 1. переменные
+    // uint8_t
+    *ptr++ = mfm;       *ptr++ = dirc;      *ptr++ = busy; *ptr++ = hld;
+    *ptr++ = head;      *ptr++ = hlt;       *ptr++ = intrq; *ptr++ = drq;
+    *ptr++ = drive;     *ptr++ = eseek;     *ptr++ = esector; *ptr++ = ewrite;
+    *ptr++ = elost;     *ptr++ = trec;      *ptr++ = lcmd;
+    *ptr++ = fmt_trk;   *ptr++ = fmt_head;  *ptr++ = fmt_sec;
+    *ptr++ = states;    *ptr++ = state_mult;*ptr++ = state_check;
+    *ptr++ = state_head;*ptr++ = state_mark;*ptr++ = addr_sec_index;
+    // bool
+    *ptr++ = (uint8_t)int_on_ready;         *ptr++ = (uint8_t)int_on_unready;
+    *ptr++ = (uint8_t)int_on_index_pointer; *ptr++ = (uint8_t)fmt_crc;
+    *ptr++ = (uint8_t)fmt_sec_addr;         *ptr++ = (uint8_t)fmt_sec_data;
+    // uint16_t
+    *(uint16_t *)(ptr + 0) = fmt_sec_length;*(uint16_t *)(ptr + 2) = fmt_trk_length;
+    *(uint16_t *)(ptr + 4) = fmt_counter;   *(uint16_t *)(ptr + 6) = state_length;
+    *(uint16_t *)(ptr + 8) = state_index;   *(uint16_t *)(ptr + 10)= crc;
+    *(uint16_t *)(ptr + 12)= lost_timeout; ptr += 14;
+    // 2. диски
+    auto tmp = ptr; ptr += 5 * 4;
+    memset(tmp, 0, 20);
+    for(int i = 0 ; i < 4; i++) {
+        auto dsk = &disks[i];
+        auto img = dsk->image;
+        if(!img) continue;
+        // смещение данных диска
+        *(size_t*)(tmp + i * 4) = (ptr - tmp);
+        // дорожка
+        *ptr++ = dsk->track;
+        // позиция файлового указателя
+        auto fpos = img->file ? img->file->get_pos() : -1;
+        *(uint16_t*)(ptr + 0) = (uint16_t)(fpos & 0xffff); *(uint16_t*)(ptr + 2) = (uint16_t)((fpos >> 16) & 0xffff);
+        if(!img->file) {
+            uint32_t nsize;
+            // 3. если диск в памяти - паковать и сохранять посекторно
+            for(int trk = 0 ; trk < img->ntrk; trk++) {
+                for(int head = 0; head < img->head; head++) {
+                    auto track = img->get_track(trk, head);
+                    for(int sec = 0 ; sec < track->get_sec_count(); sec++) {
+                        auto sector = track->get_sector(sec);
+                        auto l = sector->length();
+                        for(int j = 0 ; j < l; j++) TMP_BUF[i] = sector->get(j);
+                        // упаковать
+                        auto p = packBlock(TMP_BUF, &TMP_BUF[l], ptr + 2, false, nsize);
+                        *(uint16_t*)ptr = (uint16_t)nsize; ptr = p;
+                    }
+                }
+            }
+        }
+    }
+    *(size_t*)(tmp + 16) = (ptr - tmp);
     return ptr;
 }
 
@@ -1002,14 +1115,14 @@ void zxBetaDisk::format() {
     if(!fmt_crc) {
         switch(opts[TRDOS_DAT]) {
             case 0xfe:
-                if(!fmt_sec_addr && !fmt_sec_data) { fmt_sec_addr = fmt_sec_data = false; state_index = -1; } break;
+                if(!fmt_sec_addr && !fmt_sec_data) { fmt_sec_addr = fmt_sec_data = false; state_index = 0xffff; } break;
             case 0xf8: case 0xfb:
                 if(fmt_sec_addr) {
                     fmt_sec_addr = false;
                     fmt_sec_data = true;
-                    state_index = -1;
-                    sec_data = new zxDiskSector(fmt_trk, fmt_head, fmt_sec, (uint8_t)state_length, opts[TRDOS_DAT] == 0xf8);
-                    fmt_sec_length = 128 << state_length;
+                    state_index = 0xffff;
+                    sec_data = new zxDiskSector((size_t)-1, fmt_trk, fmt_head, fmt_sec, (uint8_t)state_length, opts[TRDOS_DAT] == 0xf8);
+                    fmt_sec_length = (uint16_t)(128 << state_length);
                     track_data->add_sector(sec_data);
                 }
                 break;
@@ -1026,7 +1139,7 @@ void zxBetaDisk::format() {
             }
         }
         if(fmt_sec_addr && state_index >= 0) {
-            if(state_index < fmt_sec_length) sec_data->put(state_index, rw[i]);
+            if(state_index < fmt_sec_length) { sec_data->put(get_file(), state_index, rw[i]); }
             else { fmt_sec_addr = fmt_sec_data = false; }
         }
         crc_add(rw[i]);

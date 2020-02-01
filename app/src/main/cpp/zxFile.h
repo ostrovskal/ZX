@@ -42,6 +42,10 @@ public:
         set_pos(pos, flags);
         return read(buf, size);
     }
+    // чтение одного байта
+    uint8_t read_byte() { static uint8_t bt; read(&bt, 1); return bt; }
+    // чтение одного байта
+    void write_byte(uint8_t bt) { write(&bt, 1); }
     // запись
     bool write(void* buf, size_t size) const {
         return fwrite(buf, 1, size, fd) == size;

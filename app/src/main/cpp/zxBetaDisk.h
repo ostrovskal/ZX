@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "zxCommon.h"
+
 #define SEC_LENGTH_0x0100   1
 #define STEP_TIME           200
 #define LOST_TIME           0.05
@@ -21,13 +23,14 @@ enum GAPS { GAP_I, GAP_II, GAP_III, GAP_IV, GAP_SYNC };
 enum STATES { ST_NONE = 0, ST_READ = 1, ST_WRITE = 2 };
 
 enum VG_CMD {
-    VG_NONE, VG_INTERRUPT, VG_RESTORE, VG_SEEK, VG_STEP, VG_STEP0, VG_STEP1, VG_RSECTOR, VG_WSECTOR, VG_RADDRESS, VG_RTRACK, VG_WTRACK
+    VG_NONE, VG_INTERRUPT, VG_RESTORE, VG_SEEK, VG_STEP, VG_STEP0, VG_STEP1,
+    VG_RSECTOR, VG_WSECTOR, VG_RADDRESS, VG_RTRACK, VG_WTRACK
 };
 
 class zxDiskSector {
 public:
-    zxDiskSector(uint8_t trk, uint8_t head, uint8_t sec, uint8_t len, bool _deleted) {
-        ntrk = trk; nhead = head; nsec = sec; slen = len;
+    zxDiskSector(size_t pos, uint8_t trk, uint8_t head, uint8_t sec, uint8_t len, bool _deleted) {
+        fpos = pos; ntrk = trk; nhead = head; nsec = sec; slen = len;
         flags = (uint8_t)((1 << len) | (_deleted ? 0x80 : 0));
     }
     size_t length() { return (size_t)(128 << slen); }
@@ -35,9 +38,11 @@ public:
         if(value != -1) { if(value) flags |= 0x80; else flags &= 0x7f; }
         return (flags & 0x80) != 0;
     }
+    void put(zxFile* file, int index, uint8_t value) { if(is_index_valid(index)) { file ? file->write_byte(value) : put(index, value); } }
+    uint8_t get(zxFile* file, int index) { return (uint8_t)(is_index_valid(index) ? (file ? file->read_byte() : get(index)) : 0); }
+    // если диск в памяти
     void put(int index, uint8_t value) { if(is_index_valid(index)) data[index] = value; }
     uint8_t get(int index) { return (uint8_t)(is_index_valid(index) ? data[index] : 0); }
-    bool is_index_valid(int index) { return (index >= 0 && index < (128 << slen)); }
     // номер дорожки
     uint8_t ntrk;
     // номер головки
@@ -48,7 +53,10 @@ public:
     uint8_t slen;
     // признак удаленного сектора
     uint8_t flags;
+    // позиция в файле
+    size_t fpos;
 private:
+    bool is_index_valid(int index) { return (index >= 0 && index < (128 << slen)); }
     // данные сектора
     uint8_t data[1024];
 };
@@ -69,12 +77,10 @@ private:
 };
 
 class zxDiskImage {
+    friend class zxBetaDisk;
 public:
-    zxDiskImage(int _head, int _trk, bool _write, const char* _desc) {
-        desc = _desc; head = _head; trk = _trk; write = _write;
-        tracks = new zxDiskTrack*[trk]; ntrk = 0;
-    }
-    ~zxDiskImage() { clear(); }
+    zxDiskImage(int _head, int _trk, bool _write, const char* _desc, const char* path);
+    ~zxDiskImage() { clear(); delete file; }
     // проверка на совместимый формат
     static bool getCompatibleFormats(zxDiskImage* image, int fmt);
     // открыть образ формата TRD
@@ -118,6 +124,8 @@ protected:
     zxDiskTrack** tracks;
     // описание диска
     std::string desc;
+    // файл
+    zxFile* file;
 };
 
 class zxBetaDisk {
@@ -126,7 +134,7 @@ public:
         DISK() : image(nullptr), track(0) { }
         ~DISK() { delete image; image = nullptr; }
         zxDiskImage* image;
-        int track;
+        uint8_t track;
     };
     zxBetaDisk();
     ~zxBetaDisk() { }
@@ -164,7 +172,9 @@ protected:
     bool ready() { return image != nullptr; }
     void set_busy(int value);
     bool index_pointer();
+    bool unpackDiskSectors(zxDiskImage* img, uint8_t* ptr);
     int  current_track() { return disks[drive].track; }
+    zxFile* get_file() { return image->file; }
     uint8_t crc_lo() { return (uint8_t)(crc & 0xff); }
     uint8_t crc_hi() { return (uint8_t)(crc >> 8); }
     uint8_t get_hld();
@@ -209,18 +219,18 @@ protected:
     // контрольная сумма
     uint16_t crc;
     // текущее состояние
-    int states;
-    // задержка потери данных при чтении/записи
-    int lost_timeout;
+    uint8_t states;
     // При перемещениях головки сбрасывается в 0. При чтении адреса указывает на следующий сектор, с заголовка которого будет прочитан адрес.
     // После чтения значение увеличивается на 1, либо становится 0, если это был последний сектор на дорожке.
-    int addr_sec_index;
+    uint8_t addr_sec_index;
+    // задержка потери данных при чтении/записи
+    uint16_t lost_timeout;
     // уровни сигналов
     bool int_on_ready, int_on_unready;
     bool int_on_index_pointer;
     // параметры управления состоянием
-    int state_length, state_index;
-    int state_mult, state_check, state_head, state_mark;
+    uint16_t state_length, state_index;
+    uint8_t state_mult, state_check, state_head, state_mark;
     // параметры управления форматированием
     // признак вычисленной CRC
     bool fmt_crc;
@@ -229,11 +239,11 @@ protected:
     // признак зоны данных сектора
     bool fmt_sec_data;
     // длина сектора в байтах
-    int fmt_sec_length;
+    uint16_t fmt_sec_length;
     // длина трека
-    int fmt_trk_length;
+    uint16_t fmt_trk_length;
     // текущее количество отформатированных треков
-    int fmt_counter;
+    uint16_t fmt_counter;
     // форматируемая дорожка/головка/сектор
     uint8_t fmt_trk, fmt_head, fmt_sec;
 };
