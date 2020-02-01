@@ -6,6 +6,7 @@
 
 #define SEC_LENGTH_0x0100   1
 #define STEP_TIME           200
+#define LOST_TIME           0.05
 #define HLD_EXTRA_TIME      STEP_TIME * 15
 
 #define sELOST              4
@@ -17,16 +18,10 @@
 
 enum GAPS { GAP_I, GAP_II, GAP_III, GAP_IV, GAP_SYNC };
 
-enum STATES { ST_NONE = 0, ST_DATA = 1, ST_READ = 2, ST_WRITE = 4, ST_FORMAT = 8 };
+enum STATES { ST_NONE = 0, ST_READ = 1, ST_WRITE = 2 };
 
 enum VG_CMD {
     VG_NONE, VG_INTERRUPT, VG_RESTORE, VG_SEEK, VG_STEP, VG_STEP0, VG_STEP1, VG_RSECTOR, VG_WSECTOR, VG_RADDRESS, VG_RTRACK, VG_WTRACK
-};
-
-enum VG_VARS {
-    V_MFM, V_DIRC, V_BUSY, V_HLD, V_HEAD, V_HLT, V_DRQ, V_INTRQ,
-    V_DRV, V_IDX_SEC, V_ESEEK, V_ESECTOR, V_EWRITE, V_TRECORD, V_L_CMD
-
 };
 
 class zxDiskSector {
@@ -140,7 +135,7 @@ public:
     bool open(int active, const char* path, int type);
     bool save(uint8_t active, const char *path, int type);
     // восстановить состояние
-    uint8_t * openState(uint8_t* ptr);
+    uint8_t * loadState(uint8_t* ptr);
     // сохранить состояние
     uint8_t* saveState(uint8_t* ptr);
     uint8_t vg93_read(uint8_t address);
@@ -215,13 +210,17 @@ protected:
     uint16_t crc;
     // текущее состояние
     int states;
+    // задержка потери данных при чтении/записи
+    int lost_timeout;
+    // При перемещениях головки сбрасывается в 0. При чтении адреса указывает на следующий сектор, с заголовка которого будет прочитан адрес.
+    // После чтения значение увеличивается на 1, либо становится 0, если это был последний сектор на дорожке.
+    int addr_sec_index;
     // уровни сигналов
     bool int_on_ready, int_on_unready;
     bool int_on_index_pointer;
     // параметры управления состоянием
     int state_length, state_index;
     int state_mult, state_check, state_head, state_mark;
-    int addr_sec_index;
     // параметры управления форматированием
     // признак вычисленной CRC
     bool fmt_crc;

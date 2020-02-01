@@ -144,10 +144,9 @@ bool zxALU::load(const char *path, int type) {
     bool ret = false;
     switch(type) {
         case ZX_CMD_IO_TRD:
-            ret = disk->open(opts[ZX_PROP_ACTIVE_DISK], path, type);
-            break;
         case ZX_CMD_IO_SCL:
         case ZX_CMD_IO_FDI:
+            ret = disk->open(opts[ZX_PROP_ACTIVE_DISK], path, type);
             break;
         case ZX_CMD_IO_WAVE:
             ret = tape->openWAV(path);
@@ -191,14 +190,12 @@ bool zxALU::openState(const char *path) {
         signalRESET(true);
         return false;
     }
-/*
     // восстанавливаем состояние дисков
     if(!(ptr = disk->loadState(ptr))) {
         LOG_DEBUG("Не удалось восстановить состояние дисков!!!", nullptr)
         signalRESET(true);
         return false;
     }
-*/
     // восстанавление страниц
     setPages();
     // загрузить имя сохраненной проги
@@ -222,7 +219,7 @@ bool zxALU::saveState(const char* path) {
     // сохраняем состояние ленты
     buf = tape->saveState(buf);
     // сохраняем состояние дисков
-//    buf = disk->saveState(buf);
+    buf = disk->saveState(buf);
     // записываем
     return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, false);
 }
