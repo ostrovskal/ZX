@@ -97,6 +97,9 @@ public:
     // выполнение при трассировке
     void stepDebug();
 
+    // операции с диском
+    int diskOperation(int num, int ops, const char* path);
+
     // установка/получение имени текущей программы
     const char *programName(const char *name);
 

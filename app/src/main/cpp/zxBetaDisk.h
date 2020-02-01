@@ -95,6 +95,8 @@ public:
     static uint8_t* saveToSCL(zxDiskImage* image, uint32_t* length);
     // сохранить в формате FDI
     static uint8_t* saveToFDI(zxDiskImage* image, uint32_t* length);
+    // установить файловый указатель
+    void set_fpos(size_t fpos) { if(file) file->set_pos(fpos, zxFile::begin); }
     // признак защиты от записи
     bool is_protected() { return write; }
     // вернуть количество цилиндров
@@ -140,8 +142,10 @@ public:
     ~zxBetaDisk() { }
     void vg93_write(uint8_t address, uint8_t data);
     void reset();
+    void eject(int drive_code);
     bool open(int active, const char* path, int type);
-    bool save(uint8_t active, const char *path, int type);
+    bool save(int active, const char *path, int type);
+    int  is_readonly(int num, int write = -1);
     // восстановить состояние
     uint8_t * loadState(uint8_t* ptr);
     // сохранить состояние
@@ -149,10 +153,9 @@ public:
     uint8_t vg93_read(uint8_t address);
 protected:
     size_t buildGAP(int gap);
-    void set_states(int type, int length) { state_length = length; states = type; state_index = 0; }
+    void set_states(uint8_t type, size_t length) { state_length = (uint16_t)length; states = type; state_index = 0; }
     void reset_controller();
     void insert(int drive_code, zxDiskImage* image);
-    void eject(int drive_code);
     void process_command(uint8_t cmd);
 
     void read_sectors();
@@ -168,7 +171,7 @@ protected:
     void crc_init() { crc = 0xffff; }
     void on_drive_ready(int drive_index) { if(drive_index == drive && int_on_ready) { intrq = 1; int_on_ready = false; } }
     void on_drive_unready(int drive_index) { if(drive_index == drive && int_on_unready) { intrq = 1; int_on_unready = false; } }
-    void set_current_track(int value) { disks[drive].track = value; }
+    void set_current_track(uint8_t value) { disks[drive].track = value; }
     bool ready() { return image != nullptr; }
     void set_busy(int value);
     bool index_pointer();

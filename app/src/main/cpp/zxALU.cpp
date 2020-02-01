@@ -143,11 +143,6 @@ zxALU::~zxALU() {
 bool zxALU::load(const char *path, int type) {
     bool ret = false;
     switch(type) {
-        case ZX_CMD_IO_TRD:
-        case ZX_CMD_IO_SCL:
-        case ZX_CMD_IO_FDI:
-            ret = disk->open(opts[ZX_PROP_ACTIVE_DISK], path, type);
-            break;
         case ZX_CMD_IO_WAVE:
             ret = tape->openWAV(path);
             break;
@@ -191,7 +186,7 @@ bool zxALU::openState(const char *path) {
         return false;
     }
     // восстанавливаем состояние дисков
-    if(!(ptr = disk->loadState(ptr))) {
+    if(!disk->loadState(ptr)) {
         LOG_DEBUG("Не удалось восстановить состояние дисков!!!", nullptr)
         signalRESET(true);
         return false;
@@ -355,11 +350,6 @@ bool zxALU::openZ80(const char *path) {
 bool zxALU::save(const char *path, int type) {
     bool ret = false;
     switch(type) {
-        case ZX_CMD_IO_TRD:
-        case ZX_CMD_IO_SCL:
-        case ZX_CMD_IO_FDI:
-//            ret = disk->save(opts[ZX_PROP_ACTIVE_DISK], path, type);
-            break;
         case ZX_CMD_IO_WAVE:
             ret = tape->saveWAV(path);
             break;
@@ -936,17 +926,32 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
         ret = *_7FFD;
         LOG_DEBUG("7FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
     } else if((port & 0xD027) == 0x1025) {
-            ret = *_1FFD;
-            LOG_DEBUG("1FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
+        ret = *_1FFD;
+        LOG_DEBUG("1FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
     } else if(port == 0xFFFD) {
         // звук AY
-        auto reg = opts[AY_REG];
-        ret = opts[reg + AY_AFINE];
-//            LOG_DEBUG("AY r:%i v:%i", reg, ret);
+        ret = opts[opts[AY_REG] + AY_AFINE];
     } else if(A0A7 == 0xFF) {
         // FF
+    } else if(A0A7 == 0xBF) {
+        // COVOX
+    } else if(A0A7 == 0xDF) {
+        // ??
     } else {
-            LOG_DEBUG("UNKNOWN PORT %X%X PC: %i", A8A15, A0A7, PC);
+        LOG_DEBUG("UNKNOWN PORT %X%X PC: %i", A8A15, A0A7, PC);
+    }
+    return ret;
+}
+
+int zxALU::diskOperation(int num, int ops, const char* path) {
+    int ret(0);
+    switch(ops & 7) {
+        case 0: ret = disk->is_readonly(num); break;
+        case 1: disk->eject(num); break;
+        case 2: ret = (int)disk->open(num, path, parseExtension(path)); break;
+        case 3: ret = disk->save(num, path, parseExtension(path)); break;
+        case 4: ret = disk->is_readonly(num, (ops & 128)); break;
+        case 5: cpu->call(15616); break;
     }
     return ret;
 }

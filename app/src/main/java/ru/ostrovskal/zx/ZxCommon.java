@@ -95,11 +95,6 @@ public final class ZxCommon {
     public final static int MENU_DEBUGGER1          = 1022;
     public final static int MENU_MAGIC              = 1023;
 
-    public final static int MENU_DISK_A             = 1200;
-    public final static int MENU_DISK_B             = 1201;
-    public final static int MENU_DISK_C             = 1202;
-    public final static int MENU_DISK_D             = 1203;
-
     public final static int MENU_MODEL_48KK         = 1300;
     public final static int MENU_MODEL_48KS         = 1301;
     public final static int MENU_MODEL_48KSN        = 1302;
@@ -126,6 +121,7 @@ public final class ZxCommon {
     public final static int FORM_POKES              = 3;
     public final static int FORM_LOADING            = 4;
     public final static int FORM_BREAK_POINTS       = 5;
+    public final static int FORM_DISK               = 6;
 
     // Разделяемые свойства
 
@@ -194,10 +190,18 @@ public final class ZxCommon {
     public static final int ZX_CMD_MOVE             = 11; // Выполнение сдвига ПС
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
     public static final int ZX_CMD_MAGIC            = 13; // Нажатие на кнопку MAGIC
+    public static final int ZX_CMD_DISK_OPS         = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
     public static final int ZX_DEBUGGER_MODE_DT     = 2; // Список данных
+
+    public static final int ZX_DISK_OPS_GET_READONLY= 0; //
+    public static final int ZX_DISK_OPS_EJECT       = 1; //
+    public static final int ZX_DISK_OPS_OPEN        = 2; //
+    public static final int ZX_DISK_OPS_SAVE        = 3; //
+    public static final int ZX_DISK_OPS_SET_READONLY= 4; //
+    public static final int ZX_DISK_OPS_TRDOS       = 5; //
 
     private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 

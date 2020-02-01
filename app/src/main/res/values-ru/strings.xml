@@ -86,5 +86,8 @@
     <string name="settingsTapeBasic">БЕЙСИК</string>
     <string name="settingsTapeNumArray">Ч.МАССИВ</string>
     <string name="settingsTapeStringArray">C.МАССИВ</string>
+    <string name="checkReadOnly">ReadOnly</string>
+    <string name="diskIO">Disk browse</string>
+    <string name="diskEmpty">Empty</string>
 
 </resources>

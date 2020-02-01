@@ -2,7 +2,7 @@
     <string name="menuOpenSave">Open/Save…</string>
     <string name="menuSettings">Settings…</string>
     <string name="menuProperties">Properties…</string>
-    <string name="menuSelectDisk">Select disk…</string>
+    <string name="menuSelectDisk">Browse disk…</string>
     <string name="menuSound">Sound</string>
     <string name="menuPokes" translatable="false">Pokes…</string>
     <string name="menuMru">Last…</string>
@@ -127,5 +127,8 @@
     <string name="radiiFormMessage" translatable="false">40,35,40,35,20,20,20,20</string>
     <string name="descImage" translatable="false">desc</string>
     <string name="themeDef" translatable="false">def</string>
+    <string name="checkReadOnly">ReadOnly</string>
+    <string name="diskIO">Disk browse</string>
+    <string name="diskEmpty">Empty</string>
 
 </resources>

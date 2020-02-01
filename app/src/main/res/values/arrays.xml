@@ -188,5 +188,10 @@
         <item>0</item>
         <item>@string/tag_bps</item>
         <item>0</item>
+
+        <item>@string/clazz_disk</item>
+        <item>0</item>
+        <item>@string/tag_disk</item>
+        <item>0</item>
     </array>
 </resources>

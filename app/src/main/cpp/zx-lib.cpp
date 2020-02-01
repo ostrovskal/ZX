@@ -5,18 +5,6 @@
 
 static jobject objProps = nullptr;
 
-static int parseExtension(const char* name) {
-    auto l = strlen(name);
-    const char* ext = (l > 2 ? name + (l - 3) : "123");
-    const char* lst[] = {".zx", "z80", "tap", "wav", "trd", "scl", "fdi"};
-    int ret = 0;
-    for(auto& e: lst) {
-        if(!strcasecmp(ext, e)) break;
-        ret++;
-    }
-    return ret;
-}
-
 static void copyAssetsFile(AAssetManager *aMgr, const char *aPath, const char *path, uint8_t **buffer = nullptr) {
     auto aFile = AAssetManager_open(aMgr, aPath, AASSET_MODE_UNKNOWN);
     bool result = aFile != nullptr;
@@ -85,15 +73,9 @@ extern "C" {
         return ret;
     }
 
-    void zxInit(JNIEnv *env, jobject, jobject asset, jstring savePath, jstring filesDir, jstring cacheDir, jboolean error) {
-        ALU = new zxALU();
-
+    void zxInit(JNIEnv *env, jobject, jobject asset, jstring savePath, jboolean error) {
         auto autoSavePath = env->GetStringUTFChars(savePath, nullptr);
         LOG_DEBUG("savePath: %s error: %i", autoSavePath, error);
-
-        // инициализировать пути к системным папкам
-        FOLDER_FILES = env->GetStringUTFChars(filesDir, nullptr);
-        FOLDER_CACHE = env->GetStringUTFChars(cacheDir, nullptr);
 
         auto amgr = AAssetManager_fromJava(env, asset);
         if(opts[ZX_PROP_FIRST_LAUNCH]) {
@@ -128,10 +110,9 @@ extern "C" {
         copyAssetsFile(amgr, "scorpion8.mem", nullptr, &ALU->page8);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true);
         if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
-        LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
 
-    void zxProps(JNIEnv* env, jclass, jbyteArray props) {
+    void zxProps(JNIEnv* env, jclass, jbyteArray props, jstring filesDir, jstring cacheDir) {
         LOG_DEBUG("", nullptr)
         if(!(objProps = env->NewGlobalRef(props))) {
             LOG_INFO("NewGlobalRef(props) error!", nullptr);
@@ -141,6 +122,11 @@ extern "C" {
         bps = (BREAK_POINT*)&opts[258];
         env->ReleasePrimitiveArrayCritical((jarray)props, opts, JNI_ABORT);
         ssh_memzero(opts, ZX_PROPS_COUNT);
+        // инициализировать пути к системным папкам
+        FOLDER_FILES = env->GetStringUTFChars(filesDir, nullptr);
+        FOLDER_CACHE = env->GetStringUTFChars(cacheDir, nullptr);
+        ALU = new zxALU();
+        LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
 
     jstring zxSetProp(JNIEnv* env, jclass, jint idx) {
@@ -201,20 +187,21 @@ extern "C" {
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
         int ret(0);
         switch(cmd) {
-            case ZX_CMD_POKE:       ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
-            case ZX_CMD_UPDATE_KEY: ALU->updateKeys(arg1, arg2); break;
-            case ZX_CMD_PROPS:      ALU->updateProps(arg1); break;
-            case ZX_CMD_MODEL:      ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true); break;
-            case ZX_CMD_RESET:      ALU->signalRESET(true); break;
-            case ZX_CMD_QUICK_BP:   ALU->quickBP((uint16_t)arg1); break;
-            case ZX_CMD_TRACE_X:    ALU->debugger->trace(arg1); break;
-            case ZX_CMD_STEP_DEBUG: ALU->stepDebug(); break;
-            case ZX_CMD_MOVE_PC:    ret = ALU->debugger->move(arg1, arg2, 10); break;
-            case ZX_CMD_JUMP:       ret = ALU->debugger->jump((uint16_t)arg1, arg2, true); break;
-            case ZX_CMD_ASSEMBLER:  ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
-            case ZX_CMD_INIT_GL:    ALU->gpu->initGL(); break;
-            case ZX_CMD_TAPE_COUNT: ret = ALU->tape->countBlocks; break;
-            case ZX_CMD_MAGIC:      ALU->cpu->signalNMI(); break;
+            case ZX_CMD_POKE:      ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
+            case ZX_CMD_UPDATE_KEY:ALU->updateKeys(arg1, arg2); break;
+            case ZX_CMD_PROPS:     ALU->updateProps(arg1); break;
+            case ZX_CMD_MODEL:     ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true); break;
+            case ZX_CMD_RESET:     ALU->signalRESET(true); break;
+            case ZX_CMD_QUICK_BP:  ALU->quickBP((uint16_t)arg1); break;
+            case ZX_CMD_TRACE_X:   ALU->debugger->trace(arg1); break;
+            case ZX_CMD_STEP_DEBUG:ALU->stepDebug(); break;
+            case ZX_CMD_MOVE_PC:   ret = ALU->debugger->move(arg1, arg2, 10); break;
+            case ZX_CMD_JUMP:      ret = ALU->debugger->jump((uint16_t)arg1, arg2, true); break;
+            case ZX_CMD_ASSEMBLER: ret = ALU->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
+            case ZX_CMD_INIT_GL:   ALU->gpu->initGL(); break;
+            case ZX_CMD_TAPE_COUNT:ret = ALU->tape->countBlocks; break;
+            case ZX_CMD_MAGIC:     ALU->cpu->signalNMI(); break;
+            case ZX_CMD_DISK_OPS:  ret = ALU->diskOperation(arg1, arg2, env->GetStringUTFChars(arg3, nullptr)); break;
         }
         return ret;
     }
@@ -239,9 +226,9 @@ extern "C" {
     }
 
     static JNINativeMethod zxMethods[] = {
-            { "zxInit", "(Landroid/content/res/AssetManager;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V", (void*)&zxInit },
+            { "zxInit", "(Landroid/content/res/AssetManager;Ljava/lang/String;Z)V", (void*)&zxInit },
             { "zxShutdown", "()V", (void*)&zxShutdown },
-            { "zxProps", "([B)V", (void*)&zxProps },
+            { "zxProps", "([BLjava/lang/String;Ljava/lang/String;)V", (void*)&zxProps },
             { "zxGetProp", "(Ljava/lang/String;I)V", (void*)&zxGetProp },
             { "zxSetProp", "(I)Ljava/lang/String;", (void*)&zxSetProp },
             { "zxExecute", "()I", (void*)&zxExecute },

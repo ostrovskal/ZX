@@ -81,6 +81,18 @@ static void packSegment(uint8_t ** dst, uint32_t count, uint8_t block) {
     *dst = dest;
 }
 
+int parseExtension(const char* name) {
+    auto l = strlen(name);
+    const char* ext = (l > 2 ? name + (l - 3) : "123");
+    const char* lst[] = {".zx", "z80", "tap", "wav", "trd", "scl", "fdi"};
+    int ret = 0;
+    for(auto& e: lst) {
+        if(!strcasecmp(ext, e)) break;
+        ret++;
+    }
+    return ret;
+}
+
 // упаковка блока памяти (с учетом или без завершающей сигнатуры)
 uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* blk, bool sign, uint32_t& newSize) {
     uint8_t *dst = blk;

@@ -199,6 +199,7 @@ constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отла
 constexpr int ZX_CMD_MOVE_PC            = 11;// Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12;// Получение адреса в памяти/адреса перехода в инструкции
 constexpr int ZX_CMD_MAGIC              = 13;// Нажатие на кнопку MAGIC
+constexpr int ZX_CMD_DISK_OPS           = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
@@ -246,6 +247,8 @@ char* ssh_fmtValue(int value, int type, bool hex);
 bool unpackBlock(uint8_t* ptr, uint8_t* dst, uint8_t* dstE, uint32_t sz, bool packed);
 
 uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_t& newSize);
+
+int parseExtension(const char* name);
 
 // вернуть реальный адрес памяти
 inline uint8_t* realPtr(uint16_t address) { return &zxALU::memPAGES[address >> 14][address & 16383]; }

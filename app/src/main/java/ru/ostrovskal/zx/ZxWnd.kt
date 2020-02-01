@@ -102,8 +102,6 @@ class ZxWnd : Wnd() {
 
         val props                            = ByteArray(ZX_PROPS_COUNT)
 
-        val disks                 = listOf("A:", "B:", "C:", "D:")
-
         val menuItems               = listOf(   R.integer.MENU_KEYBOARD, R.integer.I_KEY, R.integer.MENU_CLOUD, R.integer.I_CLOUD,
                                                 R.integer.MENU_IO, R.integer.I_OPEN, R.integer.MENU_SETTINGS, R.integer.I_SETTINGS, R.integer.MENU_PROPS, R.integer.I_PROPS, R.integer.MENU_DISKS, R.integer.I_DISK,
                                                 R.integer.MENU_MODEL, R.integer.I_MODEL, R.integer.MENU_RESET, R.integer.I_RESET, R.integer.MENU_RESTORE, R.integer.I_RESTORE, R.integer.MENU_EXIT, R.integer.I_EXIT,
@@ -113,10 +111,10 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_DEBUGGER_LABEL, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
                                                 R.integer.MENU_DEBUGGER_VALUE, R.integer.I_VALUE)
         @JvmStatic
-        external fun zxInit(asset: AssetManager, savePath: String, filesDir: String, cacheDir: String, error: Boolean)
+        external fun zxInit(asset: AssetManager, savePath: String, error: Boolean)
 
         @JvmStatic
-        external fun zxProps(props: ByteArray)
+        external fun zxProps(props: ByteArray, filesDir: String, cacheDir: String)
 
         @JvmStatic
         external fun zxShutdown()
@@ -200,10 +198,10 @@ class ZxWnd : Wnd() {
             if(errors) Settings.default()
             // Применяем тему
             applyTheme()
-            // Инициализация эмулятора
+            // запускаем инициализацию
             runBlocking {
                 withContext(Dispatchers.IO) {
-                    zxProps(props)
+                    zxProps(props, folderFiles, folderCache)
                     // восстанавливаем файлы образов дискет
                     repeat(4) { dsk ->
                         val path = "disk$dsk".s
@@ -213,8 +211,10 @@ class ZxWnd : Wnd() {
                             zxIO(path, true).info()
                         }
                     }
+                    // настройки
                     settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
-                    zxInit(assets, nameAutoSave, folderFiles, folderCache, errors)
+                    // восстановление предыдущего сеанса
+                    zxInit(assets, nameAutoSave, errors)
                 }
             }
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
@@ -268,11 +268,6 @@ class ZxWnd : Wnd() {
                 MENU_PROPS      -> repeat(6) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
                 MENU_MRU        -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
                 MENU_DEBUGGER1  -> repeat(3) { getItem(it).isChecked = props[menuProps[it + 8]].toBoolean }
-                MENU_DISKS      -> {
-                    getItem(props[ZX_PROP_ACTIVE_DISK].toInt()).isChecked = true
-                    // имена образов
-                    repeat(4) { val nm = "disk$it".s; getItem(it).title = "${disks[it]}\t\t$nm\t\t" }
-                }
             }
         }
         return super.onMenuItemSelected(featureId, item)
@@ -282,8 +277,9 @@ class ZxWnd : Wnd() {
         when(val id = resources.getInteger(item.itemId)) {
             MENU_POKES                              -> instanceForm(FORM_POKES)
             MENU_CLOUD                              -> instanceForm(FORM_LOADING)
-            MENU_IO                                 -> instanceForm(FORM_IO, "filter", ".z80,.tap,.tga", "disk", false)
+            MENU_IO                                 -> instanceForm(FORM_IO)
             MENU_SETTINGS                           -> instanceForm(FORM_OPTIONS)
+            MENU_DISKS                              -> instanceForm(FORM_DISK)
             MENU_RESTORE                            -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_IO_LOAD.ordinal, o = ZX_AUTO_SAVE)
             MENU_RESET                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_RESET.ordinal)
             MENU_EXIT                               -> { nameAutoSave = ZX_AUTO_SAVE; finish() }
@@ -299,11 +295,6 @@ class ZxWnd : Wnd() {
             MENU_DEBUGGER_VALUE, MENU_PROPS_KEYBOARD,
             MENU_PROPS_SOUND, MENU_PROPS_TURBO,
             MENU_PROPS_TAPE, MENU_PROPS_EXECUTE     -> updatePropsMenuItem(item)
-            MENU_DISK_A, MENU_DISK_B,
-            MENU_DISK_C, MENU_DISK_D                -> {
-                props[ZX_PROP_ACTIVE_DISK] = (id - MENU_DISK_A).toByte()
-                instanceForm(FORM_IO, "filter", ".trd,.scl,.fdi", "disk", true)
-            }
             MENU_MODEL_48KK, MENU_MODEL_48KS,
             MENU_MODEL_48KSN, MENU_MODEL_128K,
             MENU_MODEL_PENTAGON, MENU_MODEL_SCORPION,

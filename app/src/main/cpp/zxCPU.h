@@ -102,9 +102,6 @@ public:
     // стандартные операции
     void opsStd();
 
-    // RLD/RRD
-    void opsRRLLD();
-
     // XOR/OR/AND
     void opsLogic();
 
@@ -132,14 +129,14 @@ public:
     // битовые операции
     void opsBits();
 
+    // вызов подпрограммы
+    int call(uint16_t address);
+
 protected:
 
     inline void incrementR() {
         auto r = *_R; *_R = (uint8_t)((r & 128) | (((r + 1) & 127)));
     }
-
-    // вызов подпрограммы
-    int call(uint16_t address);
 
     // инициализация операнда
     uint8_t* initOperand(uint8_t o, uint8_t oo, int prefix, uint16_t& v16, uint8_t& v8);
@@ -164,9 +161,6 @@ protected:
 
     // код операции
     int codeOps;
-
-    // флаги
-    //uint8_t fc, fn, fpv, fx, fh, fy, fz, fs;
 
     // такты
     int ticks;

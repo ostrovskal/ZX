@@ -75,28 +75,7 @@
     <item
         android:id="@integer/MENU_DISKS"
         android:title="@string/menuSelectDisk"
-        android:showAsAction="ifRoom">
-        <menu>
-            <group android:checkableBehavior="single">
-                <item
-                    android:id="@integer/MENU_DISK_A"
-                    android:title="@string/menuDisk1"
-                    android:showAsAction="never" />
-                <item
-                    android:id="@integer/MENU_DISK_B"
-                    android:title="@string/menuDisk2"
-                    android:showAsAction="never"/>
-                <item
-                    android:id="@integer/MENU_DISK_C"
-                    android:title="@string/menuDisk3"
-                    android:showAsAction="never"/>
-                <item
-                    android:id="@integer/MENU_DISK_D"
-                    android:title="@string/menuDisk4"
-                    android:showAsAction="never"/>
-            </group>
-        </menu>
-    </item>
+        android:showAsAction="ifRoom" />
     <item
         android:id="@integer/MENU_MODEL"
         android:title="@string/menuModel"

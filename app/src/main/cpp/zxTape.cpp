@@ -108,10 +108,18 @@ uint8_t* zxTape::save(int root, uint8_t* buf, bool packed) {
 }
 
 uint8_t *zxTape::loadState(uint8_t *ptr) {
+    // сигнатура
+    if(ptr[0] != 'S' || ptr[1] != 'E' || ptr[2] != 'R' || ptr[3] != 'G') {
+        LOG_INFO("Сигнатура ленты некорректна!", 0);
+        return ptr;
+    }
+    ptr += 4;
     return load(ptr, true);
 }
 
 uint8_t *zxTape::saveState(uint8_t *ptr) {
+    // сигнатура
+    *ptr++ = 'S'; *ptr++ = 'E'; *ptr++ = 'R'; *ptr++ = 'G';
     return save(currentBlock, ptr, true);
 }
 
