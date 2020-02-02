@@ -102,6 +102,9 @@ class ZxFormMain: Form() {
                         ui {
                             val cvv = text(R.string.null_text, style_spinner_item_settings) {
                                 layoutParams = LinearLayout.LayoutParams(MATCH, MATCH)
+                                setOnClickListener {
+                                    ZxWnd.zxCmd(ZX_CMD_QUICK_SAVE, 0, 0, "")
+                                }
                             }
                             customView = cvv
                         }

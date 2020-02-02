@@ -98,7 +98,8 @@ class ZxWnd : Wnd() {
         }
 
         val modelNames              = listOf(   R.string.menuKompanion, R.string.menuSinclair48, R.string.menuSinclair48,
-                                                        R.string.menuSinclair128, R.string.menuPentagon, R.string.menuScorpion, R.string.menuProfi)
+                                                        R.string.menuSinclair128, R.string.menuPentagon, R.string.menuScorpion,
+                                                        R.string.menuPlus2, R.string.menuPlus2a, R.string.menuPlus3)
 
         val props                            = ByteArray(ZX_PROPS_COUNT)
 
@@ -255,7 +256,7 @@ class ZxWnd : Wnd() {
         menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = isDebugger
         menu.findItem(R.integer.MENU_KEYBOARD)?.apply { (icon as? TileDrawable)?.tile =
             resources.getInteger(if(props[ZX_PROP_SHOW_KEY].toBoolean) R.integer.I_KEY else R.integer.I_JOY); isVisible = !isDebugger }
-        menu.findItem(R.integer.MENU_IO)?.setShowAsAction(if(Config.isPortrait) SHOW_AS_ACTION_NEVER else SHOW_AS_ACTION_ALWAYS)
+        menu.findItem(R.integer.MENU_SETTINGS)?.setShowAsAction(if(Config.isPortrait) SHOW_AS_ACTION_NEVER else SHOW_AS_ACTION_ALWAYS)
         this.menu = menu
         return true
     }
@@ -283,6 +284,7 @@ class ZxWnd : Wnd() {
             MENU_RESET                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_RESET.ordinal)
             MENU_EXIT                               -> { nameAutoSave = ZX_AUTO_SAVE; finish() }
             MENU_MAGIC                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_PRESS_MAGIC.ordinal)
+            MENU_QUICK_SAVE                         -> zxCmd(ZX_CMD_QUICK_SAVE, 0, 0, "")
             MENU_PROPS_DEBUGGER                     -> {
                 // спрятать/показать элемент клавы
                 // вытащить/спрятать элемент отладчика
@@ -297,7 +299,8 @@ class ZxWnd : Wnd() {
             MENU_MODEL_48KK, MENU_MODEL_48KS,
             MENU_MODEL_48KSN, MENU_MODEL_128K,
             MENU_MODEL_PENTAGON, MENU_MODEL_SCORPION,
-            MENU_MODEL_PROFI                        -> {
+            MENU_MODEL_PLUS2, MENU_MODEL_PLUS2A,
+            MENU_MODEL_PLUS3                        -> {
                 props[ZX_PROP_MODEL_TYPE] = (id - MENU_MODEL_48KK).toByte()
                 hand?.send(RECEPIENT_FORM, ZxMessages.ACT_MODEL.ordinal)
             }

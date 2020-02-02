@@ -1,5 +1,5 @@
 <resources>
-    <string name="menuOpenSave">Open/Save…</string>
+    <string name="menuOpenSave">Operation…</string>
     <string name="menuSettings">Settings…</string>
     <string name="menuProperties">Properties…</string>
     <string name="menuSelectDisk">Browse disk…</string>
@@ -26,12 +26,15 @@
     <string name="menuSinclair128">Sinclair 128K</string>
     <string name="menuPentagon">Pentagon 128K</string>
     <string name="menuScorpion">Scorpion 256K</string>
-    <string name="menuProfi">Profi</string>
+    <string name="menuPlus2">Sinclair +2</string>
+    <string name="menuPlus2a">Sinclair +2a</string>
+    <string name="menuPlus3">Sinclair +3</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Keyboard/Joystick</string>
     <string name="menuLabel">Label</string>
     <string name="menuCode">Code</string>
     <string name="menuValue">Content</string>
+    <string name="menuQuickSave">QuickSave</string>
 
     <string name="headerCloud" translatable="false">Download</string>
     <string name="headPoke" translatable="false">Pokes</string>
@@ -128,7 +131,7 @@
     <string name="descImage" translatable="false">desc</string>
     <string name="themeDef" translatable="false">def</string>
     <string name="checkReadOnly">ReadOnly</string>
-    <string name="diskIO">Disk browse</string>
     <string name="diskEmpty">Empty</string>
+    <string name="headDisk">Disk browse</string>
 
 </resources>

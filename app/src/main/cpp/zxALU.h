@@ -21,8 +21,6 @@ struct ZX_MACHINE {
     ZX_PORT ports[8];
     // задержки стейтов для пикселей экрана
     int tsDelay[8];
-    // номера страниц ПЗУ
-    int romPages[4];
     // всего стейтов на кадр
     int tsTotal;
     // частота процессора
@@ -31,6 +29,12 @@ struct ZX_MACHINE {
     int ramPages;
     // страница ПЗУ при старте
     uint8_t startRom;
+    // индекс страницы ПЗУ для загрузки
+    uint8_t indexRom;
+    // всего страниц ПЗУ
+    uint8_t totalRom;
+    // индекс страницы TRDOS
+    uint8_t indexTRDOS;
     // имя
     const char* name;
 };
@@ -97,6 +101,9 @@ public:
     // выполнение при трассировке
     void stepDebug();
 
+    // быстрое сохранение
+    void quickSave();
+
     // операции с диском
     int diskOperation(int num, int ops, const char* path);
 
@@ -136,8 +143,11 @@ public:
     // буфер ОЗУ
     uint8_t* RAMs;
 
-    // буфер ПЗУ
-    uint8_t* ROMs;
+    // буфер ПЗУ - начальный/конечный
+    uint8_t* ROMb, *ROMe;
+
+    // буфер ПЗУ бета диска
+    uint8_t *ROMtr;
 
     // 8 страница скорпиона
     uint8_t *page8;
@@ -181,7 +191,7 @@ protected:
     int step(bool allow_int);
 
     // перехватчик
-    bool trap();
+    void trap();
 
     void write1FFD(uint8_t val);
 

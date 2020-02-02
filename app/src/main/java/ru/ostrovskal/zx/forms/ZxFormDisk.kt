@@ -13,7 +13,6 @@ import ru.ostrovskal.sshstd.widgets.Text
 import ru.ostrovskal.sshstd.widgets.Tile
 import ru.ostrovskal.sshstd.widgets.lists.Ribbon
 import ru.ostrovskal.zx.R
-import ru.ostrovskal.zx.ZxCommon
 import ru.ostrovskal.zx.ZxCommon.*
 import ru.ostrovskal.zx.ZxWnd
 import java.io.File
@@ -58,7 +57,7 @@ class ZxFormDisk : Form() {
         return ui {
             linearLayout {
                 root = cellLayout(15, 18, 1.dp) {
-                    formHeader(R.string.diskIO)
+                    formHeader(R.string.headDisk)
                     backgroundSet(Common.style_form)
                     spinner(R.id.spinner1) {
                         adapter = ArrayListAdapter(context, ZxFormSettings.Popup(), ZxFormSettings.Item(), diskInsert)
@@ -172,7 +171,7 @@ class ZxFormDisk : Form() {
                             }
                         }
                         padding = 7.dp
-                        backgroundSet(ZxCommon.style_backgrnd_io)
+                        backgroundSet(style_backgrnd_io)
                         updateFiles(false)
                         adapter = ArrayListAdapter(wnd, ItemIO(), ItemIO(), files)
                     }.lps(0, 5, 10, 12)
@@ -183,6 +182,6 @@ class ZxFormDisk : Form() {
 
     /** Класс, реализующий элемент списка файлов */
     private class ItemIO : UiComponent() {
-        override fun createView(ui: UiCtx) = with(ui) { text(R.string.null_text, ZxCommon.style_item_io) }
+        override fun createView(ui: UiCtx) = with(ui) { text(R.string.null_text, style_item_io) }
     }
 }

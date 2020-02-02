@@ -94,6 +94,7 @@ public final class ZxCommon {
     public final static int MENU_POKES              = 1021;
     public final static int MENU_DEBUGGER1          = 1022;
     public final static int MENU_MAGIC              = 1023;
+    public final static int MENU_QUICK_SAVE         = 1024;
 
     public final static int MENU_MODEL_48KK         = 1300;
     public final static int MENU_MODEL_48KS         = 1301;
@@ -101,7 +102,9 @@ public final class ZxCommon {
     public final static int MENU_MODEL_128K         = 1303;
     public final static int MENU_MODEL_PENTAGON     = 1304;
     public final static int MENU_MODEL_SCORPION     = 1305;
-    public final static int MENU_MODEL_PROFI        = 1306;
+    public final static int MENU_MODEL_PLUS2        = 1306;
+    public final static int MENU_MODEL_PLUS2A       = 1307;
+    public final static int MENU_MODEL_PLUS3        = 1308;
 
     public final static int MENU_MRU_1              = 1400;
     public final static int MENU_MRU_2              = 1401;
@@ -150,16 +153,15 @@ public final class ZxCommon {
     public static final int ZX_PROP_SHOW_CODE_VALUE = 141; // Признак режима содержимого кода
 
     // 2. Байтовые значения
-    public static final int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
-    private static final int ZX_PROP_BORDER_SIZE    = 151; // Размер границы
-    public static final int ZX_PROP_MODEL_TYPE      = 152; // Модель памяти
-    private static final int ZX_PROP_SND_TYPE_AY    = 153; // Тип каналов в звуковом процессоре AY
-    private static final int ZX_PROP_SND_FREQUENCY  = 154; // Частота звука
-    private static final int ZX_PROP_SND_VOLUME_BP  = 155; // Громкость бипера
-    private static final int ZX_PROP_SND_VOLUME_AY  = 156; // Громкость AY
-    private static final int ZX_PROP_CPU_SPEED      = 157; // Скорость процессора
-    public static final int ZX_PROP_KEY_SIZE        = 158; // Размер экранной клавиатуры
-    public static final int ZX_PROP_JOY_SIZE        = 159; // Размер экранного джойстика
+    private static final int ZX_PROP_BORDER_SIZE    = 150; // Размер границы
+    public static final int ZX_PROP_MODEL_TYPE      = 151; // Модель памяти
+    private static final int ZX_PROP_SND_TYPE_AY    = 152; // Тип каналов в звуковом процессоре AY
+    private static final int ZX_PROP_SND_FREQUENCY  = 153; // Частота звука
+    private static final int ZX_PROP_SND_VOLUME_BP  = 154; // Громкость бипера
+    private static final int ZX_PROP_SND_VOLUME_AY  = 155; // Громкость AY
+    private static final int ZX_PROP_CPU_SPEED      = 156; // Скорость процессора
+    public static final int ZX_PROP_KEY_SIZE        = 157; // Размер экранной клавиатуры
+    public static final int ZX_PROP_JOY_SIZE        = 158; // Размер экранного джойстика
 
     // 3. Целые значения
     public static final int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
@@ -191,6 +193,7 @@ public final class ZxCommon {
     public static final int ZX_CMD_JUMP             = 12; // Получение адреса в памяти/адреса перехода в инструкции
     public static final int ZX_CMD_MAGIC            = 13; // Нажатие на кнопку MAGIC
     public static final int ZX_CMD_DISK_OPS         = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
+    public static final int ZX_CMD_QUICK_SAVE       = 15; // Быстрое сохранение
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП

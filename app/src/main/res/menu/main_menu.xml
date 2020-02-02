@@ -107,8 +107,16 @@
                     android:title="@string/menuScorpion"
                     android:showAsAction="never"/>
                 <item
-                    android:id="@integer/MENU_MODEL_PROFI"
-                    android:title="@string/menuProfi"
+                    android:id="@integer/MENU_MODEL_PLUS2"
+                    android:title="@string/menuPlus2"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@integer/MENU_MODEL_PLUS2A"
+                    android:title="@string/menuPlus2a"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@integer/MENU_MODEL_PLUS3"
+                    android:title="@string/menuPlus3"
                     android:showAsAction="never"/>
             </group>
         </menu>
@@ -130,10 +138,6 @@
             <item android:id="@integer/MENU_MRU_10" android:title="@string/menuMruEmpty" android:showAsAction="never" />
         </menu>
     </item>
-    <item
-        android:id="@integer/MENU_MAGIC"
-        android:title="@string/menuMagic"
-        android:showAsAction="never" />
     <item
         android:id="@integer/MENU_POKES"
         android:title="@string/menuPokes"

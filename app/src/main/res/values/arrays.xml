@@ -73,7 +73,7 @@
         <item>debugger,false</item>
         <item>debugger_label,false</item>
         <item>debugger_code,true</item>
-        <item>debugger_value,false</item>
+        <item>debugger_value,true</item>
 
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
@@ -84,7 +84,6 @@
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
 
-        <item>active_disk,0</item>
         <item>border_size,3</item>
         <item>model_type,1</item>
         <item>snd_type_ay,1</item>
@@ -95,6 +94,7 @@
         <item>key_size,4</item>
         <item>joy_size,2</item>
 
+        <item>unusedByte,0</item>
         <item>unusedByte,0</item>
         <item>unusedByte,0</item>
         <item>unusedByte,0</item>

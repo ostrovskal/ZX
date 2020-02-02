@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="menuOpenSave">Открыть/Сохранить…</string>
+    <string name="menuOpenSave">Операции…</string>
     <string name="menuSettings">Установки…</string>
     <string name="menuProperties">Свойства…</string>
     <string name="menuSelectDisk">Выбрать диск…</string>
@@ -22,12 +22,15 @@
     <string name="menuSinclair128">Синклер 128K</string>
     <string name="menuPentagon">Пентагон 128K</string>
     <string name="menuScorpion">Скорпион 256K</string>
-    <string name="menuProfi">Профи</string>
+    <string name="menuPlus2">Sinclair +2</string>
+    <string name="menuPlus2a">Sinclair +2a</string>
+    <string name="menuPlus3">Sinclair +3</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Клавиатура/Джойстик</string>
     <string name="menuLabel">Метки</string>
     <string name="menuCode">Код</string>
     <string name="menuValue">Содержимое</string>
+    <string name="menuQuickSave">QuickSave</string>
 
     <string name="headerIO">Менеджер</string>
     <string name="headSettings">Установки</string>
@@ -87,7 +90,7 @@
     <string name="settingsTapeNumArray">Ч.МАССИВ</string>
     <string name="settingsTapeStringArray">C.МАССИВ</string>
     <string name="checkReadOnly">ReadOnly</string>
-    <string name="diskIO">Disk browse</string>
     <string name="diskEmpty">Empty</string>
+    <string name="headDisk">Disk browse</string>
 
 </resources>

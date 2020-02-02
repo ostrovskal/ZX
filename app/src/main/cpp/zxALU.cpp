@@ -2,6 +2,7 @@
 // Created by Сергей on 21.11.2019.
 //
 
+#include <ctime>
 #include "zxCommon.h"
 #include "zxALU.h"
 #include "stkMnemonic.h"
@@ -23,56 +24,63 @@ uint8_t* zxALU::memPAGES[4];
 // STATE
 uint8_t* zxALU::_STATE(nullptr);
 
+// 0 TRDOS4, 1 KOMPANION, 2 SINCLAIR48, 3 SINCLAIR2006, 4 SINCLAIR128 * 2, 6 PENTAGON128 * 2, 8 PLUS2 * 2,
+// 10 SCORPION256 * 4, 14 16PLUS2A * 4, 18 PLUS3 * 4
 ZX_MACHINE machines[] = {
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 0, 0, 0, 0 },
-            69888, 3500000, 8, 1, "KOMPANION" },
+            69888, 3500000, 8, 1, 1, 1, 0, "KOMPANION" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 1, 1, 1, 1 },
-            69888, 3500000, 8, 1, "SINCLER 48K" },
+            69888, 3500000, 8, 1, 2, 1, 0, "SINCLER 48K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 2, 2, 2, 2 },
-            69888, 3500000, 8, 1, "SINCLER 48K 2006" },
+            69888, 3500000, 8, 1, 3, 1, 0, "SINCLER 48K 2006" },
         {   {   { 63 * 228, 8 + 24, 44 + 24, 56 * 228 }, { 47 * 228, 8 + 16, 44 + 16, 40 * 228 },
                 { 31 * 228, 8 + 8, 44 + 8, 24 * 228 }, { 15 * 228, 8, 44, 8 * 228 } },
             {   { 0, 0, 0x7FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 3, 4, 255, 255 },
-            70908, 3546900, 8, 0, "SINCLER 128K" },
+            70908, 3546900, 8, 0, 4, 2, 0, "SINCLER 128K" },
         {   {   { 80 * 224, 8 + 24, 40 + 24, 48 * 224 }, { 64 * 224, 8 + 16, 40 + 16, 32 * 224 },
                 { 48 * 224, 8 + 8, 40 + 8, 16 * 224 }, { 32 * 224, 8, 40, 0 * 224 } },
             {   { 0, 0, 0x7FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 5, 6, 255, 255 },
-            71680, 3575000, 8, 0, "PENTAGON 128K" },
+            71680, 3575000, 8, 0, 6, 2, 0, "PENTAGON 128K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             {   { 0, 0, 0x7FFD }, { 0, 0, 0x1FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
                 { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 7, 8, 9, 10 },
-            69888, 3546900, 16, 0, "SCORPION 256K" },
+            69888, 3546900, 16, 0, 10, 3, 13, "SCORPION 256K" },
+        {   {   { 63 * 228, 8 + 24, 44 + 24, 56 * 228 }, { 47 * 228, 8 + 16, 44 + 16, 40 * 228 },
+                    { 31 * 228, 8 + 8, 44 + 8, 24 * 228 }, { 15 * 228, 8, 44, 8 * 228 } },
+                {   { 0, 0, 0x7FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
+                        { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
+                { 6, 5, 4, 3, 2, 1, 0, 0 },
+                70908, 3546900, 8, 0, 8, 2, 0, "SINCLER PLUS2" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
-                { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
-            {   { 0, 0, 0x7FFD }, { 0, 0, 0x1FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
-                { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
-            { 6, 5, 4, 3, 2, 1, 0, 0 },
-            { 11, 12, 13, 14 },
-            69888, 3546900, 8, 0, "PROFI" }
+                    { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
+                {   { 0, 0, 0x7FFD }, { 0, 0, 0x1FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
+                        { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
+                { 6, 5, 4, 3, 2, 1, 0, 0 },
+                69888, 3546900, 16, 0, 14, 4, 17, "SINCLAIR PLUS2A" },
+        {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
+                    { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
+                {   { 0, 0, 0x7FFD }, { 0, 0, 0x1FFD }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 },
+                        { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 }, { 0xFFFF, 0, 0 } },
+                { 6, 5, 4, 3, 2, 1, 0, 0 },
+                69888, 3546900, 16, 0, 18, 4, 21, "SINCLAIR PLUS3" }
 };
 
 static uint8_t semiRows[] = {
@@ -98,9 +106,10 @@ static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
 }
 
 zxALU::zxALU() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _FF(255), colorBorder(7),
-                 blink(0), sizeBorder(0), machine(nullptr),
-                 cpu(nullptr), snd(nullptr), tape(nullptr), disk(nullptr), gpu(nullptr), ROMs(nullptr) {
+                 blink(0), sizeBorder(0), machine(nullptr), ROMb(nullptr), ROMtr(nullptr),
+                 cpu(nullptr), snd(nullptr), tape(nullptr), disk(nullptr), gpu(nullptr) {
     RAMs = new uint8_t[ZX_TOTAL_RAM];
+    ROMtr = new uint8_t[1 << 14];
 
     // инициализация системы
     _MODEL     		= &opts[MODEL];
@@ -138,6 +147,8 @@ zxALU::~zxALU() {
     SAFE_DELETE(cpu);
 
     SAFE_A_DELETE(RAMs);
+    SAFE_A_DELETE(ROMtr);
+    SAFE_A_DELETE(ROMb);
 }
 
 bool zxALU::load(const char *path, int type) {
@@ -538,19 +549,37 @@ int zxALU::updateKeys(int key, int action) {
     return 0;
 }
 
-void zxALU::changeModel(uint8_t _new, bool resetTape) {
-    *_MODEL = _new;
-    opts[ZX_PROP_MODEL_TYPE] = _new;
-    machine = &machines[_new];
-    for (int i = 0; i < 4; i++) PAGE_ROM[i] = &ROMs[(machine->romPages[i] << 14)];
-    signalRESET(resetTape);
+void zxALU::changeModel(uint8_t _new, bool reset) {
+    static zxFile file;
+
+    machine         = &machines[_new];
+    auto totalRom   = machine->totalRom << 14;
+    auto rom        = new uint8_t[totalRom];
+    if(file.open((FOLDER_FILES + "rom.zx").c_str(), zxFile::open_read)) {
+        // trdos rom
+        file.set_pos(machine->indexTRDOS << 14, zxFile::begin);
+        file.read(ROMtr, 1 << 14);
+        // base rom
+        file.set_pos(machine->indexRom << 14, zxFile::begin);
+        file.read(rom, totalRom);
+        file.close();
+        *_MODEL = _new;
+        opts[ZX_PROP_MODEL_TYPE] = _new;
+        delete[] ROMb; ROMb = rom; ROMe = ROMb + totalRom;
+        totalRom >>= 14;
+        for(int i = 0 ; i < 4; i++) PAGE_ROM[i] = rom +  ((i >= totalRom ? totalRom - 1 : i) << 14);
+    } else {
+        LOG_INFO("Не удалось загрузить ПЗУ для машины - %s!", machines[_new].name);
+        delete[] rom;
+    }
+    signalRESET(reset);
 }
 
-void zxALU::signalRESET(bool resetTape) {
+void zxALU::signalRESET(bool reset) {
     // сброс устройств
-    if(resetTape) tape->reset();
+    if(reset) tape->reset();
+    if(reset) disk->reset();
     snd->reset();
-    disk->reset();
     // очищаем ОЗУ
     ssh_memzero(RAMs, ZX_TOTAL_RAM);
     // очищаем регистры/порты
@@ -571,15 +600,10 @@ void zxALU::signalRESET(bool resetTape) {
     setPages();
     // установка имени программы
     programName("BASIC");
-    if(*_MODEL == MODEL_SCORPION) {
-        memcpy(&RAMs[8 << 14], page8, 16384);
-    }
-    // NMI
-//    cpu->signalNMI();
 }
 
 void zxALU::setPages() {
-    memPAGES[0] = checkSTATE(ZX_TRDOS) ? &ROMs[ZX_ROM_TRDOS] : (*_ROM == 100 ? &RAMs[0] : PAGE_ROM[*_ROM]);
+    memPAGES[0] = checkSTATE(ZX_TRDOS) ? ROMtr : (*_ROM == 100 ? &RAMs[0] : PAGE_ROM[*_ROM]);
     memPAGES[3] = &RAMs[*_RAM << 14];
     pageVRAM    = &RAMs[*_VID << 14];
     pageATTRIB  = pageVRAM + 6144;
@@ -594,10 +618,10 @@ void zxALU::execute() {
 
 void zxALU::stepDebug() {
     PC = *cpu->_PC;
-    if(trap()) return;
     // убрать отладчик - чтобы не сработала точка останова
     modifySTATE(0, ZX_DEBUG | ZX_HALT);
     // перехват системных процедур
+    trap();
     _TICK += cpu->step();
     modifySTATE(ZX_DEBUG, 0);
 }
@@ -606,11 +630,9 @@ int zxALU::step(bool interrupt) {
     // если отменено выполнение - эмулируем NOP
     if(!opts[ZX_PROP_EXECUTE]) return 4;
     // если пауза - аналогично
-    if(checkSTATE(ZX_PAUSE)) return 0;
+    if(checkSTATE(ZX_PAUSE)) return 4;
     // проверить на точку останова для кода
     PC = *cpu->_PC;
-    // перехват системных процедур
-    if(trap()) return 4;
     if(checkSTATE(ZX_DEBUG)) { if(checkBPs(PC, ZX_BP_EXEC)) return 4; }
     // проверяем на возможность прерывания
     int tick = 0;
@@ -618,6 +640,8 @@ int zxALU::step(bool interrupt) {
         if((tick = cpu->signalINT()))
             return tick;
     }
+    // перехват системных процедур
+    trap();
     // выполнение инструкции процессора
     return cpu->step();
 }
@@ -809,7 +833,7 @@ const char *zxALU::programName(const char *nm) {
     return name.c_str();
 }
 
-bool zxALU::trap() {
+void zxALU::trap() {
     if(PC < 16384) {
         // активность TR DOS
         if (!checkSTATE(ZX_TRDOS)) {
@@ -818,7 +842,6 @@ bool zxALU::trap() {
                 if(*_ROM == 1) {
                     *_STATE |= ZX_TRDOS;
                     setPages();
-                    return true;
                 }
             }
             bool success = false;
@@ -840,20 +863,19 @@ bool zxALU::trap() {
             setPages();
         }
     }
-    return false;
 }
 
 void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
     auto port = (uint16_t)(A0A7 | (A8A15 << 8));
     if(checkSTATE(ZX_DEBUG)) { if(checkBPs(port, ZX_BP_WPORT)) return; }
-//    if(*_MODEL == MODEL_SCORPION && (port & 0xD027) == 0x1025) {
-    if(*_MODEL == MODEL_SCORPION && port == 0x1FFD) {
+    if(*_MODEL == MODEL_SCORPION && (port & 0xD027) == 0x1025) {
+//    if(*_MODEL == MODEL_SCORPION && port == 0x1FFD) {
         // A0, A2, A5, A12 = 1; A1, A14, A15 = 0
         write1FFD(val);
-        LOG_DEBUG("1FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
+//        LOG_DEBUG("1FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
     } else if((port & 0xD027) == 0x5025) {
         write7FFD(val);
-        LOG_DEBUG("7FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
+//        LOG_DEBUG("7FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
     } else if(checkSTATE(ZX_TRDOS) && (A0A7 == 0x1F || A0A7 == 0x3F || A0A7 == 0x5F || A0A7 == 0x7F || A0A7 == 0xFF)) {
         disk->vg93_write(A0A7, val);
     } else if (port == 0xBFFD) {
@@ -874,7 +896,7 @@ void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
         colorBorder = val & 7U;
         tape->writePort(val);
     } else {
-        LOG_DEBUG("UNKNOWN PORT (%02X%02X(%i) - PC: %i", A8A15, A0A7, val, PC);
+        //LOG_DEBUG("WRITE UNKNOWN PORT (%02X%02X(%i) - PC: %i", A8A15, A0A7, val, PC);
     }
 }
 
@@ -893,10 +915,12 @@ void zxALU::write1FFD(uint8_t val) {
 }
 
 void zxALU::write7FFD(uint8_t val) {
-    // 1, 2, 4 - страница 0-7
-    // 8 - экран 5/7
-    // 16 - ПЗУ 0 - 128К 1 - 48К
-    // 32 - блокировка
+    // 0, 1, 2 - страница 0-7
+    // 3 - экран 5/7
+    // 4 - ПЗУ 0 - 128К 1 - 48К
+    // 5 - блокировка
+    // 6 - pentagon256
+    // 7 - pentagon512
     if(*_MODEL >= MODEL_128) {
         if (*_7FFD & 32) return;
         *_7FFD = val;
@@ -929,7 +953,9 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
         }
         ret = (A0A7 | tape->readPort());
     } else if((port & 0xD027) == 0x5025) {
-        ret = 0;//*_7FFD;
+        if(*_MODEL == MODEL_PENTAGON) {
+            ret = 64;//*_7FFD;
+        } else ret = 0;
         LOG_DEBUG("7FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
     } else if((port & 0xD027) == 0x1025) {
         ret = 0;//*_1FFD;
@@ -941,10 +967,12 @@ uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
         // FF
     } else if(A0A7 == 0xBF) {
         // COVOX
+        ret = 0;
     } else if(A0A7 == 0xDF) {
+        ret = 0;
         // ??
     } else {
-        LOG_DEBUG("UNKNOWN PORT %X%X PC: %i", A8A15, A0A7, PC);
+        //LOG_DEBUG("READ UNKNOWN PORT %X%X PC: %i", A8A15, A0A7, PC);
     }
     return ret;
 }
@@ -960,6 +988,19 @@ int zxALU::diskOperation(int num, int ops, const char* path) {
         case 5: ret = openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx");
     }
     return ret;
+}
+
+void zxALU::quickSave() {
+    static char buf[256];
+    static zxFile file;
+    int a = 0;
+    while(true) {
+        sprintf(buf, "%sSAVERS/%s_%02i.z80", FOLDER_FILES.c_str(), name.c_str(), a);
+        if(!file.open(buf, zxFile::open_read)) break;
+        file.close();
+        a++;
+    }
+    saveZ80(strstr(buf, "SAVERS/"));
 }
 
 #pragma clang diagnostic pop

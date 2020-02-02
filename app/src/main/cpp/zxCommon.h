@@ -96,8 +96,6 @@ enum ZX_STATE {
     ZX_DEBUG= 0x20, // режим отладки активирован
 };
 
-constexpr int ZX_ROM_TRDOS              = 10 << 14;
-
 // Разделяемые свойства
 // 0. Байтовые значения, вычисляемые во время работы программы
 //constexpr int ZX_PROP_JOY_TYPE        = 70; // Текущий тип джойстика
@@ -122,22 +120,15 @@ constexpr int ZX_PROP_SND_BP          = 134; // Признак запуска б
 constexpr int ZX_PROP_SND_AY          = 135; // Признак запуска AY
 constexpr int ZX_PROP_EXECUTE         = 136; // Признак выполнения программы
 constexpr int ZX_PROP_SHOW_HEX        = 137; // Признак 16-тиричного вывода
-//constexpr int ZX_PROP_SHOW_DEBUGGER   = 138; // Признак режима отладчика
-//constexpr int ZX_PROP_SHOW_ADDRESS    = 139; // Признак отображения адреса инструкции
-//constexpr int ZX_PROP_SHOW_CODE       = 140; // Признак отображения кода инструкции
-//constexpr int ZX_PROP_SHOW_CODE_VALUE = 141; // Признак отображения содержимого по коду
 
 // 2. Байтовые значения
-constexpr int ZX_PROP_ACTIVE_DISK     = 150; // Номер активного диска
-constexpr int ZX_PROP_BORDER_SIZE     = 151; // Размер границы
-constexpr int ZX_PROP_MODEL_TYPE      = 152; // Модель памяти
-constexpr int ZX_PROP_SND_TYPE_AY     = 153; // Раскладка каналов в звуковом процессоре AY
-constexpr int ZX_PROP_SND_FREQUENCY   = 154; // Частота звука
-constexpr int ZX_PROP_SND_VOLUME_BP   = 155; // Громкость бипера
-constexpr int ZX_PROP_SND_VOLUME_AY   = 156; // Громкость AY
-constexpr int ZX_PROP_CPU_SPEED       = 157; // Скорость процессора
-//constexpr int ZX_PROP_KEY_SIZE        = 158; // Размер экранной клавиатуры
-//constexpr int ZX_PROP_JOY_SIZE        = 159; // Размер экранного джойстика
+constexpr int ZX_PROP_BORDER_SIZE     = 150; // Размер границы
+constexpr int ZX_PROP_MODEL_TYPE      = 151; // Модель памяти
+constexpr int ZX_PROP_SND_TYPE_AY     = 152; // Раскладка каналов в звуковом процессоре AY
+constexpr int ZX_PROP_SND_FREQUENCY   = 153; // Частота звука
+constexpr int ZX_PROP_SND_VOLUME_BP   = 154; // Громкость бипера
+constexpr int ZX_PROP_SND_VOLUME_AY   = 155; // Громкость AY
+constexpr int ZX_PROP_CPU_SPEED       = 156; // Скорость процессора
 
 // 3. Целые значения
 constexpr int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
@@ -147,14 +138,11 @@ constexpr int ZX_PROP_BPS             = 192; // значения точек ос
 
 constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 
-// Модели памяти
-//constexpr int MODEL_KOMPANION         = 0; // Компаньон 2.02 48К
+// Модели памяти при загрузке *.Z80
 constexpr int MODEL_48                = 1; // Синклер 48К
-//constexpr int MODEL_48N               = 2; // Новый синклер 48К
 constexpr int MODEL_128               = 3; // Синклер 128К
 constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
 constexpr int MODEL_SCORPION          = 5; // Скорпион 256К
-//constexpr int MODEL_PROFI             = 6; // Profi 256К
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -200,6 +188,7 @@ constexpr int ZX_CMD_MOVE_PC            = 11;// Выполнение сдвиг�
 constexpr int ZX_CMD_JUMP               = 12;// Получение адреса в памяти/адреса перехода в инструкции
 constexpr int ZX_CMD_MAGIC              = 13;// Нажатие на кнопку MAGIC
 constexpr int ZX_CMD_DISK_OPS           = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
+constexpr int ZX_CMD_QUICK_SAVE         = 15; // Быстрое сохранение
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
@@ -263,12 +252,7 @@ inline uint8_t rm8(uint16_t address) { return *realPtr(address); }
 inline uint16_t rm16(uint16_t address) { return (rm8(address) | (rm8((uint16_t) (address + 1)) << 8)); }
 
 // пишем в память 8 битное значение
-inline void wm8(uint8_t* address, uint8_t val) {
-    auto broms = ALU->ROMs;
-    auto eroms = &ALU->ROMs[262144];
-    if (address >= broms && address < eroms) return;
-    *address = val;
-}
+inline void wm8(uint8_t* address, uint8_t val) { if(address < ALU->ROMb || address > ALU->ROMe) *address = val;}
 
 // возвращает количество миллисекунд
 inline u_long currentTimeMillis() {

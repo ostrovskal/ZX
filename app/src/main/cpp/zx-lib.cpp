@@ -85,6 +85,7 @@ extern "C" {
             std::string tap("TAP/");
             std::string trdos("TRDOS/");
             std::string path("");
+            zxFile::makeDir(zxFile::makePath("SAVERS", true).c_str());
             zxFile::makeDir(zxFile::makePath("Z80", true).c_str());
             zxFile::makeDir(zxFile::makePath("TAP", true).c_str());
             zxFile::makeDir(zxFile::makePath("TRDOS", true).c_str());
@@ -107,9 +108,9 @@ extern "C" {
             copyAssetsFile(amgr, "tapLoad48.zx", "tapLoad48.zx");
             copyAssetsFile(amgr, "trdosLoad128.zx", "trdosLoad128.zx");
             copyAssetsFile(amgr, "trdosLoad48.zx", "trdosLoad48.zx");
+            copyAssetsFile(amgr, "rom.zx", "rom.zx");
         }
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
-        copyAssetsFile(amgr, "zx.rom", nullptr, &ALU->ROMs);
         copyAssetsFile(amgr, "scorpion8.mem", nullptr, &ALU->page8);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true);
         if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
@@ -136,7 +137,7 @@ extern "C" {
         char* ret = nullptr;
         idx += ZX_PROP_FIRST_LAUNCH;
         uint32_t n = opts[idx];
-        if(idx < ZX_PROP_ACTIVE_DISK) ret = ssh_ntos(&n, RADIX_BOL);
+        if(idx < ZX_PROP_BORDER_SIZE) ret = ssh_ntos(&n, RADIX_BOL);
         else if(idx < ZX_PROP_COLORS) ret = ssh_ntos(&n, RADIX_DEC);
         else if(idx < (ZX_PROP_COLORS + 22)) {
             n = *(uint32_t*)(opts + (ZX_PROP_COLORS + (idx - ZX_PROP_COLORS) * 4));
@@ -158,7 +159,7 @@ extern "C" {
         auto kv = env->GetStringUTFChars(key, nullptr);
         if(kv) {
             idx += ZX_PROP_FIRST_LAUNCH;
-            if (idx < ZX_PROP_ACTIVE_DISK) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_BOL);
+            if (idx < ZX_PROP_BORDER_SIZE) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_BOL);
             else if (idx < ZX_PROP_COLORS) opts[idx] = *(uint8_t *) ssh_ston(kv, RADIX_DEC);
             else if (idx < (ZX_PROP_COLORS + 22))
                 *(uint32_t *) (opts + (ZX_PROP_COLORS + (idx - ZX_PROP_COLORS) * 4)) = *(uint32_t *) ssh_ston(kv, RADIX_HEX);
@@ -205,6 +206,7 @@ extern "C" {
             case ZX_CMD_TAPE_COUNT:ret = ALU->tape->countBlocks; break;
             case ZX_CMD_MAGIC:     ALU->cpu->signalNMI(); break;
             case ZX_CMD_DISK_OPS:  ret = ALU->diskOperation(arg1, arg2, env->GetStringUTFChars(arg3, nullptr)); break;
+            case ZX_CMD_QUICK_SAVE:ALU->quickSave(); break;
         }
         return ret;
     }

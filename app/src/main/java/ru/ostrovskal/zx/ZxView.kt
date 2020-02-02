@@ -8,10 +8,12 @@ import android.view.SurfaceHolder
 import android.view.View
 import ru.ostrovskal.sshstd.Common.ACT_INIT_SURFACE
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
-import ru.ostrovskal.sshstd.utils.*
+import ru.ostrovskal.sshstd.utils.action
+import ru.ostrovskal.sshstd.utils.i
+import ru.ostrovskal.sshstd.utils.send
+import ru.ostrovskal.sshstd.utils.toBoolean
 import ru.ostrovskal.sshstd.widgets.Controller
 import ru.ostrovskal.zx.ZxCommon.*
-import java.util.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -130,10 +132,6 @@ class ZxView(context: Context) : GLSurfaceView(context) {
                 RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal, a1 =
                 if (loading) R.string.ioLoadError else R.string.ioSaveError
             )
-        } else if(loading) {
-            // установить имя активного диска
-            if(name.substringAfterLast('.').toLowerCase(Locale.ROOT) == "trd")
-                "disk${ZxWnd.props[ZX_PROP_ACTIVE_DISK]}".s = name
         }
         return result
     }
