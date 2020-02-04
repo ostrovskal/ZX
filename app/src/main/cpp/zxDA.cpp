@@ -42,7 +42,6 @@ int zxDA::getOperand(uint8_t o, uint8_t oo, int prefix, uint16_t* v16, uint16_t 
 MNEMONIC* zxDA::skipPrefix(uint16_t* pc, uint16_t* code, int* pref, int* prefix, int* ticks, uint16_t* v, uint8_t* offs) {
     int offset(0), pr(0), cod(0);
     MNEMONIC* m(nullptr);
-
     while(true) {
         cod = rm8((*pc)++) + offset;
         *code = (uint16_t)cod;

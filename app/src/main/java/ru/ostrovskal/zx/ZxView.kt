@@ -117,7 +117,8 @@ class ZxView(context: Context) : GLSurfaceView(context) {
         if (wnd.zxInitialize) {
             val result = ZxWnd.zxExecute()
             if (result != 0) {
-                wnd.hand?.send(RECEPIENT_FORM, result, a1 = ZxWnd.read16(ZX_CPU_PC), a2 = ZX_ALL)
+                // обновление клавы/точка останова
+                wnd.hand?.send(RECEPIENT_FORM, result, a1 = ZxWnd.read16(ZX_CPU_PC), a2 = ZX_ALL, o = "true")
             }
         }
     }
@@ -137,11 +138,9 @@ class ZxView(context: Context) : GLSurfaceView(context) {
     }
 
     fun updateJoy() {
-/*
         var show = !ZxWnd.props[ZX_PROP_SHOW_DEBUGGER].toBoolean
         if(show) show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
-*/
-        val show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
+//      val show = ZxWnd.props[ZX_PROP_SHOW_JOY].toBoolean
         val isv = if (show) View.VISIBLE else View.GONE
         val size = 80 + ZxWnd.props[ZX_PROP_JOY_SIZE].toInt() * 40
         val mx = wnd.main.measuredWidth

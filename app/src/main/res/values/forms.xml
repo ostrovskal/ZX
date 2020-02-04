@@ -4,7 +4,6 @@
     <string name="tag_settings" translatable="false">settings</string>
     <string name="tag_io" translatable="false">io</string>
     <string name="tag_pokes" translatable="false">pokes</string>
-    <string name="tag_cloud" translatable="false">cloud</string>
     <string name="tag_bps" translatable="false">bps</string>
     <string name="tag_disk" translatable="false">disk</string>
 
@@ -12,7 +11,6 @@
     <string name="clazz_settings" translatable="false">ru.ostrovskal.zx.forms.ZxFormSettings</string>
     <string name="clazz_io" translatable="false">ru.ostrovskal.zx.forms.ZxFormIO</string>
     <string name="clazz_pokes" translatable="false">ru.ostrovskal.zx.forms.ZxFormPokes</string>
-    <string name="clazz_cloud" translatable="false">ru.ostrovskal.zx.forms.ZxFormCloud</string>
     <string name="clazz_bps" translatable="false">ru.ostrovskal.zx.forms.ZxFormBreakPoints</string>
     <string name="clazz_disk" translatable="false">ru.ostrovskal.zx.forms.ZxFormDisk</string>
 

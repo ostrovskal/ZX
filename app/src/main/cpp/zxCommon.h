@@ -107,6 +107,7 @@ constexpr int ZX_PROP_KEY_MODE        = 82; // Режим клавиатуры (
 constexpr int ZX_PROP_VALUES_SEMI_ROW = 83; // Значения в полурядах клавиатуры (8) 93 - 100
 constexpr int ZX_PROP_VALUES_KEMPSTON = 91; // Значение для кемпстон-джойстика
 constexpr int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
+constexpr int ZX_PROP_PORT_FEFC       = 93; // Значение передаваемое в порт компаньона
 constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 
 // 1. Булевы значения
@@ -139,6 +140,7 @@ constexpr int ZX_PROP_BPS             = 192; // значения точек ос
 constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 
 // Модели памяти при загрузке *.Z80
+constexpr int MODEL_KOMPANION         = 0; // Компаньон
 constexpr int MODEL_48                = 1; // Синклер 48К
 constexpr int MODEL_128               = 3; // Синклер 128К
 constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
@@ -189,6 +191,14 @@ constexpr int ZX_CMD_JUMP               = 12;// Получение адреса 
 constexpr int ZX_CMD_MAGIC              = 13;// Нажатие на кнопку MAGIC
 constexpr int ZX_CMD_DISK_OPS           = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
 constexpr int ZX_CMD_QUICK_SAVE         = 15; // Быстрое сохранение
+
+constexpr int ZX_DISK_OPS_GET_READONLY  = 0; //
+constexpr int ZX_DISK_OPS_EJECT         = 1; //
+constexpr int ZX_DISK_OPS_OPEN          = 2; //
+constexpr int ZX_DISK_OPS_SAVE          = 3; //
+constexpr int ZX_DISK_OPS_SET_READONLY  = 4; //
+constexpr int ZX_DISK_OPS_TRDOS         = 5; //
+constexpr int ZX_DISK_OPS_RSECTOR       = 6; //
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
@@ -243,7 +253,7 @@ int parseExtension(const char* name);
 inline uint8_t* realPtr(uint16_t address) { return &zxALU::memPAGES[address >> 14][address & 16383]; }
 
 // проверка на состояние
-inline bool checkSTATE(uint8_t state) { return (*zxALU::_STATE & state); }
+inline bool checkSTATE(uint8_t state) { return (*zxALU::_STATE & (state)); }
 
 // читаем 8 бит из памяти
 inline uint8_t rm8(uint16_t address) { return *realPtr(address); }

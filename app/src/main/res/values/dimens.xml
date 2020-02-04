@@ -4,7 +4,7 @@
     <dimen name="ioHeight">285dp</dimen>
     <dimen name="diskWidth">400dp</dimen>
     <dimen name="diskHeight">300dp</dimen>
-    <dimen name="cloudWidth">400dp</dimen>
+    <dimen name="cloudWidth">370dp</dimen>
     <dimen name="cloudHeight">200dp</dimen>
     <dimen name="pokeWidth">270dp</dimen>
     <dimen name="pokeHeight">150dp</dimen>
@@ -17,4 +17,5 @@
     <dimen name="heightBps">295dp</dimen>
     <dimen name="debuggerTextList">10sp</dimen>
     <dimen name="paddingHorzDebEdit">3dp</dimen>
+    <dimen name="paddingZxEditEx">0dp</dimen>
 </resources>

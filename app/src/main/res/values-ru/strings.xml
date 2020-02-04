@@ -15,7 +15,8 @@
     <string name="menuTurbo">Турбо режим</string>
     <string name="menuFilter">Фильтрация</string>
     <string name="menuTape">Захват ленты</string>
-    <string name="menuDebugger">Отладчик</string>
+    <string name="menuDebugger">Отладка</string>
+    <string name="menuExeDebugger">Отладчик…</string>
     <string name="menuKompanion">Компаньон 48K</string>
     <string name="menuSinclair48">Синклер 48K</string>
     <string name="menuSinclair48n">Синклер2006 48К</string>
@@ -23,7 +24,6 @@
     <string name="menuPentagon">Пентагон 128K</string>
     <string name="menuScorpion">Скорпион 256K</string>
     <string name="menuPlus2">Sinclair +2</string>
-    <string name="menuPlus2a">Sinclair +2a</string>
     <string name="menuPlus3">Sinclair +3</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Клавиатура/Джойстик</string>

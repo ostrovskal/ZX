@@ -36,6 +36,7 @@ enum CPU_REGS {
     RI, RR, IFF1, IFF2, IM,
     PORT_FE, PORT_1FFD, PORT_7FFD,
     RAM, ROM, VID,
+
     // 35
     AY_REG,
     AY_AFINE, AY_ACOARSE, AY_BFINE, AY_BCOARSE, AY_CFINE, AY_CCOARSE, AY_NOISEPER, AY_ENABLE, AY_AVOL,
@@ -46,8 +47,9 @@ enum CPU_REGS {
     // 59
     STATE,
     CALL0, CALL1,
+    RUS_LAT,
     MODEL,
-    // 63
+    // 64
     COUNT_REGS
 };
 

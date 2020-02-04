@@ -68,8 +68,8 @@ public final class ZxCommon {
     public final static int ZX_CPU_RR               = 25;
     public final static int ZX_CPU_ROM              = 33;
     public final static int ZX_CPU_STATE            = 59;
+    public final static int ZX_CPU_RL               = 62;
 
-    public final static int MENU_CLOUD              = 1000;
     public final static int MENU_IO                 = 1001;
     public final static int MENU_SETTINGS           = 1002;
     public final static int MENU_PROPS              = 1003;
@@ -94,7 +94,7 @@ public final class ZxCommon {
     public final static int MENU_POKES              = 1021;
     public final static int MENU_DEBUGGER1          = 1022;
     public final static int MENU_MAGIC              = 1023;
-    public final static int MENU_QUICK_SAVE         = 1024;
+    public final static int MENU_SHOW_DEBUGGER      = 1024;
 
     public final static int MENU_MODEL_48KK         = 1300;
     public final static int MENU_MODEL_48KS         = 1301;
@@ -103,8 +103,7 @@ public final class ZxCommon {
     public final static int MENU_MODEL_PENTAGON     = 1304;
     public final static int MENU_MODEL_SCORPION     = 1305;
     public final static int MENU_MODEL_PLUS2        = 1306;
-    public final static int MENU_MODEL_PLUS2A       = 1307;
-    public final static int MENU_MODEL_PLUS3        = 1308;
+    public final static int MENU_MODEL_PLUS3        = 1307;
 
     public final static int MENU_MRU_1              = 1400;
     public final static int MENU_MRU_2              = 1401;
@@ -122,9 +121,8 @@ public final class ZxCommon {
     public final static int FORM_OPTIONS            = 1;
     public final static int FORM_IO                 = 2;
     public final static int FORM_POKES              = 3;
-    public final static int FORM_LOADING            = 4;
-    public final static int FORM_BREAK_POINTS       = 5;
-    public final static int FORM_DISK               = 6;
+    public final static int FORM_BREAK_POINTS       = 4;
+    public final static int FORM_DISK               = 5;
 
     // Разделяемые свойства
 
@@ -135,6 +133,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_JOY_ACTION_VALUE= 80; // Нажатые кнопки джойстика-управления
     public static final int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
     public static final int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
+    public static final int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
 
     // 1. Булевы значения
     public static final int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
@@ -147,10 +146,11 @@ public final class ZxCommon {
     private static final int ZX_PROP_SND_AY         = 135; // Признак трехканального AY
     public static final int ZX_PROP_EXECUTE         = 136; // Признак выполнения программы
     public static final int ZX_PROP_SHOW_HEX        = 137; // Признак 16-тиричного вывода
-    public static final int ZX_PROP_SHOW_DEBUGGER   = 138; // Признак режима отладчика
+    public static final int ZX_PROP_SHOW_DEBUGGER   = 138; // Признак видимости отладчика
     public static final int ZX_PROP_SHOW_LABEL      = 139; // Признак отображения меток инструции
     public static final int ZX_PROP_SHOW_CODE       = 140; // Признак режима кода инструкции
     public static final int ZX_PROP_SHOW_CODE_VALUE = 141; // Признак режима содержимого кода
+    public static final int ZX_PROP_ACTIVE_DEBUGGING= 142; // Признак активной отладки
 
     // 2. Байтовые значения
     private static final int ZX_PROP_BORDER_SIZE    = 150; // Размер границы
@@ -169,7 +169,7 @@ public final class ZxCommon {
     // 4. Значение структур
     public static final int ZX_PROP_BPS             = 192; // значения точек останова (8 * 8) 258 - 321
 
-    public static final int ZX_PROPS_COUNT          = 410; // Размер буфера свойств
+    public static final int ZX_PROPS_COUNT          = 768; // Размер буфера свойств
     public static final int ZX_PROPS_INIT_COUNT     = (ZX_PROP_BPS - ZX_PROP_FIRST_LAUNCH) + 8; // Количество свойств
 
     // Варианты форматирования чисел
@@ -205,6 +205,7 @@ public final class ZxCommon {
     public static final int ZX_DISK_OPS_SAVE        = 3; //
     public static final int ZX_DISK_OPS_SET_READONLY= 4; //
     public static final int ZX_DISK_OPS_TRDOS       = 5; //
+    public static final int ZX_DISK_OPS_RSECTOR     = 6; //
 
     private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 
@@ -498,6 +499,26 @@ public final class ZxCommon {
             ATTR_SSH_SOLID, 0x00007f | COLOR
     };
 
+    /** Стиль по умолчанию для HTML текста */
+    public static final int[] style_zx_help = {
+            ATTR_PADDING, 2,
+            ATTR_SHADOW_TEXT, R.string.shadow_text,
+            ATTR_COLOR_LINK, 0x00ffff | COLOR,
+            ATTR_GRAVITY, Gravity.CENTER,
+            ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_NORMAL | THEME,
+            ATTR_SIZE, 12
+//            ATTR_FONT, R.string.font_small
+    };
+
+    public static final int[] style_zx_editEx              = {
+            ATTR_FOCUSABLE, 1, ATTR_CLICKABLE, 1,
+            ATTR_SSH_TILE, 47, ATTR_SSH_HORZ, 10, ATTR_SSH_VERT, 10,
+            ATTR_PADDING, R.dimen.paddingZxEditEx,
+            ATTR_SSH_GRAVITY, TILE_GRAVITY_BACKGROUND,
+            ATTR_SSH_STATES, TILE_STATE_HOVER,
+            ATTR_SSH_BITMAP_NAME, R.drawable.zx_icons
+    };
+
     /** Стиль для формы сообщений */
     public static final int[] style_form_message         = {
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_BACKGROUND | THEME,
@@ -554,17 +575,17 @@ public final class ZxCommon {
             0, 3, 0, 3, 3, 0, 6, 3, 0, 9, 3, 0, 12, 3, 0, 15, 3, 0, 18, 3, 0, 21, 3, 0, 24, 3, 0, 27, 3, 0, 30, 3, 0,
             0, 3, 1, 3, 3, 1, 6, 3, 1, 9, 3, 1, 12, 3, 1, 15, 3, 1, 18, 3, 1, 21, 3, 1, 24, 3, 1, 27, 3, 1, 30, 3, 1,
             0, 3, 2, 3, 3, 2, 6, 3, 2, 9, 3, 2, 12, 3, 2, 15, 3, 2, 18, 3, 2, 21, 3, 2, 24, 3, 2, 27, 3, 2, 30, 3, 2,
-            0, 3, 3, 3, 3, 3, 6, 3, 3, 9, 3, 3, 12, 9, 3, 21, 3, 3, 24, 3, 3, 27, 3, 3, 30, 3, 3
+            0, 3, 3, 3, 3, 3, 6, 3, 3, 9, 3, 3, 12, 6, 3, 18, 3, 3, 21, 3, 3, 24, 3, 3, 27, 3, 3, 30, 3, 3
     };
 
     public static final int[] menuProps     = {
             ZX_PROP_SHOW_KEY, ZX_PROP_SHOW_JOY, ZX_PROP_SND_LAUNCH, ZX_PROP_TRAP_TAPE, 0,
-            ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_SHOW_DEBUGGER,
+            ZX_PROP_TURBO_MODE, ZX_PROP_EXECUTE, ZX_PROP_ACTIVE_DEBUGGING,
             ZX_PROP_SHOW_LABEL, ZX_PROP_SHOW_CODE, ZX_PROP_SHOW_CODE_VALUE
     };
 
     public static final CharSequence[] names = {
-            "N/A", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "EN", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
             "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
             "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
             "PLOT", "DRAW", "REM", "RUN", "RAND", "RET", "IF", "POKE", "INPUT", "PRINT", "SIN", "COS", "TAN", "INT", "RND", "STR$", "CHR$",
@@ -574,6 +595,9 @@ public final class ZxCommon {
             "ATTR", "LN", "BEEP", "INK", "PAPER", "FLUSH", "BRIGH", "OVER", "INVER", "CONT", "CLS", "BORD", "NEXT", "PAUSE", "POINT",
             "*", "=", "<>", "<", ">", ">=", "<=", ",", "/", "?", ".", ":", ";", "&", "%", "+", "-", "_", "'", "\"", "EXP", "LPRINT", "LLIST",
             "BIN", "", "!", "#", "$", "(", ")", "@", "[", "]", "{", "}", "DEF FN", "OPEN", "CLOSE", "FORMAT", "LINE", "ERASE", "MOVE", "CAT",
-            "[C]", "[G]", "true", "inv", "SQR", "PI", "[L]", "[E]", "~", "|", "IN", "TILE", "BREAK"
+            "[C]", "[G]", "true", "inv", "SQR", "PI", "[L]", "[E]", "~", "|", "IN", "TILE", "BREAK",
+            "RU", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "Ф", "И", "С", "В", "У", "А", "П", "Р", "Ш", "О", "Л", "Д", "Ь", "Т", "Щ", "З", "Й", "К", "Ы", "Е", "Г", "М", "Ц", "Ч", "Н", "Я",
+            "ф", "и", "с", "в", "у", "а", "п", "р", "ш", "о", "л", "д", "ь", "т", "щ", "з", "й", "к", "ы", "е", "г", "м", "ц", "ч", "н", "я"
     };
 }

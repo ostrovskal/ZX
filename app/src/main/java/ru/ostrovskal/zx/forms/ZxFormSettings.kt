@@ -5,12 +5,14 @@ package ru.ostrovskal.zx.forms
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import ru.ostrovskal.sshstd.Common.*
+import ru.ostrovskal.sshstd.Config
 import ru.ostrovskal.sshstd.TileDrawable
 import ru.ostrovskal.sshstd.adapters.ArrayListAdapter
 import ru.ostrovskal.sshstd.forms.Form
@@ -22,6 +24,7 @@ import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Check
 import ru.ostrovskal.sshstd.widgets.Seek
 import ru.ostrovskal.sshstd.widgets.Text
+import ru.ostrovskal.sshstd.widgets.html.Html
 import ru.ostrovskal.sshstd.widgets.lists.Spinner
 import ru.ostrovskal.zx.R
 import ru.ostrovskal.zx.ZxCommon.*
@@ -32,11 +35,22 @@ import java.util.*
 @Suppress("unused")
 class ZxFormSettings : Form() {
     companion object {
-        private var countTapeBlocks             = 0
+        // количество блоков ленты
+        private var countTapeBlocks            = 0
+
+        // выбранный диск
+        private var numDisk                     = 0
+
+        // количество файлов на диске
+        private var countDiskFiles              = 0
+
+        // указатель на объект справки
+        private var html: Html?                = null
 
         private val tapeTypes       = listOf("BASIC", "NumberArray", "StringArray", "Bytes")
         private val settingsAY      = listOf("MONO", "ABC", "ACB")
         private val settingsFreq    = listOf("44100", "22050", "11025")
+        private val namesDisk       = listOf("A: ", "B: ", "C: ", "D: ")
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
 
@@ -180,6 +194,59 @@ class ZxFormSettings : Form() {
         }
     }
 
+    private val diskPage: TabLayout.Content.() -> View = {
+        cellLayout(10, 10) {
+            spinner(R.id.spinner1) {
+                adapter = ArrayListAdapter(context, Popup(), Item(), namesDisk)
+                itemClickListener = { _, _, p, _ ->
+                    numDisk = p
+                    var path = "disk$p".s
+                    val isEmpty = path.isBlank()
+                    if (isEmpty) path = context.getString(R.string.diskEmpty)
+                    else {
+                        // прочитать количество файлов
+                        countDiskFiles = 0
+                        // прочитать сектор каталог
+                    }
+                    // в текст поставить выбранный диск
+                    (root as? TabLayout)?.apply { currentContent.byIdx<Text>(1).text = path }
+                }
+            }.lps(0, 0, 3, 2)
+            text(R.string.app_name).lps(3, 0, 10, 2)
+            ribbon(R.id.ribbonMain, true, style_debugger_ribbon) {
+                adapter = DiskAdapter(context, DiskItem())
+                padding = 4.dp
+                backgroundSet(style_backgrnd_io)
+            }.lps(0, 2, 10, 8)
+        }
+    }
+
+    private val helpPage: TabLayout.Content.() -> View = {
+        cellLayout(30, 20) {
+            html(style_zx_help) {
+                id = R.id.htmlHelp
+                html = this
+                root = "html/game/" + Config.language
+                var key = "tool"
+                aliases["tool"] = Html.BitmapAlias(key, context.bitmapGetCache(key), 3, 1, 0, 0, 30, 30)
+                key = "sprites"
+                aliases["main"] = Html.BitmapAlias(key, context.bitmapGetCache(key), 10, 4, 0, 0, 23, 23)
+                key = "zx_icons"
+                aliases["icons"] = Html.BitmapAlias(key, context.bitmapGetCache(key), 10, 3, 0, 0, 30, 30)
+                key = "controller_zx_cross"
+                aliases["cursor"] = Html.BitmapAlias(key, context.bitmapGetCache(key), 6, 1, 0, 0, 45, 45)
+                key = "droid"
+                aliases["game_panel"] = Html.BitmapAlias(key, context.bitmapGetCache(key))
+                key = "menu_common"
+                aliases["game_record"] = Html.BitmapAlias(key, context.bitmapGetCache(key))
+            }.lps(0, 0, 30, 20)
+            button(style_debugger_action) {
+                iconResource = R.integer.I_LEFT
+                setOnClickListener { html?.back() }
+            }.lps(0, 0, 5, 4)
+        }
+    }
+
     private val tapePage: TabLayout.Content.() -> View = {
         countTapeBlocks = ZxWnd.zxCmd(ZX_CMD_TAPE_COUNT, 0, 0, "")
         cellLayout(10, 10) {
@@ -289,6 +356,9 @@ class ZxFormSettings : Form() {
                     formHeader(R.string.headSettings)
                     backgroundSet(style_form) { alpha = 192 }
                     root = tabLayout(sizeCaption = 18, style = style_tab_settings) {
+                        tabChangeListener = {tab, _ ->
+                            if(tab == 6) html?.setArticle("", 0)
+                        }
                         caption.apply {
                             backgroundSet { alpha = 192; gradient = xyInt; xyInt[0] = Color.BLACK; xyInt[1] = Color.BLUE }
                         }
@@ -300,6 +370,8 @@ class ZxFormSettings : Form() {
                         page(R.id.pageJoy, nIcon = R.integer.I_JOY, init = joyPage)
                         page(R.id.pageScreen, nIcon = R.integer.I_DISPLAY, init = screenPage)
                         page(R.id.pageTape, nIcon = R.integer.I_CASSETE, init = tapePage)
+                        page(R.id.pageDisk, nIcon = R.integer.I_DISK, init = diskPage)
+                        page(R.id.pageHelp, nIcon = R.integer.I_HELP, init = helpPage)
                     }.lps(0, 0, 10, 12)
                     formFooter(BTN_OK, R.integer.I_YES, BTN_NO, R.integer.I_NO, BTN_DEF, R.integer.I_DEFAULT)
                 }.lps(Theme.dimen(ctx, R.dimen.settingsWidth), Theme.dimen(ctx, R.dimen.settingsHeight))
@@ -481,5 +553,37 @@ class ZxFormSettings : Form() {
                 layoutParams = LinearLayout.LayoutParams(110.dp, MATCH)
             }
         }
+    }
+
+    class DiskItem : UiComponent() {
+        override fun createView(ui: UiCtx) = ui.run { text(R.string.null_text, style_debugger_item).apply { padding = 3.dp; typeface = Typeface.MONOSPACE } }
+    }
+
+    inner class DiskAdapter(context: Context, item: UiComponent) : ArrayListAdapter<String>(context, item, item, listOf("")) {
+        override fun getItem(position: Int): String {
+/*
+            val idx = position * 8 + 258
+            val pos = position + 1
+            val flag = ZxWnd.props[idx + 7]
+            if(flag != ZX_BP_NONE) {
+                val tp = ZxFormBreakPoints.type[flag.toInt()]
+                val addr1 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx), ZX_FV_OPS16, true)
+                val addr2 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx + 2), ZX_FV_OPS16, true)
+                return if(flag == ZX_BP_EXEC) {
+                    "$pos\t\t$addr1\t-\t$addr2\t\t---\t\t---\t\t--\t\t$tp"
+                } else {
+                    val value = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 4), ZX_FV_OPS8, true)
+                    val mask = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 5), ZX_FV_OPS8, true)
+                    val cond = ZxFormBreakPoints.cond[ZxWnd.props[idx + 6].toInt()]
+                    "$pos\t\t$addr1\t-\t$addr2\t\t$value\t\t$mask\t\t$cond\t\t$tp"
+                }
+            }
+            return "$pos\t\t-----\t-\t-----\t\t---\t\t---\t\t--"
+*/
+            return "serg"
+        }
+        override fun getCount() = countDiskFiles
+
+        override fun getItemId(position: Int) = -1L
     }
 }

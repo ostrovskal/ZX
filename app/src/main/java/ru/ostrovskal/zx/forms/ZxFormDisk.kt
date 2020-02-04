@@ -33,6 +33,7 @@ class ZxFormDisk : Form() {
     // список расщирений
     private val validExt        = listOf(".trd", ".fdi", ".scl")
 
+    // имена дисков
     private val diskInsert      = listOf("A: ", "B: ", "C: ", "D: ")
 
     // список файлов
@@ -56,7 +57,7 @@ class ZxFormDisk : Form() {
     override fun inflateContent(container: LayoutInflater): UiCtx {
         return ui {
             linearLayout {
-                root = cellLayout(15, 18, 1.dp) {
+                root = cellLayout(16, 18, 1.dp) {
                     formHeader(R.string.headDisk)
                     backgroundSet(Common.style_form)
                     spinner(R.id.spinner1) {
@@ -82,17 +83,17 @@ class ZxFormDisk : Form() {
                     check(R.id.button1, R.string.checkReadOnly) {
                         setOnClickListener {
                             val check = root.byIdx<Check>(3).isChecked
-                            ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_OPS_SET_READONLY or (check.toInt shl 7), "")
+                            ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk or (check.toInt shl 7), ZX_DISK_OPS_SET_READONLY, "")
                         }
                     }.lps(10, 14, 5, 2)
                     editEx(R.id.edit1, R.string.hintName, style_edit_zx) {
                         maxLength = 40
                         changeTextLintener = { update() }
                     }.lps(0, 2, 10, 3)
-                    button {
+                    button(style_debugger_action) {
                         // вставить
                         isEnabled = false
-                        iconResource = R.integer.I_BOX
+                        iconResource = R.integer.I_INSERT
                         setOnClickListener {
                             if(ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_OPS_OPEN, filePath) != 0) {
                                 val check = root.byIdx<Check>(3).isChecked
@@ -101,16 +102,16 @@ class ZxFormDisk : Form() {
                                 root.byIdx<Text>(2).text = filePath
                             }
                         }
-                    }.lps(10, 2, 5, 2)
-                    button {
+                    }.lps(10, 2, 3, 4)
+                    button(style_debugger_action) {
                         // записать
                         isEnabled = false
                         iconResource = R.integer.I_SAVE
                         setOnClickListener {
                             ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_OPS_SAVE, filePath)
                         }
-                    }.lps(10, 4, 5, 2)
-                    button {
+                    }.lps(13, 2, 3, 4)
+                    button(style_debugger_action) {
                         // удалить
                         isEnabled = false
                         iconResource = R.integer.I_DELETE
@@ -121,33 +122,46 @@ class ZxFormDisk : Form() {
                                 fp = filePath.replace("[", "").replace("]", "")
                             }
                             File(Common.folderFiles + fp).delete()
-                            root.byIdx<Edit>(1).setText("")
+                            root.byIdx<Edit>(4).setText("")
+                            // проверить - если этот файл был подключен - сделать eject
+                            repeat(4) { num ->
+                                val dsk = "disk$num"
+                                if(dsk.s == fp) {
+                                    ZxWnd.zxCmd(ZX_CMD_DISK_OPS, num, ZX_DISK_OPS_EJECT, fp)
+                                    dsk.s = ""
+                                    if(num == numDisk) {
+                                        // убрать текст
+                                        isEmpty = true
+                                        root.byIdx<Text>(2).text = context.getString(R.string.diskEmpty)
+                                    }
+                                }
+                            }
                             updateFiles(true)
                         }
-                    }.lps(10, 6, 5, 2)
-                    button {
+                    }.lps(10, 6, 3, 4)
+                    button(style_debugger_action) {
                         // извлечь
                         isEnabled = false
-                        iconResource = R.integer.I_BOX
+                        iconResource = R.integer.I_EJECT
                         setOnClickListener {
                             ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_OPS_EJECT, "")
                             "disk$numDisk".s = ""
                             root.byIdx<Text>(2).text = context.getString(R.string.diskEmpty)
                         }
-                    }.lps(10, 8, 5, 2)
-                    button {
+                    }.lps(13, 6, 3, 4)
+                    button(style_debugger_action) {
                         // TRDOS
-                        iconResource = R.integer.I_DISK
+                        iconResource = R.integer.I_TRDOS
                         setOnClickListener {
                             ZxWnd.zxCmd(ZX_CMD_DISK_OPS, 0, ZX_DISK_OPS_TRDOS, "")
                             footer(Common.BTN_OK, 0)
                         }
-                    }.lps(10, 10, 5, 2)
-                    button {
+                    }.lps(10, 10, 3, 4)
+                    button(style_debugger_action) {
                         // закрыть
                         iconResource = R.integer.I_CLOSE
                         setOnClickListener { footer(Common.BTN_OK, 0) }
-                    }.lps(10, 12, 5, 2)
+                    }.lps(13, 10, 3, 4)
                     ribbon(R.id.ribbonMain) {
                         requestFocus()
                         itemClickListener = {_, v, _, _ ->

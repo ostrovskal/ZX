@@ -11,6 +11,7 @@
 #include "zxSound.h"
 #include "zxGPU.h"
 #include "zxBetaDisk.h"
+#include "zxFDD.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -149,9 +150,6 @@ public:
     // буфер ПЗУ бета диска
     uint8_t *ROMtr;
 
-    // 8 страница скорпиона
-    uint8_t *page8;
-
     // процессор
     zxCPU* cpu;
 
@@ -209,7 +207,7 @@ protected:
     // TSTATES
     int stateUP, stateLP, stateRP, stateDP;
 
-    // остаток TSTATE
+    // остаток TSTATES
     int deltaTSTATE;
 
     // старое значение кнопок джойстика
@@ -225,7 +223,7 @@ protected:
     zxSound* snd;
 
     // дисковод
-    zxBetaDisk* disk;
+    zxVG93* disk;
 
     // имя проги
     std::string name;

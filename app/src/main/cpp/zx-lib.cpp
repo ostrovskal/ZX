@@ -111,7 +111,6 @@ extern "C" {
             copyAssetsFile(amgr, "rom.zx", "rom.zx");
         }
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
-        copyAssetsFile(amgr, "scorpion8.mem", nullptr, &ALU->page8);
         ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true);
         if(!error) ALU->load(autoSavePath, ZX_CMD_IO_STATE);
     }
@@ -192,7 +191,7 @@ extern "C" {
         int ret(0);
         switch(cmd) {
             case ZX_CMD_POKE:      ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
-            case ZX_CMD_UPDATE_KEY:ALU->updateKeys(arg1, arg2); break;
+            case ZX_CMD_UPDATE_KEY:ret = ALU->updateKeys(arg1, arg2); break;
             case ZX_CMD_PROPS:     ALU->updateProps(arg1); break;
             case ZX_CMD_MODEL:     ALU->changeModel(opts[ZX_PROP_MODEL_TYPE], true); break;
             case ZX_CMD_RESET:     ALU->signalRESET(true); break;

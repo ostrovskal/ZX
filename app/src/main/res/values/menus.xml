@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <resources>
-    <integer name="MENU_CLOUD">1000</integer>
     <integer name="MENU_IO">1001</integer>
     <integer name="MENU_SETTINGS">1002</integer>
     <integer name="MENU_PROPS">1003</integer>
@@ -23,7 +22,7 @@
     <integer name="MENU_POKES">1021</integer>
     <integer name="MENU_DEBUGGER1">1022</integer>
     <integer name="MENU_MAGIC">1023</integer>
-    <integer name="MENU_QUICK_SAVE">1024</integer>
+    <integer name="MENU_SHOW_DEBUGGER">1024</integer>
 
     <integer name="MENU_MODEL_48KK">1300</integer>
     <integer name="MENU_MODEL_48KS">1301</integer>
@@ -32,8 +31,7 @@
     <integer name="MENU_MODEL_PENTAGON">1304</integer>
     <integer name="MENU_MODEL_SCORPION">1305</integer>
     <integer name="MENU_MODEL_PLUS2">1306</integer>
-    <integer name="MENU_MODEL_PLUS2A">1307</integer>
-    <integer name="MENU_MODEL_PLUS3">1308</integer>
+    <integer name="MENU_MODEL_PLUS3">1307</integer>
     <integer name="MENU_MRU_1">1400</integer>
     <integer name="MENU_MRU_2">1401</integer>
     <integer name="MENU_MRU_3">1402</integer>

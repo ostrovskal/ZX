@@ -91,7 +91,23 @@ class ZxFormMain: Form() {
             ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal,
             ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal            -> zxview?.callAction(msg)
             ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
-            ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> debugger.update(msg.arg1, msg.arg2)
+            ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> {
+                msg.obj?.apply {
+                    val msk = msg.obj.toString().toBoolean()
+                    ZxWnd.props[ZX_PROP_SHOW_DEBUGGER] = msk.toByte
+                    if(msk) {
+                        ZxWnd.props[ZX_PROP_ACTIVE_DEBUGGING] = 1
+                        ZxWnd.modifyState(ZX_DEBUGGER, 0)
+                    }
+                    // спрятать/показать элемент клавы / вытащить/спрятать элемент отладчика
+                    (wnd as? ZxWnd)?.apply {
+                        menu.findItem(R.integer.MENU_KEYBOARD)?.isVisible = !msk
+                        menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = msk
+                    }
+                    wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
+                }
+                debugger.update(msg.arg1, msg.arg2)
+            }
             ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal -> updateLayout()
             ZxWnd.ZxMessages.ACT_IO_ERROR.ordinal           -> {
                 ZxFormMessage().show(wnd, intArrayOf(R.string.app_name, msg.arg1, R.integer.I_YES, 0, 0, 280.dp, 160.dp))

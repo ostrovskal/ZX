@@ -74,8 +74,8 @@
         <item>debugger_label,false</item>
         <item>debugger_code,true</item>
         <item>debugger_value,true</item>
+        <item>debugging,false</item>
 
-        <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
@@ -177,11 +177,6 @@
         <item>@string/clazz_pokes</item>
         <item>0</item>
         <item>@string/tag_pokes</item>
-        <item>0</item>
-
-        <item>@string/clazz_cloud</item>
-        <item>0</item>
-        <item>@string/tag_cloud</item>
         <item>0</item>
 
         <item>@string/clazz_bps</item>

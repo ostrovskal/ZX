@@ -17,7 +17,7 @@ static SLresult slres;
 static bool isPlaying = false;
 
 zxSound::zxSound() : isInit(false), isEnabled(false), tsmax(0), sound_stereo_ay(-1),
-                    engineObj(nullptr), mixObj(nullptr), playerObj(nullptr),
+                    engineObj(nullptr), mixObj(nullptr), playerObj(nullptr), player(nullptr), bufferQueue(nullptr),
                     frequency(1), sndBuf(nullptr), sndPlayBuf(nullptr), psgap(250), beeperLastPos(0) {
     sound_stereo_ay_narrow = 0;
 }
@@ -135,6 +135,9 @@ void zxSound::reset() {
 
     countSamplers = 0;
 
+    if(bufferQueue) (*bufferQueue)->Clear(bufferQueue);
+    memset(sndPlayBuf, 0, sndBufSize * 2 * sizeof(short));
+
     isPlaying = false;
 
     for(f = 0; f < 16; f++) ayWrite((uint8_t)f, 0, 0);
@@ -150,7 +153,7 @@ void zxSound::ayWrite(uint8_t reg, uint8_t val, uint32_t tick) {
     if(bufferQueue && isAyEnabled) {
         if (reg < 16) {
             if (countSamplers < AY_SAMPLERS) {
-                samplers[countSamplers].tstates = tick;
+                samplers[countSamplers].tstates = tick % ALU->machine->tsTotal;
                 samplers[countSamplers].reg = reg;
                 samplers[countSamplers].val = val;
                 countSamplers++;
@@ -294,7 +297,7 @@ void zxSound::beeperWrite(uint8_t on) {
     if(isBpEnabled && opts[ZX_PROP_EXECUTE]) {
         int f;
 
-        auto tstates = zxALU::_TICK;
+        auto tstates = zxALU::_TICK % ALU->machine->tsTotal;
 
         auto val = (on ? -ampBeeper : ampBeeper);
         if(val == beeperOrigVal) return;
@@ -343,11 +346,11 @@ int zxSound::update() {
         silent_level = sndBuf[fulllen - 1];
 
         if(!silent) {
-            //while (isPlaying) {}
+            int delay = 1000000;
+            while (isPlaying && delay-- > 0) {}
             isPlaying = true;
             memcpy(sndPlayBuf, sndBuf, fulllen * sizeof(short));
-            slres = (*bufferQueue)->Enqueue(bufferQueue, sndPlayBuf, (uint32_t) fulllen * sizeof(short));
-            //if (slres != SL_RESULT_SUCCESS) isPlaying = false;
+            (*bufferQueue)->Enqueue(bufferQueue, sndPlayBuf, (uint32_t) fulllen * sizeof(short));
         }
     }
     beeperOldPos = -1;
@@ -356,7 +359,9 @@ int zxSound::update() {
     return !silent;
 }
 
-void callback_ay8912(SLBufferQueueItf, void*) {
+void callback_ay8912(SLBufferQueueItf, void* pThis) {
+    auto snd = (zxSound*)pThis;
+    //memset(snd->sndPlayBuf, 0, snd->sndBufSize * 2 * sizeof(short));
     isPlaying = false;
 }
 
@@ -399,8 +404,8 @@ void zxSound::makePlayer(bool stereo) {
         SL_SUCCESS((*playerObj)->GetInterface(playerObj, SL_IID_PLAY, &player), "Error GetInterface SL_IID_PLAY (%X)");
         SL_SUCCESS((*playerObj)->GetInterface(playerObj, SL_IID_BUFFERQUEUE, &bufferQueue), "Error GetInterface SL_IID_BUFFERQUEUE (%X)");
 
-//        SL_SUCCESS((*player)->SetCallbackEventsMask(player, SL_PLAYEVENT_HEADATEND), "Error SetCallbackEventsMask (%X)");
-//        SL_SUCCESS((*bufferQueue)->RegisterCallback(bufferQueue, callback_ay8912, this), "Error RegisterCallback (%X)");
+        SL_SUCCESS((*player)->SetCallbackEventsMask(player, SL_PLAYEVENT_HEADATEND), "Error SetCallbackEventsMask (%X)");
+        SL_SUCCESS((*bufferQueue)->RegisterCallback(bufferQueue, callback_ay8912, this), "Error RegisterCallback (%X)");
 
         SL_SUCCESS((*player)->SetPlayState(player, SL_PLAYSTATE_PLAYING), "Error SetPlayState(%X)");
         isPlaying = false;

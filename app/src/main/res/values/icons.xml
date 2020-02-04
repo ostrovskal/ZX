@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <resources>
-    <integer name="I_NULL">0</integer>
-    <integer name="I_PREV">1</integer>
-    <integer name="I_NEXT">2</integer>
+    <integer name="I_INSERT">0</integer>
+    <integer name="I_HELP">1</integer>
+    <integer name="I_TRDOS">2</integer>
     <integer name="I_UNDO">3</integer>
     <integer name="I_REDO">4</integer>
     <integer name="I_DELETE">5</integer>
@@ -106,5 +106,6 @@
     <integer name="I_E_PAPER_WHITE">96</integer>
     <integer name="I_E_PAPER_BLACK">97</integer>
     <integer name="I_E_INK_BLUE">98</integer>
+    <integer name="I_EJECT">99</integer>
 
 </resources>

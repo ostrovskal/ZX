@@ -20,14 +20,16 @@ class ZxKeyboard {
     private var root: ViewGroup?            = null
 
     fun update() {
+        val rus = (ZxWnd.props[ZX_CPU_RL].toInt() shr 7) != 0
         tiles.forEachIndexed { index, tile ->
             tile?.apply {
-                val pos = ZX_PROP_VALUES_BUTTON + index * 2
+                var pos = ZX_PROP_VALUES_BUTTON + index * 2
                 val icon = ZxWnd.props[pos + 1].toInt()
                 if(measuredWidth > 0) {
                     if (icon == 0) {
                         var text = ZxWnd.props[pos].toInt()
                         if (text < 0) text += 256
+                        if(rus && text < 63) text += 192
                         setText(names[text])
                         tileIcon = -1
                     } else {
@@ -39,11 +41,12 @@ class ZxKeyboard {
         }
     }
 
-    private class KeyboardButton(context: Context) : Tile(context, style_key_button) {
+    private inner class KeyboardButton(context: Context) : Tile(context, style_key_button) {
         init {
             setOnTouchListener { v, event ->
                 val index = ((parent as? CellLayout)?.indexOfChild(v) ?: -1) + 1
-                ZxWnd.zxCmd(ZX_CMD_UPDATE_KEY, index, event.action, "")
+                if(ZxWnd.zxCmd(ZX_CMD_UPDATE_KEY, index, event.action, "") != 0)
+                    update()
                 false
             }
         }
@@ -59,7 +62,7 @@ class ZxKeyboard {
         cellLayout(33, 4) {
             root = this
             backgroundSet(Common.style_form)
-            repeat(42) { idx ->
+            repeat(43) { idx ->
                 val pos = idx * 3
                 addUiView(KeyboardButton(context).apply { tiles[idx] = this; lps(keyButtonPos[pos + 0], keyButtonPos[pos + 2], keyButtonPos[pos + 1], 1) } )
             }

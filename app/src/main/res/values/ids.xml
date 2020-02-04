@@ -50,4 +50,7 @@
     <item name="edit9" type="id" />
     <item name="edit10" type="id" />
     <item name="edit11" type="id" />
+    <item name="pageDisk" type="id" />
+    <item name="pageHelp" type="id" />
+    <item name="htmlHelp" type="id" />
 </resources>

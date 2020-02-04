@@ -78,7 +78,7 @@ class ZxWnd : Wnd() {
     lateinit var main: AbsoluteLayout
 
     // меню
-    private lateinit var menu: Menu
+    lateinit var menu: Menu
 
     // признак запуска эмулятора
     var zxInitialize               = false
@@ -99,11 +99,11 @@ class ZxWnd : Wnd() {
 
         val modelNames              = listOf(   R.string.menuKompanion, R.string.menuSinclair48, R.string.menuSinclair48,
                                                         R.string.menuSinclair128, R.string.menuPentagon, R.string.menuScorpion,
-                                                        R.string.menuPlus2, R.string.menuPlus2a, R.string.menuPlus3)
+                                                        R.string.menuPlus2, R.string.menuPlus3)
 
         val props                            = ByteArray(ZX_PROPS_COUNT)
 
-        val menuItems               = listOf(   R.integer.MENU_KEYBOARD, R.integer.I_KEY, R.integer.MENU_CLOUD, R.integer.I_CLOUD,
+        val menuItems               = listOf(   R.integer.MENU_KEYBOARD, R.integer.I_KEY,
                                                 R.integer.MENU_IO, R.integer.I_OPEN, R.integer.MENU_SETTINGS, R.integer.I_SETTINGS, R.integer.MENU_PROPS, R.integer.I_PROPS, R.integer.MENU_DISKS, R.integer.I_DISK,
                                                 R.integer.MENU_MODEL, R.integer.I_MODEL, R.integer.MENU_RESET, R.integer.I_RESET, R.integer.MENU_RESTORE, R.integer.I_RESTORE, R.integer.MENU_EXIT, R.integer.I_EXIT,
                                                 R.integer.MENU_PROPS_SOUND, R.integer.I_SOUND, R.integer.MENU_PROPS_TAPE, R.integer.I_CASSETE, R.integer.MENU_PROPS_FILTER, R.integer.I_FILTER, R.integer.MENU_PROPS_TURBO, R.integer.I_TURBO,
@@ -244,7 +244,7 @@ class ZxWnd : Wnd() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         // установить иконки на элементы меню
-        for(idx in 0 until 44 step 2) {
+        for(idx in 0 until 42 step 2) {
             menu.findItem(menuItems[idx])?.let {
                 menuIcon(it, style_zx_toolbar) {
                     tile = resources.getInteger(menuItems[idx + 1])
@@ -265,7 +265,7 @@ class ZxWnd : Wnd() {
         item.subMenu?.apply {
             when (resources.getInteger(item.itemId)) {
                 MENU_MODEL      -> getItem(props[ZX_PROP_MODEL_TYPE].toInt()).isChecked = true
-                MENU_PROPS      -> repeat(6) { getItem(it).isChecked = if(it == 2) "filter".b else props[menuProps[it + 2]].toBoolean }
+                MENU_PROPS      -> repeat(6) { getItem(it).isChecked = if(it == 2) "filter".b else (props[menuProps[it + 2]].toInt() and 1) != 0 }
                 MENU_MRU        -> repeat(10) { getItem(it).title = "#mru${it + 1}".s }
                 MENU_DEBUGGER1  -> repeat(3) { getItem(it).isChecked = props[menuProps[it + 8]].toBoolean }
             }
@@ -276,7 +276,6 @@ class ZxWnd : Wnd() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(val id = resources.getInteger(item.itemId)) {
             MENU_POKES                              -> instanceForm(FORM_POKES)
-            MENU_CLOUD                              -> instanceForm(FORM_LOADING)
             MENU_IO                                 -> instanceForm(FORM_IO)
             MENU_SETTINGS                           -> instanceForm(FORM_OPTIONS)
             MENU_DISKS                              -> instanceForm(FORM_DISK)
@@ -284,23 +283,25 @@ class ZxWnd : Wnd() {
             MENU_RESET                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_RESET.ordinal)
             MENU_EXIT                               -> { nameAutoSave = ZX_AUTO_SAVE; finish() }
             MENU_MAGIC                              -> hand?.send(RECEPIENT_FORM, ZxMessages.ACT_PRESS_MAGIC.ordinal)
-            MENU_QUICK_SAVE                         -> zxCmd(ZX_CMD_QUICK_SAVE, 0, 0, "")
-            MENU_PROPS_DEBUGGER                     -> {
-                // спрятать/показать элемент клавы
-                // вытащить/спрятать элемент отладчика
-                val isDebugger = updatePropsMenuItem(item)
-                menu.findItem(R.integer.MENU_KEYBOARD)?.isVisible = !isDebugger
-                menu.findItem(R.integer.MENU_DEBUGGER1)?.isVisible = isDebugger
+            MENU_SHOW_DEBUGGER                      -> {
+                val dbg = !props[ZX_PROP_SHOW_DEBUGGER].toBoolean
+                props[ZX_PROP_SHOW_DEBUGGER] = dbg.toByte
+                modifyState(if(props[ZX_PROP_ACTIVE_DEBUGGING].toBoolean) ZX_DEBUGGER else 0, ZX_DEBUGGER)
+                hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = read16(ZX_CPU_PC), a2 = ZX_ALL, o = dbg.toString())
+                if(!dbg) {
+                    props[ZX_PROP_EXECUTE] = 1
+                    hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
+                }
             }
             MENU_DEBUGGER_LABEL, MENU_DEBUGGER_CODE,
             MENU_DEBUGGER_VALUE, MENU_PROPS_KEYBOARD,
             MENU_PROPS_SOUND, MENU_PROPS_TURBO,
-            MENU_PROPS_TAPE, MENU_PROPS_EXECUTE     -> updatePropsMenuItem(item)
+            MENU_PROPS_DEBUGGER, MENU_PROPS_TAPE,
+            MENU_PROPS_EXECUTE                      -> updatePropsMenuItem(item)
             MENU_MODEL_48KK, MENU_MODEL_48KS,
             MENU_MODEL_48KSN, MENU_MODEL_128K,
             MENU_MODEL_PENTAGON, MENU_MODEL_SCORPION,
-            MENU_MODEL_PLUS2, MENU_MODEL_PLUS2A,
-            MENU_MODEL_PLUS3                        -> {
+            MENU_MODEL_PLUS2, MENU_MODEL_PLUS3      -> {
                 props[ZX_PROP_MODEL_TYPE] = (id - MENU_MODEL_48KK).toByte()
                 hand?.send(RECEPIENT_FORM, ZxMessages.ACT_MODEL.ordinal)
             }
@@ -323,7 +324,7 @@ class ZxWnd : Wnd() {
         val tile = drawable?.tile ?: -1
 
         if(id == MENU_PROPS_KEYBOARD) {
-            if(tile == 46) id = MENU_PROPS_JOYSTICK
+            if(tile != 81) id = MENU_PROPS_JOYSTICK
         }
         val prop = menuProps[id - MENU_PROPS_KEYBOARD]
         val isChecked = !props[prop].toBoolean
@@ -331,22 +332,14 @@ class ZxWnd : Wnd() {
         if(id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
             props[ZX_PROP_SHOW_KEY] = 0.toByte()
             props[ZX_PROP_SHOW_JOY] = 0.toByte()
-            drawable?.tile = if(tile == 46) 40 else 46
+            drawable?.tile = when(tile) { 81 -> 46; 46 -> 40; else -> 81 }
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_JOY.ordinal, 50)
         }
+        if(id == MENU_PROPS_DEBUGGER) modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)
         props[prop] = isChecked.toByte
         zxCmd(ZX_CMD_PROPS, 0, 0, "")
-        if(id == MENU_PROPS_DEBUGGER || id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
+        if(id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
-            if(id == MENU_PROPS_DEBUGGER) {
-                modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)
-                if(isChecked) {
-                    hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = read16(ZX_CPU_PC), a2 = ZX_ALL)
-                } else {
-                    props[ZX_PROP_EXECUTE] = 1
-                    hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
-                }
-            }
         }
         if(id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL)

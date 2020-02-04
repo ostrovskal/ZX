@@ -967,7 +967,6 @@ uint8_t *zxBetaDisk::loadState(uint8_t *ptr) {
 }
 
 uint8_t *zxBetaDisk::saveState(uint8_t *ptr) {
-    return ptr;
     // сигнатура
     *ptr++ = 'S'; *ptr++ = 'E'; *ptr++ = 'R'; *ptr++ = 'G';
     // 1. переменные

@@ -14,7 +14,8 @@
     <string name="menuTurbo">Turbo mode</string>
     <string name="menuFilter">Filtered</string>
     <string name="menuTape">Trap tape</string>
-    <string name="menuDebugger">Debugger</string>
+    <string name="menuDebugger">Debugging</string>
+    <string name="menuExeDebugger">Debugger…</string>
     <string name="menuMagic" translatable="false">MAGIC</string>
     <string name="menuDisk1" translatable="false">A:</string>
     <string name="menuDisk2" translatable="false">B:</string>
@@ -27,7 +28,6 @@
     <string name="menuPentagon">Pentagon 128K</string>
     <string name="menuScorpion">Scorpion 256K</string>
     <string name="menuPlus2">Sinclair +2</string>
-    <string name="menuPlus2a">Sinclair +2a</string>
     <string name="menuPlus3">Sinclair +3</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Keyboard/Joystick</string>
@@ -133,5 +133,6 @@
     <string name="checkReadOnly">ReadOnly</string>
     <string name="diskEmpty">Empty</string>
     <string name="headDisk">Disk browse</string>
+    <string name="checkNet" translatable="false">Net</string>
 
 </resources>
