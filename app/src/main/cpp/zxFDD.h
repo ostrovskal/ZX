@@ -4,6 +4,8 @@
 
 #pragma once
 
+extern u_long Z80FQ;
+
 #define MAX_TRK     86
 #define MAX_HEAD    2
 #define MAX_SEC     32
@@ -20,7 +22,7 @@
 //#define SEEK_SET_TRACK 0x10
 
 enum FDD_CMD {
-    //CB_SEEK_RATE	= 0x03,
+//    CB_SEEK_RATE	= 0x03,
     CB_SEEK_VERIFY	= 0x04,
     //CB_SEEK_HEADLOAD= 0x08,
     CB_SEEK_TRKUPD	= 0x10,
@@ -76,8 +78,7 @@ public:
             uint8_t* content;
         };
         TRACK() : len(6400), content(nullptr), caption(nullptr), total_sec(0) {}
-        bool marker(int pos) const { return (caption[pos / 8] & (1 << (pos & 7))) != 0; }
-        void write(int pos, uint8_t val, bool marker = false);
+        void write(int pos, uint8_t val) { content[pos] = val; }
         void update();
         // длина дорожки - 6250 байт
         uint16_t len;
@@ -105,35 +106,35 @@ public:
     ~zxFDD() { eject(); }
 
     void eject() { delete disk; disk = nullptr; }
-    void seek(int _trk, int _head);
-    void write(int pos, uint8_t val, bool marker = false) { get_trk()->write(pos, val, marker); }
+    void seek(int _trk, int _head) { if(disk) { trk = (uint8_t)_trk; head = (uint8_t)_head; ts = Z80FQ / (get_trk()->len * FDD_RPS); } }
+    void write(int pos, uint8_t val) { get_trk()->write(pos, val); }
+    void update_crc(zxDisk::TRACK::SECTOR* s) const;
 
     u_long ticks() const { return ts; }
     uint8_t track(int v = -1) { if(v != -1) trk = (uint8_t)v; return trk; }
 
     bool is_disk() const	{ return disk != nullptr; }
     bool is_protect() const	{ return protect; }
-    bool is_boot();
+    //bool is_boot();
 
     bool open(const void* data, size_t data_size, int type);
 
     zxDisk::TRACK* get_trk() { return disk->track(trk, head); }
     zxDisk::TRACK::SECTOR* get_sec(int sec) { return &get_trk()->sectors[sec]; }
+    zxDisk::TRACK::SECTOR* get_sec(int trk, int head, int sec);
     uint32_t engine(int v = -1) { if(v != -1) motor = (uint32_t)v; return motor; }
 
     bool protect;
 protected:
     bool write_sec(int trk, int head, int sec, const uint8_t * data);
-    void write_blk(int& pos, uint8_t val, int count, bool marker = false) { for(int i = 0; i < count; ++i) get_trk()->write(pos++, val, marker); }
+    void write_blk(int& pos, uint8_t val, int count) { for(int i = 0; i < count; ++i) get_trk()->write(pos++, val); }
     void make_trd();
     bool add_file(const uint8_t * hdr, const uint8_t * data);
     bool read_scl(const void* data, size_t data_size);
     bool read_trd(const void* data, size_t data_size);
     bool read_fdi(const void* data, size_t data_size);
-    void update_crc(zxDisk::TRACK::SECTOR* s) const;
 
     uint16_t CRC(uint8_t * src, int size) const;
-    zxDisk::TRACK::SECTOR* get_sec(int trk, int head, int sec);
 
 protected:
     uint32_t motor;
@@ -152,7 +153,7 @@ public:
     bool open(const char* path, int drive, int type);
 
     // признак наличия бута
-    bool is_boot(int drive) { return fdds[drive].is_boot(); }
+    //bool is_boot(int drive) { return fdds[drive].is_boot(); }
 
     // сброс
     void reset() { }
@@ -185,9 +186,9 @@ protected:
     void exec(int tact);
 
     // чтение первого байта
-    void read_first_byte();
+    void read_byte();
 
-    // поиск сектора
+    // имем сектор на дорожке
     void find_sec();
 
     // признак готовности
@@ -237,4 +238,29 @@ private:
     zxDisk::TRACK::SECTOR* found_sec;
     // признак работы с задержками
     bool wd93_nodelay;
+//    uint8_t prevV;
+
+    void cmdReadWrite();
+
+    void cmdWriteTrackData();
+
+    void cmdType1();
+
+    void cmdStep();
+
+    void cmdWrite();
+
+    void cmdPrepareRW();
+
+    void cmdFindSec();
+
+    void cmdRead();
+
+    void cmdWriteSector();
+
+    void cmdWriteTrack();
+
+    void cmdSeek();
+
+    void cmdVerify();
 };
