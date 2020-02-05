@@ -11,6 +11,32 @@ extern "C" {
     void wm8(uint8_t* address, uint8_t val);
 };
 
+enum CPU_CYCLES {
+    CT_EXE = 0,  // выполение команды
+    CT_WAIT,     // задержка
+    CT_OCR,      // (operation code read)    - чтение кода операции
+    CT_CBR,      // (control byte read)      - чтение управляющего байта кода операции (ED, DD, FD, CB)
+    CT_IOP,      // (internal CPU-operation) - внутренние операции ЦП, выходные сигналы управления неактивны
+    CT_MRD,      // (memory read)            - чтение байта из косвенно адресованной ячейки памяти
+    CT_MRH,      // (memory rend, high byte) - чтение старшего байта 16-разрядного слова из косвенно адресованной ячейки памяти
+    CT_MRL,      // (memory read, low byte)  - чтение младшего байта 16-разрядного слова из косвенно адресованной ячейки памяти
+    CT_MWR,      // (memory write)           - запись байта в косвенно адресованную ячейку памяти
+    CT_MWH,      // (memory write, high byte)- запись старшего байта 16-разрядиого слова в косвенно адресованную ячейку памяти
+    CT_MWL,      // (memory write, low byte) - запись младшего байта 16-разрядного слова в косвенно адресованную ячейку памяти
+    CT_ORD,      // (operand read)           - чтение операнда-байта, непосредственно представленного в команде
+    CT_ORH,      // (operand read, high byte)- чтение старшего байта 16-разрядного слова, непосредственно представленного в команде
+    CT_ORL,      // (operand read, Ion byte) - чтение младшего байта 16-разрядного слова, непосредственно представленного в команде
+    CT_PRD,      // (port read)              - ввод данных из порта
+    CT_PWR,      // (port write)             - вывод данных в порт
+    CT_SRH,      // (stack read, high byte)  - чтение из стека старшего байта
+    CT_SRL,      // (stack read, low byte)   - чтение из стека младшего байта
+    CT_SWH,      // (stack write, high byte) - запись в стек старшего байта
+    CT_SWL,      // (ataok write, low byte)  - запись в стек младшего байта
+    CT_INTA,     // (interrupt .acknowledge) - подтверждение прерывания микропроцессором
+    CT_SPI,      // (stack pointer increment)- инкремент указателя стека в конце цикла
+    CT_SPD       // (atack pointer deorement)- декремент указателя стека в конце цикла
+};
+
 enum MNEMONIC_REGS {
     _RC, _RE, _RL, _RF, _RS, _RB, _RD, _RH, _RA, _RI, _RR, _RPHL,
     // 12
@@ -175,6 +201,9 @@ protected:
 
     // результат операций
     uint8_t res;
+
+    // время обработки
+    u_long ts_next;
 };
 
 typedef void (zxCPU::*fnOps)();

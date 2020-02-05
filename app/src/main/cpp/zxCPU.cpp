@@ -242,7 +242,7 @@ void zxCPU::opsBlock() {
             cb8 = (uint8_t)(v8Src + v8Dst);
             fpv = (uint8_t)((*_BC != 0) << 2);
             setFlags = ((cb8 & 2) << 4) | (cb8 & 8) | fpv;
-            if(rep && fpv) { *_PC -= 2; ticks = 21; }
+            if(rep && fpv) { *_PC -= 2; ticks += 5; }
             break;
         // PV=1 если после декремента BC<>0
         // S,Z,HC из A - [HL]
@@ -255,7 +255,7 @@ void zxCPU::opsBlock() {
             cb8 = res - (uint8_t)((*_F & 16) >> 4);
             fpv = (uint8_t)((*_BC != 0) << 2);
             setFlags = ((cb8 & 2) << 4) | (cb8 & 8) | fpv | 2;
-            if(fpv && rep && res) { *_PC -= 2; ticks = 21; }
+            if(fpv && rep && res) { *_PC -= 2; ticks += 5; }
             break;
         // S, Z, F5, F3 из декремента B
         // fn — копия 7-го бита значения, полученного из порта
@@ -269,7 +269,7 @@ void zxCPU::opsBlock() {
             cb8 = v8Src + (uint8_t)(*_C + dir);
             fpv = tbl_parity[(cb8 & 7) ^ res];
             setFlags = ((cb8 > 255) << 4) | fpv | ((v8Src >> 6) & 2) | (cb8 > 255);
-            if(fpv && rep) { *_PC -= 2; ticks = 21; }
+            if(fpv && rep) { *_PC -= 2; ticks += 5; }
             break;
         // S, Z, F5, F3 из декремента B
         // fn — копия 7-го бита значения, переданного в порт;
@@ -283,7 +283,7 @@ void zxCPU::opsBlock() {
             cb8 = v8Src + opts[RL];
             fpv = tbl_parity[(cb8 & 7) ^ res];
             setFlags = ((cb8 > 255) << 4) | fpv | ((v8Src >> 6) & 2) | (cb8 > 255);
-            if(fpv && rep) { *_PC -= 2; ticks = 21; }
+            if(fpv && rep) { *_PC -= 2; ticks += 5; }
             break;
     }
 }
@@ -310,7 +310,7 @@ void zxCPU::opsJump() {
                 break;
             case O_RETN:
                 *_IFF1 = *_IFF2;
-                ticks = 8;
+                ticks = 4;
             case O_RET:
                 *_PC = rm16(*_SP);
                 *_SP += 2;

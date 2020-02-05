@@ -718,19 +718,11 @@ void zxALU::updateFrame() {
                 frames[0] = frames[1];
                 frames[1] = tmp;
             }
-            auto v = pageVRAM[rb];
-            *dest++ = frames[(v >> 7) & 1];
-            *dest++ = frames[(v >> 6) & 1];
-            updateCPU(1, false);
-            *dest++ = frames[(v >> 5) & 1];
-            *dest++ = frames[(v >> 4) & 1];
-            updateCPU(1, false);
-            *dest++ = frames[(v >> 3) & 1];
-            *dest++ = frames[(v >> 2) & 1];
-            updateCPU(1, false);
-            *dest++ = frames[(v >> 1) & 1];
-            *dest++ = frames[v & 1];
-            updateCPU(1, false);
+            for(int b = 7 ; b >= 0; b--) {
+                auto v = pageVRAM[rb];
+                *dest++ = frames[(v >> b) & 1];
+                if(!(b & 1)) updateCPU(1, false);
+            }
             rb++;
         }
         *_STATE &= ~ZX_SCR;
