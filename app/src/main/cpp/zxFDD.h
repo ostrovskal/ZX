@@ -212,12 +212,14 @@ private:
     int	start_crc;
     // головка
     uint8_t head;
+    uint8_t mfm;
+    uint8_t hlt;
     // напраление
     int8_t direction;
     // позиция при чтении/записи
     int16_t rwptr;
     // длина буфера чтения/записи
-    uint16_t rwlen;
+    int16_t rwlen;
     // следующее время
     uint32_t next;
     // время ожидания сектора
@@ -238,7 +240,6 @@ private:
     zxDisk::TRACK::SECTOR* found_sec;
     // признак работы с задержками
     bool wd93_nodelay;
-//    uint8_t prevV;
 
     void cmdReadWrite();
 

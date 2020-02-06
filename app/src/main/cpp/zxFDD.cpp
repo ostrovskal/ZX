@@ -5,26 +5,22 @@
 #include "zxCommon.h"
 #include "zxFDD.h"
 
-// порядок следования секторов в дорожке
-const int trdos_interleave = 1;
+#define Min(o, p)	(o < p ? o : p)
+
+u_long Z80FQ = 3500000;
 
 static const char* boot_sign = "boot    B";
-u_long Z80FQ = 3500000;
-static int posTmpBuf = 0;
-
-#define Min(o, p)	(o < p ? o : p)
-static int _rwlen;
-
-static char buf_str[65536];
 
 int zxVG93::save(const char *path, int num, int type) {
     return 0;
 }
 
 void zxVG93::updateProps() {
-    //Z80FQ = ALU->machine->cpuClock;
+    Z80FQ = ALU->machine->cpuClock;
 }
 
+/*
+static char buf_str[65536];
 void log_to_data(bool is_text, const char* title, uint8_t* data, int trk, int sec, int head) {
     auto s = &buf_str[0];
     for(int i = 0 ; i < _rwlen; i++) {
@@ -43,6 +39,7 @@ void log_to_data(bool is_text, const char* title, uint8_t* data, int trk, int se
     LOG_INFO("%s t:%i s:%i h:%i -- %s", title, trk, sec, head, buf_str);
 
 }
+*/
 
 zxDisk::zxDisk(int _trks, int _heads){
     trks = _trks; heads = _heads;
@@ -184,7 +181,7 @@ void zxFDD::make_trd() {
                 write_blk(pos, 0x4e, 40); write_blk(pos, 0, 12); write_blk(pos, 0xa1, 3); write(pos++, 0xfe);
                 auto sec = get_sec(n);
                 sec->caption = d + pos;
-                write(pos++, (uint8_t)trk); write(pos++, (uint8_t)head); write(pos++, lv[trdos_interleave][n]); write(pos++, 1);
+                write(pos++, (uint8_t)trk); write(pos++, (uint8_t)head); write(pos++, lv[1][n]); write(pos++, 1);
                 auto crc = CRC(d + pos - 5, 5);
                 write(pos++, (uint8_t)(crc >> 8)); write(pos++, (uint8_t)crc);
                 // gap2 sync am
@@ -344,7 +341,8 @@ zxVG93::zxVG93() : next(0), tshift(0), head(0), direction(0), rqs(R_NONE),
     Z80FQ = 3500000;
     wd93_nodelay = false;
     fdd = fdds;
-    opts[TRDOS_CMD] = opts[TRDOS_DAT] = opts[TRDOS_TRK] = opts[TRDOS_SEC] = opts[TRDOS_STS] = 0;
+    opts[TRDOS_SEC] = 1;
+    opts[TRDOS_CMD] = opts[TRDOS_DAT] = opts[TRDOS_TRK] = opts[TRDOS_STS] = 0;
 }
 
 bool zxVG93::open(const char* path, int drive, int type) {
@@ -385,7 +383,7 @@ void zxVG93::exec(int tact) {
     fdd->is_disk() ? opts[TRDOS_STS] &= ~ST_NOTRDY : opts[TRDOS_STS] |= ST_NOTRDY;
     // команды позиционирования
     if(!(opts[TRDOS_CMD] & 0x80)) {
-        opts[TRDOS_STS] &= ~(ST_TRK00 | ST_INDEX);
+        opts[TRDOS_STS] &= ~(ST_TRK00 | ST_INDEX | ST_HEADL);
         if(fdd->engine() && (system & CB_SYS_HLT)) opts[TRDOS_STS] |= ST_HEADL;
         if(!fdd->track()) opts[TRDOS_STS] |= ST_TRK00;
         // индексный импульс - чередуюется каждые 4 мс(если диск присутствует)
@@ -441,26 +439,16 @@ bool zxVG93::ready() {
     return false;
 }
 
-void zxVG93::get_index(int s_next) {
-    auto t = fdd->get_trk();
-    auto trlen = (uint32_t)(t->len * fdd->ticks());
-    auto ticks = (uint32_t)((next + tshift) % trlen);
-    if(!wd93_nodelay) next += (trlen - ticks);
-    rwptr = 96; rwlen = t->len; _rwlen = rwlen;
-    _ST_SET(S_WAIT, s_next);
-}
-
 void zxVG93::cmdRead() {
     if(!ready()) return;
     if(rwlen) {
         if(rqs & R_DRQ) opts[TRDOS_STS] |= ST_LOST;
         read_byte();
     } else {
-        LOG_INFO("S_READ FINISH idx:%i len:%i", rwptr, _rwlen);
-        log_to_data(false, "read sector", fdd->get_trk()->content + rwptr - _rwlen, found_sec->trk(), found_sec->sec(), found_sec->head());
+        LOG_INFO("S_READ FINISH idx:%i len:%i", rwptr, 256);
+//        log_to_data(false, "read sector", fdd->get_trk()->content + rwptr - _rwlen, found_sec->trk(), found_sec->sec(), found_sec->head());
         if((opts[TRDOS_CMD] & 0xe0) == C_RSEC) {
             // если чтение сектора - проверяем на CRC
-            LOG_INFO("crc: %02X data:%02X", crc, found_sec->crcData());
             if (crc != found_sec->crcData()) {
                 LOG_INFO("C_RSEC - ERROR CRC", 0);
                 opts[TRDOS_STS] |= ST_CRCERR;
@@ -498,11 +486,10 @@ void zxVG93::cmdWrite() {
         _ST_SET(S_WAIT, S_WRITE);
     } else {
         // запись CRC
-        LOG_INFO("crc: %02X", crc);
         fdd->write(rwptr++, (uint8_t)(crc >> 8)); fdd->write(rwptr++, (uint8_t)crc);
         // завершение операции
-        LOG_INFO("S_WRITE FINISH idx:%i len:%i", rwptr, _rwlen);
-        log_to_data(false, "write sector", found_sec->content, found_sec->trk(), found_sec->sec(), head);
+        LOG_INFO("S_WRITE FINISH idx:%i len:%i", rwptr, 256);
+        //log_to_data(false, "write sector", found_sec->content, found_sec->trk(), found_sec->sec(), head);
         // проверка на множественные сектора
         auto mult = opts[TRDOS_CMD] & CB_MULTIPLE;
         if(mult) opts[TRDOS_SEC]++;
@@ -517,11 +504,9 @@ void zxVG93::cmdWriteTrackData() {
     }
     // потеря данных
     if(rqs & R_DRQ) {
-        LOG_INFO("LOST", 0);
         opts[TRDOS_STS] |= ST_LOST;
         opts[TRDOS_DAT] = 0;
     }
-    load();
     auto d = opts[TRDOS_DAT]; auto v = d;
     if(d == 0xF5) { v = 0xA1; }
     else if(d == 0xF6) { v = 0xC2; }
@@ -538,42 +523,59 @@ void zxVG93::cmdWriteTrackData() {
         rqs = R_DRQ; opts[TRDOS_STS] |= ST_DRQ;
         _ST_SET(S_WAIT, S_WR_TRACK_DATA);
     } else {
-        LOG_INFO("S_WR_TRACK_DATA FINISH idx:%i len:%i", rwptr, _rwlen);
-        log_to_data(false, "write track", fdd->get_trk()->content, opts[TRDOS_TRK], opts[TRDOS_SEC], head);
+        LOG_INFO("S_WR_TRACK_DATA FINISH idx:%i len:%i", rwptr, rwlen);
+        //log_to_data(false, "write track", fdd->get_trk()->content, opts[TRDOS_TRK], opts[TRDOS_SEC], head);
         fdd->get_trk()->update(); state = S_IDLE;
     }
 }
 
 void zxVG93::cmdWriteSector() {
-    load();
     if(rqs & R_DRQ) {
         opts[TRDOS_STS] |= ST_LOST;
         state = S_IDLE;
     } else {
-        rwptr = (uint16_t) (found_sec->content - fdd->get_trk()->content); rwlen = found_sec->len(); _rwlen = rwlen;
+        rwptr = (uint16_t) ((found_sec->caption - fdd->get_trk()->content) + 6 + 22);
+        for(rwlen = 0; rwlen < 12; rwlen++) fdd->write(rwptr++, 0);
+        for(rwlen = 0; rwlen < 3; rwlen++) fdd->write(rwptr++, 0xa1);
         auto dat = (uint8_t) ((opts[TRDOS_CMD] & CB_WRITE_DEL) ? 0xF8 : 0xFB);
-        found_sec->content[-1] = dat;
-        crc = CRC(dat);
-        state = S_WRITE;
+        fdd->write(rwptr++, dat); rwlen = found_sec->len();
+        crc = CRC(dat); state = S_WRITE;
     }
+}
+
+void zxVG93::get_index(int s_next) {
+    auto t = fdd->get_trk();
+    auto trlen = (uint32_t)(t->len * fdd->ticks());
+    auto ticks = (uint32_t)((next + tshift) % trlen);
+    if(!wd93_nodelay) next += (trlen - ticks);
+    rwptr = 0; rwlen = t->len;
+    _ST_SET(S_WAIT, s_next);
 }
 
 void zxVG93::cmdWriteTrack() {
     if(rqs & R_DRQ) {
+        LOG_INFO("LOST", 0);
         opts[TRDOS_STS] |= ST_LOST;
         state = S_IDLE;
     } else {
         start_crc = -1;
         get_index(S_WR_TRACK_DATA);
+        int i;
+        for(i = 0 ; i < 80; i++) fdd->write(rwptr++, 0x4e);
+        for(i = 0 ; i < 12; i++) fdd->write(rwptr++, 0);
+        for(i = 0 ; i < 3;  i++) fdd->write(rwptr++, 0xc2);
+        fdd->write(rwptr++, 0xfc);
+        //for(i = 0 ; i < 40; i++) fdd->write(rwptr++, 0x4e);
         end_waiting_am = next + 5 * Z80FQ / FDD_RPS;
+        rwlen -= rwptr;
     }
 }
 
 void zxVG93::cmdReadWrite() {
-    // проверка на защиту от записи в операциях записи
+    load();
     auto cmd = opts[TRDOS_CMD];
-    LOG_INFO("S_RW_CMD cmd:%i", cmd);
     if(((cmd & 0xe0) == C_WSEC || (cmd & 0xf0) == C_WTRK) && fdd->is_protect()) {
+        // проверка на защиту от записи в операциях записи
         opts[TRDOS_STS] |= ST_WRITEP;
         state = S_IDLE;
     } else if((cmd & 0xc0) == 0x80 || (cmd & 0xf8) == C_RADR) {
@@ -589,8 +591,7 @@ void zxVG93::cmdReadWrite() {
     } else if((cmd & 0xf8) == C_RTRK) {
         // чтение дорожки
         LOG_INFO("S_RW_CMD - C_RTRK", 0);
-        load();
-        rwptr = 0; rwlen = fdd->get_trk()->len; _rwlen = rwlen;
+        rwptr = 0; rwlen = fdd->get_trk()->len;
         get_index(S_READ);
     } else {
         state = S_IDLE;
@@ -598,7 +599,7 @@ void zxVG93::cmdReadWrite() {
 }
 
 void zxVG93::cmdType1() {
-    LOG_INFO("S_TYPE1_CMD cmd:%i", opts[TRDOS_CMD]);
+//    LOG_INFO("S_TYPE1_CMD cmd:%i", opts[TRDOS_CMD]);
     opts[TRDOS_STS] = (opts[TRDOS_STS]|ST_BUSY) & ~(ST_DRQ | ST_CRCERR | ST_SEEKERR | ST_WRITEP);
     rqs = R_NONE;
     if(fdd->is_protect()) opts[TRDOS_STS] |= ST_WRITEP;
@@ -615,36 +616,25 @@ void zxVG93::cmdType1() {
 }
 
 void zxVG93::cmdFindSec() {
-    auto cmd = opts[TRDOS_CMD];
-    LOG_INFO("S_FIND_SEC cmd:%i trk: %i sec:%i", cmd, opts[TRDOS_TRK], opts[TRDOS_SEC]);
-    if (!fdd->is_disk()) {
-        end_waiting_am = next + 5 * Z80FQ / FDD_RPS;
-        find_sec();
-        return;
-    }
     load();
+    auto cmd = opts[TRDOS_CMD];
     if ((cmd & 0xf0) == C_RADR) {
         // чтение адресного маркера
-        LOG_INFO("S_FIND_SEC - RADR", 0);
-        rwptr = (uint16_t) (found_sec->caption - fdd->get_trk()->content);
-        rwlen = 6; _rwlen = rwlen;
+        opts[TRDOS_SEC] = opts[TRDOS_TRK];
+        rwptr = (uint16_t) (found_sec->caption - fdd->get_trk()->content); rwlen = 6;
         crc = CRC(found_sec->caption[-1]);
         read_byte();
     } else if (cmd & 0x20) {
         // запись сектора
-        LOG_INFO("S_FIND_SEC - WSEC", 0);
         next += fdd->ticks() * 9;
         rqs = R_DRQ; opts[TRDOS_STS] |= ST_DRQ;
         _ST_SET(S_WAIT, S_WRSEC);
     } else {
         // чтение сектора
-        LOG_INFO("S_FIND_SEC - RSEC a:%i", opts[TRDOS_CMD] & 1);
         cmd = found_sec->content[-1];
         cmd == 0xf8 ? opts[TRDOS_STS] |= ST_RECORDT : opts[TRDOS_STS] &= ~ST_RECORDT;
         rwptr = (uint16_t) (found_sec->content - fdd->get_trk()->content); rwlen = found_sec->len();
-        crc = CRC(cmd);
-        _rwlen = rwlen;
-        read_byte();
+        crc = CRC(cmd); read_byte();
     }
 }
 
@@ -660,9 +650,9 @@ void zxVG93::cmdPrepareRW() {
 // 010I HVXX - на один шаг вперед
 // 011I HVXX - на один шаг назад
 // 001I HVXX - на один шаг в том же направлении
-// 0001 HVXX - позиционирование магнитной головки на заданную дорожку. Номер в регистр данных.
+// 0001 HVXX - позиционирование магнитной головки на заданную дорожку.
 void zxVG93::cmdStep() {
-    static const uint32_t steps[] = { 6, 12, 20, 30 };
+    //static const uint32_t steps[] = { 6, 12, 20, 30 };
     auto cmd = opts[TRDOS_CMD];
     if(fdd->track() == 0 && (cmd& 0xf0) == 0) {
         // RESTORE
@@ -674,13 +664,12 @@ void zxVG93::cmdStep() {
         // проверка на допустимые дорожки
         int cyl = fdd->track() + direction; if(cyl < 0) cyl = 0; if(cyl >= PHYS_CYL) cyl = PHYS_CYL;
         fdd->track(cyl);
-        if(!wd93_nodelay) next += steps[0] * Z80FQ / 1000;
+        if(!wd93_nodelay) next += Z80FQ / 1000;
         _ST_SET(S_WAIT, (cmd & 0xe0) ? S_VERIFY : S_SEEK);
     }
 }
 
 void zxVG93::cmdSeek() {
-//    LOG_INFO("S_SEEK trk:%i dat:%i", opts[TRDOS_TRK], opts[TRDOS_DAT]);
     if(opts[TRDOS_DAT] == opts[TRDOS_TRK]) {
         state = S_VERIFY;
     } else {
@@ -690,7 +679,6 @@ void zxVG93::cmdSeek() {
 }
 
 void zxVG93::cmdVerify() {
-    LOG_INFO("S_VERIFY trk:%i sec:%i", opts[TRDOS_TRK], opts[TRDOS_SEC]);
     find_sec();
     if(!(opts[TRDOS_CMD] & CB_SEEK_VERIFY)) {
         state = S_IDLE;
@@ -752,8 +740,8 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
             LOG_INFO("WRITE CMD %i", v);
             // прерывание команды
             if((v & 0xf0) == C_INTERRUPT) {
-                LOG_INFO("C_INTERRUPT", 0);
-                state = S_IDLE; rqs = R_INTRQ; opts[TRDOS_STS] &= ~ST_BUSY; return;
+                state = S_IDLE; rqs = R_INTRQ; opts[TRDOS_STS] &= ~ST_BUSY;
+                return;
             }
             if(opts[TRDOS_STS] & ST_BUSY) return;
             opts[TRDOS_CMD] = v;
@@ -777,7 +765,9 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
         case 0xFF: system = v;
             fdd = &fdds[v & 3];
             head = (uint8_t)((v & 0x10) == 0);
-            //LOG_INFO(("WRITE HEAD %i"), head);
+            hlt = (uint8_t)((v & 8) != 0);
+            mfm = (uint8_t)((v & 40) != 0);
+//            LOG_INFO(("WRITE SYSTEM: HEAD %i MFM:%i HLT: %i"), head, mfm, hlt);
             // сброс контроллера
             if(!(v & CB_RESET)) { opts[TRDOS_STS] = ST_NOTRDY; rqs = R_INTRQ; fdd->engine(0); state = S_IDLE; }
     }
