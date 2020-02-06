@@ -206,6 +206,7 @@ public final class ZxCommon {
     public static final int ZX_DISK_OPS_SET_READONLY= 4; //
     public static final int ZX_DISK_OPS_TRDOS       = 5; //
     public static final int ZX_DISK_OPS_RSECTOR     = 6; //
+    public static final int ZX_DISK_COUNT_FILES     = 7; //
 
     private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 

@@ -453,7 +453,7 @@ int zxALU::updateKeys(int key, int action) {
         auto bit = semiRows[idx + 1];
         auto bitEx = semiRows[idx + 3];
         auto mode = opts[ZX_PROP_KEY_MODE];
-        auto ret = key == 43 && action;
+        auto ret = *_MODEL == MODEL_KOMPANION && (key == 43 && action);
         if(ret) {
             auto m = opts[RUS_LAT];
             opts[ZX_PROP_PORT_FEFC] = 255;
@@ -821,6 +821,34 @@ const char *zxALU::programName(const char *nm) {
     return name.c_str();
 }
 
+int zxALU::diskOperation(int num, int ops, const char* path) {
+    int ret(0);
+    switch(ops & 7) {
+        case ZX_DISK_OPS_GET_READONLY:  ret = disk->is_readonly(num & 3); break;
+        case ZX_DISK_OPS_EJECT:         disk->eject(num); break;
+        case ZX_DISK_OPS_OPEN:          ret = (int)disk->open(path, num, parseExtension(path)); break;
+        case ZX_DISK_OPS_SAVE:          ret = disk->save(path, num, parseExtension(path)); break;
+        case ZX_DISK_OPS_SET_READONLY:  ret = disk->is_readonly(num & 3, (num & 128)); break;
+        case ZX_DISK_OPS_TRDOS:         ret = openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx"); break;
+        case ZX_DISK_OPS_RSECTOR:       ret = disk->read_sector(num & 3, num >> 3); break;
+        case ZX_DISK_COUNT_FILES:       ret = disk->count_files(num & 3, num >> 3); break;
+    }
+    return ret;
+}
+
+void zxALU::quickSave() {
+    static char buf[256];
+    static zxFile file;
+    int a = 0;
+    while(true) {
+        sprintf(buf, "%sSAVERS/%s_%02i.z80", FOLDER_FILES.c_str(), name.c_str(), a);
+        if(!file.open(buf, zxFile::open_read)) break;
+        file.close();
+        a++;
+    }
+    saveZ80(strstr(buf, "SAVERS/"));
+}
+
 void zxALU::trap() {
     auto pc = *cpu->_PC;
     if(pc < 16384) {
@@ -845,6 +873,11 @@ void zxALU::trap() {
                 *cpu->_PC = addr;
                 *psp += 2;
             }
+        } else {
+            if(pc == 7814) {
+                // cmd TRDOS - FORMAT
+                disk->format();
+            }
         }
     } else {
         if (*_STATE & ZX_TRDOS) {
@@ -855,38 +888,38 @@ void zxALU::trap() {
 }
 
 void zxALU::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
-    auto port = (uint16_t)(A0A7 | (A8A15 << 8));
-    if(checkSTATE(ZX_DEBUG)) { if(checkBPs(port, ZX_BP_WPORT)) return; }
-    if(*_MODEL == MODEL_SCORPION && (port & 0xD027) == 0x1025) {
-//    if(*_MODEL == MODEL_SCORPION && port == 0x1FFD) {
-        // A0, A2, A5, A12 = 1; A1, A14, A15 = 0
-        write1FFD(val);
-//        LOG_DEBUG("1FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
-    } else if((port & 0xD027) == 0x5025) {
-        write7FFD(val);
-//        LOG_DEBUG("7FFD (%X%X(%i) ROM: %i RAM: %i VID: %i) PC: %i", A8A15, A0A7, val, *_ROM, *_RAM, *_VID, PC);
-    } else if(checkSTATE(ZX_TRDOS) && (A0A7 == 0x1F || A0A7 == 0x3F || A0A7 == 0x5F || A0A7 == 0x7F || A0A7 == 0xFF)) {
-        disk->vg93_write(A0A7, val, 0);
-    } else if (port == 0xBFFD) {
-        // BFFD
-        // записываем значение в текущий регистр
-        auto reg = opts[AY_REG];
-        opts[reg + AY_AFINE] = val;
-        snd->ayWrite(reg, val, _TICK);
-        //LOG_DEBUG("AY_VAL in:%i", val);
-    } else if(port == 0xFFFD) {
-        // FFFD
-        // устанавливаем текущий регистр
-        opts[AY_REG] = (uint8_t)(val & 15);
-        //LOG_DEBUG("AY_REG %i", val);
-    } else if (A0A7 == 0xFE) {
-        // 0, 1, 2 - бордер, 3 MIC - при записи, 4 - бипер
-        *_FE = val;
-        colorBorder = val & 7U;
-        tape->writePort(val);
-    } else {
-        //LOG_DEBUG("WRITE UNKNOWN PORT (%02X%02X(%i) - PC: %i", A8A15, A0A7, val, PC);
-    }
+    switch(A0A7) {
+        case 0xFD:
+            if(A8A15 == 0x1F) {
+                write1FFD(val);
+            } else if(A8A15 == 0xFF) {
+                // устанавливаем текущий регистр
+                opts[AY_REG] = (uint8_t)(val & 15);
+            } else if(A8A15 == 0xBF) {
+                // записываем значение в текущий регистр
+                auto reg = opts[AY_REG];
+                opts[reg + AY_AFINE] = val;
+                snd->ayWrite(reg, val, _TICK);
+            } else write7FFD(val);
+            break;
+        case 0xFE:
+            // 0, 1, 2 - бордер, 3 MIC - при записи, 4 - бипер
+            *_FE = val;
+            colorBorder = val & 7U;
+            tape->writePort(val);
+            break;
+        case 0x1F: case 0x3F: case 0x5F: case 0x7F: case 0xFF:
+            if(checkSTATE(ZX_TRDOS)) {
+                disk->vg93_write(A0A7, val, 0);
+            } else {
+
+            }
+            break;
+        default:
+            //LOG_DEBUG("WRITE UNKNOWN PORT (%02X%02X(%i) - PC: %i", A8A15, A0A7, val, PC);
+            break;
+   }
+    if(checkSTATE(ZX_DEBUG)) { if(checkBPs((uint16_t)(A0A7 | (A8A15 << 8)), ZX_BP_WPORT)) return; }
 }
 
 void zxALU::write1FFD(uint8_t val) {
@@ -894,12 +927,20 @@ void zxALU::write1FFD(uint8_t val) {
     // 1 -> 1 - ROM 2, 0 - ROM from 0x7FFD
     // 4 -> 1 - RAM SCORPION, 0 - from 0x7FFD
     *_1FFD = val;
-    if (val & 1) *_ROM = 100;
-    else {
-        if (val & 2) *_ROM = 2;
-        else *_ROM = (uint8_t) ((*_7FFD & 16) >> 4);
+    switch (*_MODEL) {
+        case MODEL_SCORPION:
+            if (val & 1) *_ROM = 100;
+            else {
+                if (val & 2) *_ROM = 2;
+                else *_ROM = (uint8_t) ((*_7FFD & 16) >> 4);
+            }
+            *_RAM = (uint8_t) ((*_7FFD & 7) + (uint8_t) ((val & 16) >> 1));
+            break;
+        case MODEL_PLUS2:
+            break;
+        case MODEL_PLUS3:
+            break;
     }
-    *_RAM = (uint8_t) ((*_7FFD & 7) + (uint8_t) ((val & 16) >> 1));
     setPages();
 }
 
@@ -925,84 +966,47 @@ void zxALU::write7FFD(uint8_t val) {
 
 uint8_t zxALU::readPort(uint8_t A0A7, uint8_t A8A15) {
     uint8_t ret = _FF;
-    auto port = (uint16_t)(A0A7 | (A8A15 << 8));
-    if(checkSTATE(ZX_DEBUG)) { if(checkBPs(port, ZX_BP_RPORT)) return ret; }
-    if(checkSTATE(ZX_TRDOS) && (A0A7 == 0x1F || A0A7 == 0x3F || A0A7 == 0x5F || A0A7 == 0x7F || A0A7 == 0xFF))
-        ret = disk->vg93_read(A0A7, 0);
-    else if(A0A7 == 0x1F) {
-        ret = *_KEMPSTON;
-    } else if(A0A7 == 0xFE) {
-        // 0,1,2,3,4 - клавиши полуряда, 6 - EAR, 5,7 - не используется
-        A0A7 = 31;
-        for (int i = 0; i < 8; i++) {
-            if (A8A15 & (1 << i)) continue;
-            A0A7 &= opts[i + ZX_PROP_VALUES_SEMI_ROW];
-        }
-        ret = (A0A7 | tape->readPort());
-    } else if((port & 0xD027) == 0x5025) {
-        if(*_MODEL == MODEL_PENTAGON) {
-            ret = 64;//*_7FFD;
-        } else ret = 0;
-        LOG_DEBUG("7FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
-    } else if((port & 0xD027) == 0x1025) {
-        ret = 0;//*_1FFD;
-        LOG_DEBUG("1FFD (%X%X) %i PC %i", A8A15, A0A7, ret, PC);
-    } else if(port == 0xFFFD) {
-        // звук AY
-        ret = opts[opts[AY_REG] + AY_AFINE];
-    } else if(*_MODEL == MODEL_KOMPANION && A0A7 == 0xFC) {
-/*
-        static int k = 0;
-        if(A8A15 == 0xFE) {
-            if(k & 1) ret = 254; else ret = 253;
-            k++;
-        }
-*/
-        auto k = opts[ZX_PROP_PORT_FEFC];
-        if(A8A15 == 0xFE && !(opts[RUS_LAT] & 64)) {
-            ret = k;
-            opts[ZX_PROP_PORT_FEFC] = 255;
-            opts[RUS_LAT] |= 127;
-        }
-    } else if(A0A7 == 0xFF) {
-        // FF
-    } else if(A0A7 == 0xBF) {
-        // COVOX
-        ret = 0;
-    } else if(A0A7 == 0xDF) {
-        ret = 0;
-        // ??
-    } else {
-        //LOG_DEBUG("READ UNKNOWN PORT %X%X PC: %i", A8A15, A0A7, PC);
+    switch(A0A7) {
+        case 0x1F:
+            if(!checkSTATE(ZX_TRDOS)) { ret = *_KEMPSTON; break; }
+        case 0x3F: case 0x5F: case 0x7F: case 0xFF:
+            if(checkSTATE(ZX_TRDOS)) ret = disk->vg93_read(A0A7, 0);
+            break;
+        case 0xBF:
+            // COVOX
+            ret = 0;
+            break;
+        case 0xDF:
+            ret = 0;
+            break;
+        case 0xFC:
+            if(A8A15 == 0xFE && *_MODEL == MODEL_KOMPANION) {
+                auto k = opts[ZX_PROP_PORT_FEFC];
+                if(!(opts[RUS_LAT] & 64)) {
+                    ret = k;
+                    opts[ZX_PROP_PORT_FEFC] = 255;
+                    opts[RUS_LAT] |= 127;
+                }
+            }
+            break;
+        case 0xFD:
+            if(A8A15 == 0xFF) ret = opts[opts[AY_REG] + AY_AFINE];
+            break;
+        case 0xFE:
+            // 0,1,2,3,4 - клавиши полуряда, 6 - EAR, 5,7 - не используется
+            A0A7 = 31;
+            for (int i = 0; i < 8; i++) {
+                if (A8A15 & (1 << i)) continue;
+                A0A7 &= opts[i + ZX_PROP_VALUES_SEMI_ROW];
+            }
+            ret = (A0A7 | tape->readPort());
+            break;
+        default:
+            //LOG_DEBUG("READ UNKNOWN PORT %X%X PC: %i", A8A15, A0A7, PC);
+            break;
     }
+    if(checkSTATE(ZX_DEBUG)) { if(checkBPs((uint16_t)(A0A7 | (A8A15 << 8)), ZX_BP_RPORT)) return ret; }
     return ret;
-}
-
-int zxALU::diskOperation(int num, int ops, const char* path) {
-    int ret(0);
-    switch(ops & 7) {
-        case ZX_DISK_OPS_GET_READONLY:  ret = disk->is_readonly(num & 3); break;
-        case ZX_DISK_OPS_EJECT:         disk->eject(num); break;
-        case ZX_DISK_OPS_OPEN:          ret = (int)disk->open(path, num, parseExtension(path)); break;
-        case ZX_DISK_OPS_SAVE:          ret = disk->save(path, num, parseExtension(path)); break;
-        case ZX_DISK_OPS_SET_READONLY:  ret = disk->is_readonly(num & 3, (num & 128)); break;
-        case ZX_DISK_OPS_TRDOS:         ret = openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx"); break;
-        case ZX_DISK_OPS_RSECTOR:       ret = 0; break;
-    }
-    return ret;
-}
-
-void zxALU::quickSave() {
-    static char buf[256];
-    static zxFile file;
-    int a = 0;
-    while(true) {
-        sprintf(buf, "%sSAVERS/%s_%02i.z80", FOLDER_FILES.c_str(), name.c_str(), a);
-        if(!file.open(buf, zxFile::open_read)) break;
-        file.close();
-        a++;
-    }
-    saveZ80(strstr(buf, "SAVERS/"));
 }
 
 #pragma clang diagnostic pop

@@ -10,7 +10,6 @@
 #include "zxTape.h"
 #include "zxSound.h"
 #include "zxGPU.h"
-#include "zxBetaDisk.h"
 #include "zxFDD.h"
 
 struct ZX_MACHINE {

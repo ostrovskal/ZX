@@ -5,11 +5,112 @@
 #include "zxCommon.h"
 #include "zxFDD.h"
 
+// ----------------------------------------------------------------------------------------------------------------------------------
+// Бит      | Восст. и позиц.  |    Запись сектора  | Чтение сектора    |   Чтение адреса   |   Запись дорожки  |   Чтение дорожки  |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  7       |               Г   о   т   о   в   н   о   с   т   ь       д   и   с   к   о   в   о   д   а                           |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  6       |        З А Щ И Т А   З А П И С И      |                   0                   |   ЗАЩИТА ЗАПИСИ   |         0         |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  5       |     ЗАГРУЗКА     |       ОШИБКА       |    ПОВТОРЯЕТ      |                   |      ОШИБКА       |                   |
+//          | МАГНИТНОЙ ГОЛОВКИ|       ЗАПИСИ       |  ЗНАЧЕНИЕ БИТА    |         0         |      ЗАПИСИ       |         0         |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  4       |  ОШИБКА ПОИСКА   |          C  Е  К  Т  О  Р   Н  Е   Н  А  Й  Д  Е  Н        |                   0                   |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  3       |                                     ОШИБКА CRC                                |                   0                   |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  2       |    ДОРОЖКА 0     |                                            ПОТЕРЯ  ДАННЫХ                                          |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  1       |ИНДЕКСНЫЙ ИМПУЛЬС |                                            ЗАПРОС  ДАННЫХ                                          |
+// ----------------------------------------------------------------------------------------------------------------------------------
+//  0       |                И   д   е   т           в   ы   п   о   л   н   е   н   и   е       к   о   м   а   н   д   ы          |
+// ----------------------------------------------------------------------------------------------------------------------------------
+// КОЛИЧЕСТВО   /  КОД     /  НАЗНАЧЕНИЕ
+//   ~40/80     /  FF/4E   /   Последний пробел
+//  6/12        /    0     /
+//  3           /   F6     /  Поле С2     (MFM)
+//  1           /   FC     /  Индексная метка
+//  26/50       /  FF/4E   /  Первый пробел
+//  6/12        /   0      /
+//  3           /   F5     /   Попе А1      (MFM)
+//  1           /   FE     /   Адресная метка заголовка сектора
+//  1           /   xx     /   Номер дорожки
+//  1           /   xx     /   Номер стороны дискеты
+//  1           /   xx     /   Номер сектора
+//  1           /   xx     /   Длина сектора
+//  1           /   F7     /   Формирование двух байтов CRC заголовка
+//  11/22       /   FF/4E  /   Второй пробел
+//  6/12        /   0      /
+//  3           /   F5     /   Попе А1      (MFM)
+//  1           /   FB     /   Адресная метка данных
+//  xx          /   xx     /   Данные
+//  1           /   F7     /   Формирование двух байтов CRC данных
+//  27/54       /   FF/4E  /   Третий пробел
+//  247/598     /   FF/4E  /   Четвертый пробел
+
+/*
+    По расчетам из спецификации к ВГ-93 на дорожку
+    приблизительно помещается 10364 байт данных в
+    режиме MFM и 5156 байт в режиме FM.
+
+    Однако в TR-DOS'е с режимом MFM типичной длиной
+    дорожки считается 6250 байт (6208...6464 байт).
+    Эта цифра и взята за основу, т.к. при первом
+    варианте случаются ошибки. Для режима FM взято
+    соответственно число 3125.
+*/
+
+// Field		FM					MFM
+// =====================================================
+// GAP I		0xff * 16 (min)		0x4e * 32 (min)
+// GAP II		0xff * 11 (exact)	0x4e * 22 (exact)
+// GAP III		0xff * 12 (min)		0x4e * 24 (min)
+// GAP IV		0xff * 16 (min)		0x4e * 32 (min)
+// SYNC			0x00 * 6  (exact)	0x00 * 12 (exact)
+
+// 0000 HVXX - восстановление
+//     переход на нулевую дорожку
+// позиционирование:
+// I=1 дорожка меняет свое значение
+// H - определяет положение магнитной головки дисковода во время выполнения команды
+// V - в случае установки магнитной головки в рабочее положение (h=l) этот бит используется для задания режима проверки положения головки. Если
+//     бит установлен, то в конце операции содержимое регистра дорожки сравнивается с действительным номером, считанным с дискеты.
+// 0000 HVXX - восстановление
+// 010I HVXX - на один шаг вперед
+// 011I HVXX - на один шаг назад
+// 001I HVXX - на один шаг в том же направлении
+// 0001 HVXX - позиционирование магнитной головки на заданную дорожку. Номер в регистр данных.
+
+// 100M SEC0 - Чтение секторов.
+// M -  бит задает количество секторов, участвующих в операции. Если он сброшен, то обрабатывается один сектор,
+//      если установлен — обрабатываются последовательно все сектора на текущей дорожке, начиная с того, который указан в регистре сектора
+// S -  значение этого бита определяет номер стороны дискеты (0 — нижняя сторона, 1 — верхняя). Микросхема не имеет аппаратных сигналов для
+//      выбора магнитных головок на дисководе (это делает системный регистр Beta Disk-интерфейса), но номер стороны содержится в заголовке сектора
+// E -  этот бит используется для задания задержки при установке магнитной головки в рабочее положение. Если бит сброшен,
+//      задержка не производится, в противном случае между выдачей сигнала на установку головки в рабочее состояние и началом операции делается задержка в 15 мс
+// C -  значение этого бита определяет, делать или не делать проверку стороны дискеты при операции. Если бит сброшен, то проверки не производится
+// 101M SECA - Запись секторов
+// A -  указывает на один из двух возможных форматов сектора. В дальнейшем при считывании этот формат будет индицироваться в 5 бите системного регистра.
+//      Обычно этот бит обнуляют, при этом в поле заголовка сектора формируется специальный байт #FB, в противном случае — байт #F8.
+// 1111 0E00 - Запись (форматирование) дорожки FM/MFM
+// 1110 0E00 - Чтение дорожки
+//              Эта команда считывает с дорожки всю имеющуюся на ней информацию, включая поля пробелов, заголовков и служебные байты.
+// 1100 0E00 - Чтение адреса
+//              По этой команде с дискеты считывается первый встреченный заголовок сектора. Из поля заголовка передаются 6 байтов —
+//              4 байта информационные (номер дорожки, номер стороны, номер сектора и длина сектора) и 2 байта контрольного кода.
+//              При выполнении этой Команды содержимое регистра дорожки пересылается в регистр сектора
+
 #define Min(o, p)	(o < p ? o : p)
 
 u_long Z80FQ = 3500000;
 
-static const char* boot_sign = "boot    B";
+uint8_t* zxVG93::loadState(uint8_t* ptr) {
+    return ptr;
+}
+
+uint8_t* zxVG93::saveState(uint8_t* ptr) {
+    return ptr;
+}
 
 int zxVG93::save(const char *path, int num, int type) {
     return 0;
@@ -20,6 +121,8 @@ void zxVG93::updateProps() {
 }
 
 /*
+static const char* boot_sign = "boot    B";
+
 static char buf_str[65536];
 void log_to_data(bool is_text, const char* title, uint8_t* data, int trk, int sec, int head) {
     auto s = &buf_str[0];
@@ -198,11 +301,20 @@ void zxFDD::make_trd() {
         }
     }
     auto s = get_sec(0, 0, 9);
-    if(!s) return;
-    s->content[226] = 1;	 // первая свободная дорожка
-    s->content[227] = 0x16; // 80 дорожек, двойная плотность
-    s->content[231] = 0x10; // признак trdos
-    sec_dataW(s, 229, 2544);// свободных секторов
+    if(s) fillDiskConfig(s);
+}
+
+void zxFDD::fillDiskConfig(zxDisk::TRACK::SECTOR *s) {
+    auto sec = s->content;
+    sec[226] = 1;	 // первая свободная дорожка
+    sec[227] = 0x16; // тип диска
+    sec[228] = 0x0;  // количество файлов на диске(включая удаленные)
+    sec[229] = 240;
+    sec[230] = 9;    // количество секторов 2544
+    sec[231] = 16;   // количество секторов на дорожке
+    memset(&sec[234], 32, 9);
+    sec[244] = 0;    // количество удаленных файлов
+    //sec[245]       - метка диска(8 байт)
     update_crc(s);
 }
 
@@ -333,13 +445,10 @@ bool zxFDD::read_fdi(const void *data, size_t data_size){
 //                                                  VG93                                                                 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const uint16_t  crc_initial = 0xcdb4;
-
-zxVG93::zxVG93() : next(0), tshift(0), head(0), direction(0), rqs(R_NONE),
+zxVG93::zxVG93() : next(0), head(0), direction(0), rqs(R_NONE),
                    system(0), end_waiting_am(0), found_sec(nullptr), rwptr(0), rwlen(0), crc(0), start_crc(-1) {
     _ST_SET(S_IDLE, S_IDLE);
     Z80FQ = 3500000;
-    wd93_nodelay = false;
     fdd = fdds;
     opts[TRDOS_SEC] = 1;
     opts[TRDOS_CMD] = opts[TRDOS_DAT] = opts[TRDOS_TRK] = opts[TRDOS_STS] = 0;
@@ -371,7 +480,7 @@ uint16_t zxVG93::CRC(uint8_t v, uint16_t prev_crc) const {
 }
 
 uint16_t zxVG93::CRC(uint8_t* src, int size) const {
-    auto c = crc_initial;
+    auto c = (uint16_t)0xcdb4;
     while(size--) c = CRC(*src++, c);
     return c;
 }
@@ -387,7 +496,7 @@ void zxVG93::exec(int tact) {
         if(fdd->engine() && (system & CB_SYS_HLT)) opts[TRDOS_STS] |= ST_HEADL;
         if(!fdd->track()) opts[TRDOS_STS] |= ST_TRK00;
         // индексный импульс - чередуюется каждые 4 мс(если диск присутствует)
-        if(fdd->is_disk() && fdd->engine() && ((time + tshift) % (Z80FQ / FDD_RPS) < (Z80FQ * 4 / 1000))) opts[TRDOS_STS] |= ST_INDEX;
+        if(fdd->is_disk() && fdd->engine() && (time % (Z80FQ / FDD_RPS) < (Z80FQ * 4 / 1000))) opts[TRDOS_STS] |= ST_INDEX;
     }
     while(true) {
         switch(state & 15) {
@@ -432,7 +541,7 @@ void zxVG93::read_byte(){
 
 bool zxVG93::ready() {
     // Fdc слишком быстр в режиме без задержки, подождите, пока CPU обработает DRQ, но не больше 'end_waiting_am'
-    if(!wd93_nodelay || !(rqs & R_DRQ)) return true;
+    if(!(rqs & R_DRQ)) return true;
     if(next > end_waiting_am) return true;
     next += fdd->ticks();
     _ST_SET(S_WAIT, S_WAIT);
@@ -445,24 +554,21 @@ void zxVG93::cmdRead() {
         if(rqs & R_DRQ) opts[TRDOS_STS] |= ST_LOST;
         read_byte();
     } else {
-        LOG_INFO("S_READ FINISH idx:%i len:%i", rwptr, 256);
+        LOG_DEBUG("S_READ FINISH idx:%i", rwptr);
 //        log_to_data(false, "read sector", fdd->get_trk()->content + rwptr - _rwlen, found_sec->trk(), found_sec->sec(), found_sec->head());
         if((opts[TRDOS_CMD] & 0xe0) == C_RSEC) {
             // если чтение сектора - проверяем на CRC
             if (crc != found_sec->crcData()) {
-                LOG_INFO("C_RSEC - ERROR CRC", 0);
                 opts[TRDOS_STS] |= ST_CRCERR;
             }
             // если множественная загрузка секторов
             if (opts[TRDOS_CMD] & CB_MULTIPLE) {
-                LOG_INFO("C_RSEC - CB_MULTIPLE", 0);
                 opts[TRDOS_SEC]++; state = S_CMD_RW;
                 return;
             }
         } else if ((opts[TRDOS_CMD] & 0xf0) == C_RADR) {
             // проверяем на CRC
             if (CRC(found_sec->caption - 1, 5) != found_sec->crcId()) {
-                LOG_INFO("C_RADR - ERROR CRC", 0);
                 opts[TRDOS_STS] |= ST_CRCERR;
             }
         }
@@ -481,14 +587,14 @@ void zxVG93::cmdWrite() {
     fdd->write(rwptr++, opts[TRDOS_DAT]); rwlen--;
     crc = CRC(opts[TRDOS_DAT], crc);
     if(rwlen) {
-        if(!wd93_nodelay) next += fdd->ticks();
+        next += fdd->ticks();
         rqs = R_DRQ; opts[TRDOS_STS] |= ST_DRQ;
         _ST_SET(S_WAIT, S_WRITE);
     } else {
         // запись CRC
         fdd->write(rwptr++, (uint8_t)(crc >> 8)); fdd->write(rwptr++, (uint8_t)crc);
         // завершение операции
-        LOG_INFO("S_WRITE FINISH idx:%i len:%i", rwptr, 256);
+        LOG_DEBUG("S_WRITE FINISH idx:%i", rwptr);
         //log_to_data(false, "write sector", found_sec->content, found_sec->trk(), found_sec->sec(), head);
         // проверка на множественные сектора
         auto mult = opts[TRDOS_CMD] & CB_MULTIPLE;
@@ -498,10 +604,7 @@ void zxVG93::cmdWrite() {
 }
 
 void zxVG93::cmdWriteTrackData() {
-    if(!ready()) {
-        LOG_INFO("S_WR_TRACK_DATA no ready!!!", 0);
-        return;
-    }
+    if(!ready()) return;
     // потеря данных
     if(rqs & R_DRQ) {
         opts[TRDOS_STS] |= ST_LOST;
@@ -519,13 +622,17 @@ void zxVG93::cmdWriteTrackData() {
     }
     fdd->write(rwptr++, v); rwlen--;
     if(rwlen) {
-        if(!wd93_nodelay) next += fdd->ticks();
+        next += fdd->ticks();
         rqs = R_DRQ; opts[TRDOS_STS] |= ST_DRQ;
         _ST_SET(S_WAIT, S_WR_TRACK_DATA);
     } else {
-        LOG_INFO("S_WR_TRACK_DATA FINISH idx:%i len:%i", rwptr, rwlen);
+        LOG_DEBUG("S_WR_TRACK_DATA FINISH idx:%i", rwptr);
         //log_to_data(false, "write track", fdd->get_trk()->content, opts[TRDOS_TRK], opts[TRDOS_SEC], head);
         fdd->get_trk()->update(); state = S_IDLE;
+        if(fdd->track() == 0) {
+            LOG_DEBUG("SET DATA SECTOR 9", 0);
+            fdd->fillDiskConfig(fdd->get_sec(9));
+        }
     }
 }
 
@@ -540,21 +647,21 @@ void zxVG93::cmdWriteSector() {
         auto dat = (uint8_t) ((opts[TRDOS_CMD] & CB_WRITE_DEL) ? 0xF8 : 0xFB);
         fdd->write(rwptr++, dat); rwlen = found_sec->len();
         crc = CRC(dat); state = S_WRITE;
+        LOG_DEBUG("S_WRITE idx:%i len:%i", rwptr, rwlen);
     }
 }
 
 void zxVG93::get_index(int s_next) {
     auto t = fdd->get_trk();
     auto trlen = (uint32_t)(t->len * fdd->ticks());
-    auto ticks = (uint32_t)((next + tshift) % trlen);
-    if(!wd93_nodelay) next += (trlen - ticks);
+    auto ticks = (uint32_t)(next % trlen);
+    next += (trlen - ticks);
     rwptr = 0; rwlen = t->len;
     _ST_SET(S_WAIT, s_next);
 }
 
 void zxVG93::cmdWriteTrack() {
     if(rqs & R_DRQ) {
-        LOG_INFO("LOST", 0);
         opts[TRDOS_STS] |= ST_LOST;
         state = S_IDLE;
     } else {
@@ -568,6 +675,7 @@ void zxVG93::cmdWriteTrack() {
         //for(i = 0 ; i < 40; i++) fdd->write(rwptr++, 0x4e);
         end_waiting_am = next + 5 * Z80FQ / FDD_RPS;
         rwlen -= rwptr;
+        LOG_DEBUG("S_WRITE_TRACK idx:%i len:%i", rwptr, rwlen);
     }
 }
 
@@ -584,13 +692,12 @@ void zxVG93::cmdReadWrite() {
         find_sec();
     } else if((cmd & 0xf8) == C_WTRK) {
         // запись дорожки(форматирование)
-        LOG_INFO("S_RW_CMD - C_WTRK", 0);
         next += 3 * fdd->ticks();
         rqs = R_DRQ; opts[TRDOS_STS] |= ST_DRQ;
         _ST_SET(S_WAIT, S_WRTRACK);
     } else if((cmd & 0xf8) == C_RTRK) {
         // чтение дорожки
-        LOG_INFO("S_RW_CMD - C_RTRK", 0);
+        LOG_DEBUG("S_RW_CMD - C_RTRK", 0);
         rwptr = 0; rwlen = fdd->get_trk()->len;
         get_index(S_READ);
     } else {
@@ -604,7 +711,7 @@ void zxVG93::cmdType1() {
     rqs = R_NONE;
     if(fdd->is_protect()) opts[TRDOS_STS] |= ST_WRITEP;
     fdd->engine(next + 2 * Z80FQ);
-    if(!wd93_nodelay) next += 1 * Z80FQ / 1000;
+    next += 1 * Z80FQ / 1000;
     // поиск/восстановление
     auto cmd = S_SEEKSTART;
     if(opts[TRDOS_CMD] & 0xE0) {
@@ -623,6 +730,7 @@ void zxVG93::cmdFindSec() {
         opts[TRDOS_SEC] = opts[TRDOS_TRK];
         rwptr = (uint16_t) (found_sec->caption - fdd->get_trk()->content); rwlen = 6;
         crc = CRC(found_sec->caption[-1]);
+        LOG_DEBUG("S_READ idx:%i len:%i", rwptr, rwlen);
         read_byte();
     } else if (cmd & 0x20) {
         // запись сектора
@@ -634,23 +742,19 @@ void zxVG93::cmdFindSec() {
         cmd = found_sec->content[-1];
         cmd == 0xf8 ? opts[TRDOS_STS] |= ST_RECORDT : opts[TRDOS_STS] &= ~ST_RECORDT;
         rwptr = (uint16_t) (found_sec->content - fdd->get_trk()->content); rwlen = found_sec->len();
+        LOG_DEBUG("S_READ idx:%i len:%i", rwptr, rwlen);
         crc = CRC(cmd); read_byte();
     }
 }
 
 void zxVG93::cmdPrepareRW() {
-    LOG_INFO("S_PREPARE_CMD cmd:%i trk:%i sec:%i head:%i 15ms:%i", opts[TRDOS_CMD], opts[TRDOS_TRK], opts[TRDOS_SEC], head, opts[TRDOS_CMD] & CB_DELAY);
-    if(!wd93_nodelay && (opts[TRDOS_CMD] & CB_DELAY)) next += (Z80FQ * 15 / 1000);
+    LOG_DEBUG("S_PREPARE_CMD cmd:%i trk:%i sec:%i head:%i 15ms:%i", opts[TRDOS_CMD], opts[TRDOS_TRK], opts[TRDOS_SEC], head, opts[TRDOS_CMD] & CB_DELAY);
+    if(opts[TRDOS_CMD] & CB_DELAY) next += (Z80FQ * 15 / 1000);
     // сброс статуса
     opts[TRDOS_STS] = (opts[TRDOS_STS] | ST_BUSY) & ~(ST_DRQ | ST_LOST | ST_NOT_SEC | ST_RECORDT | ST_WRITEP);
     _ST_SET(S_WAIT, S_CMD_RW);
 }
 
-// 0000 HVXX - восстановление
-// 010I HVXX - на один шаг вперед
-// 011I HVXX - на один шаг назад
-// 001I HVXX - на один шаг в том же направлении
-// 0001 HVXX - позиционирование магнитной головки на заданную дорожку.
 void zxVG93::cmdStep() {
     //static const uint32_t steps[] = { 6, 12, 20, 30 };
     auto cmd = opts[TRDOS_CMD];
@@ -664,7 +768,7 @@ void zxVG93::cmdStep() {
         // проверка на допустимые дорожки
         int cyl = fdd->track() + direction; if(cyl < 0) cyl = 0; if(cyl >= PHYS_CYL) cyl = PHYS_CYL;
         fdd->track(cyl);
-        if(!wd93_nodelay) next += Z80FQ / 1000;
+        next += Z80FQ / 1000;
         _ST_SET(S_WAIT, (cmd & 0xe0) ? S_VERIFY : S_SEEK);
     }
 }
@@ -688,8 +792,6 @@ void zxVG93::cmdVerify() {
 }
 
 void zxVG93::find_sec() {
-    // ищем сектор на дорожке
-    if(wd93_nodelay && fdd->track() != opts[TRDOS_TRK]) fdd->track(opts[TRDOS_TRK]);
     load();
     found_sec = nullptr;
     auto wait = 10 * Z80FQ / FDD_RPS;
@@ -737,7 +839,6 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
     exec(tact);
     switch(port) {
         case 0x1F:
-            LOG_INFO("WRITE CMD %i", v);
             // прерывание команды
             if((v & 0xf0) == C_INTERRUPT) {
                 state = S_IDLE; rqs = R_INTRQ; opts[TRDOS_STS] &= ~ST_BUSY;
@@ -752,24 +853,37 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
                 // выйти, если нет диска
                 if(opts[TRDOS_STS] & ST_NOTRDY) { state = S_IDLE; rqs = R_INTRQ; return; }
                 // продолжить вращать диск
-                if(fdd->engine() || wd93_nodelay) fdd->engine(next + 2 * Z80FQ);
+                if(fdd->engine()) fdd->engine(next + 2 * Z80FQ);
                 state = S_PREPARE_CMD;
                 return;
             }
             // для команд поиска/шага
             state = S_TYPE1_CMD;
             break;
-        case 0x3F: opts[TRDOS_TRK] = v; LOG_INFO("WRITE TRACK %i", v); break;
-        case 0x5F: opts[TRDOS_SEC] = v; LOG_INFO("WRITE SECTOR %i", v); break;
+        case 0x3F: opts[TRDOS_TRK] = v; break;
+        case 0x5F: opts[TRDOS_SEC] = v; break;
         case 0x7F: opts[TRDOS_DAT] = v; rqs &= ~R_DRQ; opts[TRDOS_STS] &= ~ST_DRQ; break;
         case 0xFF: system = v;
             fdd = &fdds[v & 3];
             head = (uint8_t)((v & 0x10) == 0);
-            hlt = (uint8_t)((v & 8) != 0);
-            mfm = (uint8_t)((v & 40) != 0);
-//            LOG_INFO(("WRITE SYSTEM: HEAD %i MFM:%i HLT: %i"), head, mfm, hlt);
+//            LOG_INFO(("WRITE SYSTEM: HEAD %i MFM:%i HLT: %i"), head, (uint8_t)((v & 40) != 0), (uint8_t)((v & 8) != 0));
             // сброс контроллера
             if(!(v & CB_RESET)) { opts[TRDOS_STS] = ST_NOTRDY; rqs = R_INTRQ; fdd->engine(0); state = S_IDLE; }
     }
 }
 
+void zxVG93::format() {
+    LOG_INFO("FORMAT", 0);
+}
+
+int zxVG93::read_sector(int num, int sec) {
+    auto sector = fdds[num].get_sec(sec);
+    if(sector) memcpy(&opts[ZX_PROP_VALUES_SECTOR], sector->content, 256);
+    else memset(&opts[ZX_PROP_VALUES_SECTOR], 0, 256);
+    return sector != nullptr;
+}
+
+int zxVG93::count_files(int num, int is_del) {
+    auto sector = fdds[num].get_sec(9);
+    return sector ? sector->content[is_del ? 244 : 228] : 0;
+}

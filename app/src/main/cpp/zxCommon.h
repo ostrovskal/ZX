@@ -109,6 +109,7 @@ constexpr int ZX_PROP_VALUES_KEMPSTON = 91; // Значение для кемп�
 constexpr int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
 constexpr int ZX_PROP_PORT_FEFC       = 93; // Значение передаваемое в порт компаньона
 constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
+constexpr int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
 
 // 1. Булевы значения
 constexpr int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
@@ -145,6 +146,8 @@ constexpr int MODEL_48                = 1; // Синклер 48К
 constexpr int MODEL_128               = 3; // Синклер 128К
 constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
 constexpr int MODEL_SCORPION          = 5; // Скорпион 256К
+constexpr int MODEL_PLUS2             = 6; //
+constexpr int MODEL_PLUS3             = 7; //
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -199,6 +202,7 @@ constexpr int ZX_DISK_OPS_SAVE          = 3; //
 constexpr int ZX_DISK_OPS_SET_READONLY  = 4; //
 constexpr int ZX_DISK_OPS_TRDOS         = 5; //
 constexpr int ZX_DISK_OPS_RSECTOR       = 6; //
+constexpr int ZX_DISK_COUNT_FILES       = 7; //
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //

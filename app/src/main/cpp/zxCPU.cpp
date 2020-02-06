@@ -524,7 +524,7 @@ void zxCPU::opsStd() {
             v8Dst = 0; v8Src = *_A;
             *_A = res = (v8Dst - v8Src);
             execFlags = FPV;
-            setFlags = ((v8Src == 0x80) << 2) | 2 | (v8Src != 0);
+            setFlags = ((v8Src & 0x80) >> 5) | 2 | (v8Src != 0);
             break;
         case O_PUSH:
             *_SP -= 2;

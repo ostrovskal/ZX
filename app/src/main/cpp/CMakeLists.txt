@@ -21,7 +21,6 @@ add_library( # Sets the name of the library.
         zxSound.cpp
         zxGPU.cpp
         zxSound.cpp
-        zxBetaDisk.cpp
         zxFDD.cpp
         zxAY.cpp)
 

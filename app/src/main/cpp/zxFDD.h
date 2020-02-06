@@ -109,15 +109,15 @@ public:
     void seek(int _trk, int _head) { if(disk) { trk = (uint8_t)_trk; head = (uint8_t)_head; ts = Z80FQ / (get_trk()->len * FDD_RPS); } }
     void write(int pos, uint8_t val) { get_trk()->write(pos, val); }
     void update_crc(zxDisk::TRACK::SECTOR* s) const;
-
-    u_long ticks() const { return ts; }
-    uint8_t track(int v = -1) { if(v != -1) trk = (uint8_t)v; return trk; }
+    void fillDiskConfig(zxDisk::TRACK::SECTOR *s);
 
     bool is_disk() const	{ return disk != nullptr; }
     bool is_protect() const	{ return protect; }
     //bool is_boot();
-
     bool open(const void* data, size_t data_size, int type);
+
+    u_long ticks() const { return ts; }
+    uint8_t track(int v = -1) { if(v != -1) trk = (uint8_t)v; return trk; }
 
     zxDisk::TRACK* get_trk() { return disk->track(trk, head); }
     zxDisk::TRACK::SECTOR* get_sec(int sec) { return &get_trk()->sectors[sec]; }
@@ -165,10 +165,10 @@ public:
     void vg93_write(uint8_t port, uint8_t v, int tact);
 
     // восстановить состояние
-    uint8_t* loadState(uint8_t* ptr) { return ptr; }
+    uint8_t* loadState(uint8_t* ptr);
 
     // сохранить состояние
-    uint8_t* saveState(uint8_t* ptr) { return ptr; }
+    uint8_t* saveState(uint8_t* ptr);
 
     // прочитать из порта
     uint8_t vg93_read(uint8_t port, int tact);
@@ -181,6 +181,13 @@ public:
 
     // обновление свойств
     void updateProps();
+
+    void format();
+
+    int read_sector(int num, int sec);
+
+    int count_files(int num, int is_del);
+
 protected:
     // выполнение
     void exec(int tact);
@@ -206,40 +213,6 @@ protected:
     // вычисление КК
     uint16_t CRC(uint8_t v, uint16_t prev = 0xcdb4) const;
 private:
-    //
-    int	tshift;
-    // начальная КК
-    int	start_crc;
-    // головка
-    uint8_t head;
-    uint8_t mfm;
-    uint8_t hlt;
-    // напраление
-    int8_t direction;
-    // позиция при чтении/записи
-    int16_t rwptr;
-    // длина буфера чтения/записи
-    int16_t rwlen;
-    // следующее время
-    uint32_t next;
-    // время ожидания сектора
-    uint32_t end_waiting_am;
-    // текущее состояние
-    uint8_t	state;
-    // состояние порта 0xFF
-    uint8_t	rqs;
-    // системный регистр
-    uint8_t	system;
-    // текущий КК
-    uint16_t crc;
-    // текущий дисковод
-    zxFDD* fdd;
-    // все дисководы
-    zxFDD fdds[4];
-    // текущий сектор
-    zxDisk::TRACK::SECTOR* found_sec;
-    // признак работы с задержками
-    bool wd93_nodelay;
 
     void cmdReadWrite();
 
@@ -264,4 +237,35 @@ private:
     void cmdSeek();
 
     void cmdVerify();
+
+    //
+//    int	tshift;
+    // начальная КК
+    int	start_crc;
+    // головка
+    uint8_t head;
+    // напраление
+    int8_t direction;
+    // позиция при чтении/записи
+    int16_t rwptr;
+    // длина буфера чтения/записи
+    int16_t rwlen;
+    // следующее время
+    uint32_t next;
+    // время ожидания сектора
+    uint32_t end_waiting_am;
+    // текущее состояние
+    uint8_t	state;
+    // состояние порта 0xFF
+    uint8_t	rqs;
+    // системный регистр
+    uint8_t	system;
+    // текущий КК
+    uint16_t crc;
+    // текущий дисковод
+    zxFDD* fdd;
+    // все дисководы
+    zxFDD fdds[4];
+    // текущий сектор
+    zxDisk::TRACK::SECTOR* found_sec;
 };

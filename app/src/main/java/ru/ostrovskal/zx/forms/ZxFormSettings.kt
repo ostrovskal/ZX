@@ -51,6 +51,7 @@ class ZxFormSettings : Form() {
         private val settingsAY      = listOf("MONO", "ABC", "ACB")
         private val settingsFreq    = listOf("44100", "22050", "11025")
         private val namesDisk       = listOf("A: ", "B: ", "C: ", "D: ")
+        private val diskSectors                 = ByteArray(2048) { 0 }
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
 
@@ -205,8 +206,12 @@ class ZxFormSettings : Form() {
                     if (isEmpty) path = context.getString(R.string.diskEmpty)
                     else {
                         // прочитать количество файлов
-                        countDiskFiles = 0
+                        countDiskFiles = ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_COUNT_FILES, "")
                         // прочитать сектор каталог
+                        repeat(8) { dsk ->
+                            ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk or (dsk shl 3), ZX_DISK_OPS_RSECTOR, "")
+                            ZxWnd.props.copyInto(diskSectors, dsk shl 8, ZX_PROP_VALUES_SECTOR, ZX_PROP_VALUES_SECTOR + 255)
+                        }
                     }
                     // в текст поставить выбранный диск
                     (root as? TabLayout)?.apply { currentContent.byIdx<Text>(1).text = path }
