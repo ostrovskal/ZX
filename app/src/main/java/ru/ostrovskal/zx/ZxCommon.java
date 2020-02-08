@@ -67,8 +67,8 @@ public final class ZxCommon {
     public final static int ZX_CPU_RI               = 24;
     public final static int ZX_CPU_RR               = 25;
     public final static int ZX_CPU_ROM              = 33;
-    public final static int ZX_CPU_STATE            = 59;
-    public final static int ZX_CPU_RL               = 62;
+    public final static int ZX_CPU_STATE            = 62;
+    public final static int ZX_CPU_RL               = 65;
 
     public final static int MENU_IO                 = 1001;
     public final static int MENU_SETTINGS           = 1002;
@@ -100,10 +100,10 @@ public final class ZxCommon {
     public final static int MENU_MODEL_48KS         = 1301;
     public final static int MENU_MODEL_48KSN        = 1302;
     public final static int MENU_MODEL_128K         = 1303;
-    public final static int MENU_MODEL_PENTAGON     = 1304;
-    public final static int MENU_MODEL_SCORPION     = 1305;
-    public final static int MENU_MODEL_PLUS2        = 1306;
-    public final static int MENU_MODEL_PLUS3        = 1307;
+    public final static int MENU_MODEL_PLUS2        = 1304;
+    public final static int MENU_MODEL_PLUS3        = 1305;
+    public final static int MENU_MODEL_PENTAGON     = 1306;
+    public final static int MENU_MODEL_SCORPION     = 1307;
 
     public final static int MENU_MRU_1              = 1400;
     public final static int MENU_MRU_2              = 1401;
@@ -140,7 +140,7 @@ public final class ZxCommon {
     private static final int ZX_PROP_TRAP_TAPE      = 129; // Признак перехвата загрузки/записи с ленты
     public static final int ZX_PROP_SHOW_JOY        = 130; // Признак отображения джойстика
     public static final int ZX_PROP_SHOW_KEY        = 131; // Признак отображения клавиатуры
-    public static final int ZX_PROP_TURBO_MODE      = 132; // Признак турбо-режима процессора
+    private static final int ZX_PROP_TURBO_MODE     = 132; // Признак турбо-режима процессора
     private static final int ZX_PROP_SND_LAUNCH     = 133; // Признак запуска звукового процессора
     private static final int ZX_PROP_SND_BP         = 134; // Признак запуска бипера
     private static final int ZX_PROP_SND_AY         = 135; // Признак трехканального AY

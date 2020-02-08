@@ -76,7 +76,7 @@ size_t zxDA::cmdParser(uint16_t* pc, uint16_t* buffer, bool regSave) {
 
     getOperand(regDst, regSrc, prefix, &vDst, pc, &ticks, &offsDst);
     getOperand(regSrc, regDst, prefix, &vSrc, pc, &ticks, &offsSrc);
-    // кэшированные значения
+    // кэшировать значения
     *buffer++ = (uint16_t)pref; *buffer++ = (uint16_t)prefix;
     *buffer++ = vDst; *buffer++ = vSrc;
     *buffer++ = offsDst; *buffer++ = offsSrc;
@@ -93,7 +93,7 @@ size_t zxDA::cmdParser(uint16_t* pc, uint16_t* buffer, bool regSave) {
     // значения регистров(если надо)
     *buffer++ = (uint16_t)regSave;
     if(regSave) {
-        auto cpu = ALU->cpu;
+        auto cpu = ULA->cpu;
         *buffer++ = *cpu->_AF; *buffer++ = *cpu->_BC; *buffer++ = *cpu->_DE; *buffer++ = *cpu->_HL;
         *buffer++ = *cpu->_IX; *buffer++ = *cpu->_IY; *buffer++ = *cpu->_SP;
     }
@@ -145,7 +145,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
         case C_CALL: case C_DJNZ: case C_JR:
             // cmd [flag,] NN
             if(fl) { DA(C_FNZ + fl - 1); DA(C_COMMA); }
-            if(cmd <= C_JR) vSrc = (uint16_t)(_pc + 2) + (int8_t)vSrc;
+            if(cmd >= C_DJNZ) vSrc = (uint16_t)(_pc + 2) + (int8_t)vSrc;
             DA(C_NN); DA(vSrc);
             break;
         case C_ADD: case C_ADC: case C_SUB: case C_SBC:
@@ -167,7 +167,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
             break;
         case C_OUT:
             if(regSrc == _C8) { DA(C_N); DA(vSrc); } else DA(C_PC);
-            DA(C_COMMA); DA(C_DST);
+            DA(C_COMMA); regDst == _N_ ? DA(C_END) : DA(C_DST);
             break;
         case C_LD:
             switch(m->ops) {
@@ -209,17 +209,15 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
     // заголовок
     if(flags & DA_PC) {
         static const char* bpTypes[] = { "   ", " * ", " + ", " *+"};
-        auto isExec = ALU->quickCheckBPs(_pc, ZX_BP_EXEC) != nullptr;
-        auto isMem = ALU->quickCheckBPs(_pc, ZX_BP_WMEM) != nullptr;
+        auto isExec = ULA->quickCheckBPs(_pc, ZX_BP_EXEC) != nullptr;
+        auto isMem = ULA->quickCheckBPs(_pc, ZX_BP_WMEM) != nullptr;
         ssh_strcpy(&daResult, ssh_fmtValue(_pc, ZX_FV_NUM16, true));
         ssh_strcpy(&daResult, bpTypes[isExec | (isMem << 1)]);
     }
     if(flags & DA_CODE) {
-        char* daCode = (char*)&TMP_BUF[65536 + 256]; auto cod = daCode;
+        char* daCode = (char*)&TMP_BUF[INDEX_DA]; auto cod = daCode;
         int length = *buffer++;
         for(int i = 0; i < length; i++) ssh_strcpy(&daCode, ssh_fmtValue(*buffer++, (i != (length - 1)) * 2, true));
-        //auto l = strlen(cod);
-        //ssh_strcpy(&daResult, l >= 8 ? "\t" : "\t\t");
         length = strlen(cod);
         n = hex ? 12 : 16; ssh_char(&daCode, ' ', n - length);
         *daCode = 0;

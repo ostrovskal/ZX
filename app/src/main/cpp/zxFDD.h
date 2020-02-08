@@ -4,7 +4,7 @@
 
 #pragma once
 
-extern u_long Z80FQ;
+extern uint64_t Z80FQ;
 
 #define MAX_TRK     86
 #define MAX_HEAD    2
@@ -19,7 +19,9 @@ extern u_long Z80FQ;
 
 #define FDD_RPS     5 // скорость вращения
 #define PHYS_CYL    86
-//#define SEEK_SET_TRACK 0x10
+
+inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
+inline uint16_t wordBE(const uint8_t* ptr)	{ return ptr[0] << 8 | ptr[1]; }
 
 enum FDD_CMD {
 //    CB_SEEK_RATE	= 0x03,
@@ -53,11 +55,6 @@ enum FDD_STATUS {
     ST_LOST	= 0x04, ST_CRCERR = 0x08, ST_NOT_SEC = 0x10, ST_SEEKERR	= 0x10,
     ST_RECORDT = 0x20, ST_HEADL = 0x20, /*ST_WRFAULT = 0x20, */ST_WRITEP = 0x40, ST_NOTRDY = 0x80
 };
-
-static inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
-static inline uint16_t wordBE(const uint8_t* ptr)	{ return ptr[0] << 8 | ptr[1]; }
-static inline uint32_t Dword(const uint8_t * ptr) { return ptr[0] | (uint32_t)(ptr[1]) << 8 | (uint32_t)(ptr[2]) << 16 | (uint32_t)(ptr[3]) << 24; }
-static inline uint16_t swap_byte_order(uint16_t v) { return (v >> 8) | (v << 8); }
 
 class zxDisk {
 public:
@@ -116,13 +113,13 @@ public:
     //bool is_boot();
     bool open(const void* data, size_t data_size, int type);
 
-    u_long ticks() const { return ts; }
+    uint64_t ticks() const { return ts; }
     uint8_t track(int v = -1) { if(v != -1) trk = (uint8_t)v; return trk; }
 
     zxDisk::TRACK* get_trk() { return disk->track(trk, head); }
     zxDisk::TRACK::SECTOR* get_sec(int sec) { return &get_trk()->sectors[sec]; }
     zxDisk::TRACK::SECTOR* get_sec(int trk, int head, int sec);
-    uint32_t engine(int v = -1) { if(v != -1) motor = (uint32_t)v; return motor; }
+    uint64_t engine(uint64_t v = (uint64_t)-1) { if(v != -1) motor = v; return motor; }
 
     bool protect;
 protected:
@@ -137,10 +134,10 @@ protected:
     uint16_t CRC(uint8_t * src, int size) const;
 
 protected:
-    uint32_t motor;
+    uint64_t motor;
     uint8_t  trk;
     uint8_t  head;
-    u_long   ts;
+    uint64_t ts;
     zxDisk*  disk;
 };
 
@@ -182,8 +179,6 @@ public:
     // обновление свойств
     void updateProps();
 
-    void format();
-
     int read_sector(int num, int sec);
 
     int count_files(int num, int is_del);
@@ -213,35 +208,21 @@ protected:
     // вычисление КК
     uint16_t CRC(uint8_t v, uint16_t prev = 0xcdb4) const;
 private:
-
+    // процедуры обработки команд
     void cmdReadWrite();
-
     void cmdWriteTrackData();
-
     void cmdType1();
-
     void cmdStep();
-
     void cmdWrite();
-
     void cmdPrepareRW();
-
     void cmdFindSec();
-
     void cmdRead();
-
     void cmdWriteSector();
-
     void cmdWriteTrack();
-
     void cmdSeek();
-
     void cmdVerify();
-
-    //
-//    int	tshift;
     // начальная КК
-    int	start_crc;
+    int8_t start_crc;
     // головка
     uint8_t head;
     // напраление
@@ -251,9 +232,9 @@ private:
     // длина буфера чтения/записи
     int16_t rwlen;
     // следующее время
-    uint32_t next;
+    uint64_t next;
     // время ожидания сектора
-    uint32_t end_waiting_am;
+    uint64_t end_waiting_am;
     // текущее состояние
     uint8_t	state;
     // состояние порта 0xFF

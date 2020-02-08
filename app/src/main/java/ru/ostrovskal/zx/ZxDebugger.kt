@@ -34,12 +34,12 @@ class ZxDebugger {
             ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagP,     ZX_CPU_F,    0x04, 2),
             ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagN,     ZX_CPU_F,    0x02, 1),
             ZxRegister(ZX_FV_SIMPLE, 0, R.string.flagC,     ZX_CPU_F,    0x01, 0),
-            ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.rom,   ZX_CPU_ROM,  0xff),
-            ZxRegister(ZX_FV_OPS8, R.id.edit1,  R.string.ri,    ZX_CPU_RI,  0xff),
-            ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.rr,    ZX_CPU_RR,  0xff),
-            ZxRegister(ZX_FV_OPS16, R.id.edit3, R.string.raf,   ZX_CPU_AF),
-            ZxRegister(ZX_FV_OPS16, R.id.edit4, R.string.rhl,   ZX_CPU_HL),
-            ZxRegister(ZX_FV_OPS16, R.id.edit5, R.string.rde,   ZX_CPU_DE),
+            ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.rom, ZX_CPU_ROM,0xff),
+            ZxRegister(ZX_FV_OPS8, R.id.edit1,  R.string.ri,   ZX_CPU_RI, 0xff),
+            ZxRegister(ZX_FV_OPS8, R.id.edit2,  R.string.rr,   ZX_CPU_RR, 0xff),
+            ZxRegister(ZX_FV_OPS16, R.id.edit3, R.string.raf,  ZX_CPU_AF),
+            ZxRegister(ZX_FV_OPS16, R.id.edit4, R.string.rhl,  ZX_CPU_HL),
+            ZxRegister(ZX_FV_OPS16, R.id.edit5, R.string.rde,  ZX_CPU_DE),
             ZxRegister(ZX_FV_OPS16, R.id.edit6, R.string.rbc,  ZX_CPU_BC),
             ZxRegister(ZX_FV_OPS16, R.id.edit7, R.string.rix,  ZX_CPU_IX),
             ZxRegister(ZX_FV_OPS16, R.id.edit8, R.string.riy,  ZX_CPU_IY),
@@ -238,7 +238,7 @@ class ZxDebugger {
                     }
                     flags = ZX_DSL
                 } else {
-                    if(ZxWnd.zxCmd(ZX_CMD_ASSEMBLER, list.selItem, 0, txt) == 0) {
+                    if(ZxWnd.zxCmd(ZX_CMD_ASSEMBLER, list.selItem, 0, txt) != 1) {
                         // error
                         val s = ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE)
                         val e = ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE + 1)

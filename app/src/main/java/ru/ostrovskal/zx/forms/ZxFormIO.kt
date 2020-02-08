@@ -118,8 +118,7 @@ class ZxFormIO: Form() {
             } else {
                 updateFiles(true)
             }
-        }/* else if(msg.action == ZxWnd.ZxMessages.ACT_DROPBOX_DOWNLOAD_FINISH.ordinal)
-            footer(BTN_OK, 0)*/
+        }
         return super.handleMessage(msg)
     }
 
@@ -129,7 +128,7 @@ class ZxFormIO: Form() {
         val name = edit.text.toString()
         val enabled = files.contains(name)
         filePath = rootFolder.removePrefix(folderFiles) + name
-        root.byIdx<Tile>(2).isEnabled = name.isNotBlank() && !isNet
+        root.byIdx<Tile>(2).isEnabled = name.isNotBlank() && !isNet && name.indexOf('.') == -1
         root.byIdx<Tile>(3).isEnabled = if(isNet) checkedCount != 0 else enabled && name[0] != '['
         root.byIdx<Tile>(4).isEnabled = name.validFileExtensions(validExt) && !enabled && !isNet
         root.byIdx<Tile>(5).isEnabled = enabled && !isNet
@@ -201,8 +200,9 @@ class ZxFormIO: Form() {
                                 var isDir = true
                                 when {
                                     file == "..." -> {
-                                        rootFolder = rootFolder.substringBeforeLast(File.separatorChar).substringBeforeLast(File.separatorChar) + File.separatorChar
-                                        file = ""
+                                        file = rootFolder.substringBeforeLast(File.separatorChar)
+                                        rootFolder = file.substringBeforeLast(File.separatorChar) + File.separatorChar
+                                        file = "[" + file.substringAfterLast(File.separatorChar) + "]"
                                     }
                                     file[0] == '[' -> {
                                         // goto folder

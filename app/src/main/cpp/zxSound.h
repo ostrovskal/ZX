@@ -15,7 +15,7 @@ class zxSound {
     friend void callback_ay8912(SLBufferQueueItf pBufferQueue, void* pThis);
 public:
     struct AY_SAMPLER {
-        u_long   tstates;
+        long tstates;
         uint16_t ofs;
         uint8_t  reg, val;
     };
@@ -29,7 +29,7 @@ public:
     };
 
     int update();
-    void ayWrite(uint8_t reg, uint8_t value, uint32_t tick);
+    void ayWrite(uint8_t reg, uint8_t value, long tick);
     void reset();
     void beeperWrite(uint8_t on);
     void updateProps();
@@ -56,7 +56,7 @@ protected:
     int sound_stereo_ay_narrow;
 
     // циклов на кадр
-    u_long tsmax;
+    long tsmax;
 
     // амплитуда/громкость бипера
     int ampBeeper, volBeeper;

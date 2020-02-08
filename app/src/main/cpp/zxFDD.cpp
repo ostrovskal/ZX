@@ -102,13 +102,46 @@
 
 #define Min(o, p)	(o < p ? o : p)
 
-u_long Z80FQ = 3500000;
+uint64_t Z80FQ = 3500000;
 
 uint8_t* zxVG93::loadState(uint8_t* ptr) {
     return ptr;
 }
 
 uint8_t* zxVG93::saveState(uint8_t* ptr) {
+    /*
+    // начальная КК
+    int8_t start_crc;
+    // головка
+    uint8_t head;
+    // напраление
+    int8_t direction;
+    // позиция при чтении/записи
+    int16_t rwptr;
+    // длина буфера чтения/записи
+    int16_t rwlen;
+    // следующее время
+    uint32_t next;
+    // время ожидания сектора
+    uint32_t end_waiting_am;
+    // текущее состояние
+    uint8_t	state;
+    // состояние порта 0xFF
+    uint8_t	rqs;
+    // системный регистр
+    uint8_t	system;
+    // текущий КК
+    uint16_t crc;
+     *
+     */
+
+    /*
+    uint32_t motor;
+    uint8_t  trk;
+    uint8_t  head;
+    u_long   ts;
+     *
+     */
     return ptr;
 }
 
@@ -117,7 +150,7 @@ int zxVG93::save(const char *path, int num, int type) {
 }
 
 void zxVG93::updateProps() {
-    Z80FQ = ALU->machine->cpuClock;
+    Z80FQ = ULA->machine->cpuClock;
 }
 
 /*
@@ -486,7 +519,7 @@ uint16_t zxVG93::CRC(uint8_t* src, int size) const {
 }
 
 void zxVG93::exec(int tact) {
-    auto time = ALU->_TICK + tact;
+    auto time = ULA->_TICK + tact;
     // Неактивные диски игнорируют бит HLT
     if(time > fdd->engine() && (system & CB_SYS_HLT)) fdd->engine(0);
     fdd->is_disk() ? opts[TRDOS_STS] &= ~ST_NOTRDY : opts[TRDOS_STS] |= ST_NOTRDY;
@@ -613,7 +646,7 @@ void zxVG93::cmdWriteTrackData() {
     auto d = opts[TRDOS_DAT]; auto v = d;
     if(d == 0xF5) { v = 0xA1; }
     else if(d == 0xF6) { v = 0xC2; }
-    else if(d == 0xFB || d == 0xFE) { start_crc = rwptr; }
+    else if(d == 0xFB || d == 0xFE) { start_crc = (int8_t)rwptr; }
     else if(d == 0xF7) {
         // считаем КК
         crc = CRC(fdd->get_trk()->content + start_crc, rwptr - start_crc);
@@ -846,7 +879,7 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
             }
             if(opts[TRDOS_STS] & ST_BUSY) return;
             opts[TRDOS_CMD] = v;
-            next = ALU->_TICK + tact;
+            next = ULA->_TICK + tact;
             opts[TRDOS_STS] |= ST_BUSY; rqs = R_NONE;
             // команды чтения/записи
             if(opts[TRDOS_CMD] & 0x80) {
@@ -866,14 +899,10 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
         case 0xFF: system = v;
             fdd = &fdds[v & 3];
             head = (uint8_t)((v & 0x10) == 0);
-//            LOG_INFO(("WRITE SYSTEM: HEAD %i MFM:%i HLT: %i"), head, (uint8_t)((v & 40) != 0), (uint8_t)((v & 8) != 0));
+//            LOG_INFO(("WRITE SYSTEM: HEAD %i MFM:%i HLT: %i"), head, (uint8_t)((v & 16) != 0), (uint8_t)((v & 8) != 0));
             // сброс контроллера
             if(!(v & CB_RESET)) { opts[TRDOS_STS] = ST_NOTRDY; rqs = R_INTRQ; fdd->engine(0); state = S_IDLE; }
     }
-}
-
-void zxVG93::format() {
-    LOG_INFO("FORMAT", 0);
 }
 
 int zxVG93::read_sector(int num, int sec) {

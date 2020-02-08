@@ -14,15 +14,12 @@
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
-    struct ZX_PORT { int msk, val, num; };
     // стейты, в зависимости от размера границы
     ZX_TSTATE ts[4];
-    // несколько портов
-    ZX_PORT ports[8];
     // задержки стейтов для пикселей экрана
     int tsDelay[8];
     // всего стейтов на кадр
-    int tsTotal;
+    long tsTotal;
     // частота процессора
     u_long cpuClock;
     // всего страниц ОЗУ
@@ -54,10 +51,10 @@ struct BREAK_POINT {
     uint8_t flg;
 };
 
-class zxALU {
+class zxULA {
 public:
-    zxALU();
-    ~zxALU();
+    zxULA();
+    ~zxULA();
 
     // Обновление кадра
     void updateFrame();
@@ -129,7 +126,7 @@ public:
     static uint8_t* _STATE;
 
     // счетчик тактов
-    static uint32_t _TICK;
+    static long _TICK;
 
     // адрес возврата
     static uint16_t* _CALL;

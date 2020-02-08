@@ -68,7 +68,7 @@ static void makeTblParity() {
 
 // пишем в память 8 бит
 void zxCPU::wm8(uint16_t address, uint8_t val) {
-    if(checkSTATE(ZX_DEBUG)) { if(ALU->checkBPs(address, ZX_BP_WMEM)) return; }
+    if(checkSTATE(ZX_DEBUG)) { if(ULA->checkBPs(address, ZX_BP_WMEM)) return; }
     ::wm8(realPtr(address), val);
 }
 
@@ -98,7 +98,7 @@ zxCPU::zxCPU() {
 
 int zxCPU::call(uint16_t address) {
     *_SP -= 2;
-    *zxALU::_CALL = *_PC;
+    *zxULA::_CALL = *_PC;
     wm16(*_SP, *_PC);
     *_PC = address;
     return 17;
@@ -106,7 +106,7 @@ int zxCPU::call(uint16_t address) {
 
 int zxCPU::signalINT() {
     if(*_IFF1) {
-        *zxALU::_STATE &= ~ZX_HALT;
+        *zxULA::_STATE &= ~ZX_HALT;
         *_IFF1 = *_IFF2 = 0;
         incrementR();
         switch(*_IM) {
@@ -263,7 +263,7 @@ void zxCPU::opsBlock() {
         // fpv = _FP(((HL) + ((C + dx) & 255)) & 7) xor B)
         case O_INI:
             // SZ5*3***
-            v8Dst = ALU->readPort(*_C, *_B); wm8(*_HL, v8Dst); *_HL += dir; *_B -= 1;
+            v8Dst = ULA->readPort(*_C, *_B); wm8(*_HL, v8Dst); *_HL += dir; *_B -= 1;
             execFlags = FH | FPV;
             res = *_B;
             cb8 = v8Src + (uint8_t)(*_C + dir);
@@ -277,7 +277,7 @@ void zxCPU::opsBlock() {
         // fpv = _FP(((HL) + L) & 7) xor B)
         case O_OTI:
             // SZ5*3***
-            ALU->writePort(*_C, *_B, v8Src); *_HL += dir; *_B -= 1;
+            ULA->writePort(*_C, *_B, v8Src); *_HL += dir; *_B -= 1;
             execFlags = FH | FPV;
             res = *_B;
             cb8 = v8Src + opts[RL];
@@ -433,7 +433,7 @@ void zxCPU::opsSpecial() {
             *_IFF1 = *_IFF2 = (uint8_t) ((codeOps & 8) >> 3);
             break;
         case HALT:
-            *zxALU::_STATE |= ZX_HALT;
+            *zxULA::_STATE |= ZX_HALT;
             *_IFF1 = *_IFF2 = 1;
             break;
         case DJNZ:
@@ -450,7 +450,7 @@ void zxCPU::opsPort() {
     auto A8A15 = (regSrc == _RC ? *_B : v8Dst);
     if(ops == O_IN) {
         // IN DST, NA/IN DST, CB
-        *dst = res = ALU->readPort(v8Src, A8A15);
+        *dst = res = ULA->readPort(v8Src, A8A15);
         if (mskFlags) {
             // SZ503P0-
             execFlags = FH | FPV;
@@ -458,7 +458,7 @@ void zxCPU::opsPort() {
         }
     } else {
         // OUT NA/CB, SRC
-        ALU->writePort(v8Src, A8A15, v8Dst);
+        ULA->writePort(v8Src, A8A15, v8Dst);
     }
 }
 
@@ -524,7 +524,7 @@ void zxCPU::opsStd() {
             v8Dst = 0; v8Src = *_A;
             *_A = res = (v8Dst - v8Src);
             execFlags = FPV;
-            setFlags = ((v8Src & 0x80) >> 5) | 2 | (v8Src != 0);
+            setFlags = ((v8Src == 0x80) << 2) | 2 | (v8Src != 0);
             break;
         case O_PUSH:
             *_SP -= 2;
@@ -542,7 +542,7 @@ void zxCPU::opsStd() {
             v8Src = (uint8_t)((codeOps >> 3) & 3);
             *_IM = (uint8_t)(v8Src ? v8Src - 1 : 0);
             break;
-        default: LOG_DEBUG("found NONI(%i) from PC: %i", m->name, zxALU::PC);
+        default: LOG_DEBUG("found NONI(%i) from PC: %i", m->name, zxULA::PC);
     }
 }
 

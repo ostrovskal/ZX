@@ -55,7 +55,7 @@ void zxSound::updateProps() {
     reset();
 
     isEnabled       = opts[ZX_PROP_SND_LAUNCH] != 0;
-    tsmax           = ALU->machine->cpuClock / 50;
+    tsmax           = ULA->machine->cpuClock / 50;
     isAyEnabled     = isEnabled && opts[ZX_PROP_SND_AY];
     isBpEnabled     = isEnabled && opts[ZX_PROP_SND_BP];
     clockAY         = opts[ZX_PROP_TURBO_MODE] ? 1773400 * 2 : 1773400;
@@ -149,11 +149,11 @@ void zxSound::reset() {
     CLOCK_RESET(clockAY);
 }
 
-void zxSound::ayWrite(uint8_t reg, uint8_t val, uint32_t tick) {
+void zxSound::ayWrite(uint8_t reg, uint8_t val, long tick) {
     if(bufferQueue && isAyEnabled) {
         if (reg < 16) {
             if (countSamplers < AY_SAMPLERS) {
-                samplers[countSamplers].tstates = tick % ALU->machine->tsTotal;
+                samplers[countSamplers].tstates = tick % ULA->machine->tsTotal;
                 samplers[countSamplers].reg = reg;
                 samplers[countSamplers].val = val;
                 countSamplers++;
@@ -297,11 +297,11 @@ void zxSound::beeperWrite(uint8_t on) {
     if(isBpEnabled && opts[ZX_PROP_EXECUTE]) {
         int f;
 
-        auto tstates = zxALU::_TICK % ALU->machine->tsTotal;
+        auto tstates = zxULA::_TICK % ULA->machine->tsTotal;
 
         auto val = (on ? -ampBeeper : ampBeeper);
         if(val == beeperOrigVal) return;
-        int newPos = (tstates * sndBufSize) / tsmax;
+        int newPos = (int) ((tstates * sndBufSize) / tsmax);
         int subPos = (int) ((((long long) tstates) * sndBufSize * volBeeper) / tsmax - volBeeper * newPos);
 
         if(newPos == beeperOldPos) {
@@ -322,7 +322,7 @@ void zxSound::beeperWrite(uint8_t on) {
     }
 }
 
-short tmpBuf[4096];
+//short tmpBuf[4096];
 
 int zxSound::update() {
     static int silent_level = -1;
@@ -359,8 +359,8 @@ int zxSound::update() {
     return !silent;
 }
 
-void callback_ay8912(SLBufferQueueItf, void* pThis) {
-    auto snd = (zxSound*)pThis;
+void callback_ay8912(SLBufferQueueItf, void*) {
+    //auto snd = (zxSound*)pThis;
     //memset(snd->sndPlayBuf, 0, snd->sndBufSize * 2 * sizeof(short));
     isPlaying = false;
 }

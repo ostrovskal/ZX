@@ -25,7 +25,7 @@
 
 #include "zxFile.h"
 #include "zxCPU.h"
-#include "zxALU.h"
+#include "zxULA.h"
 
 struct MNEMONIC {
     // приемник
@@ -43,7 +43,7 @@ struct MNEMONIC {
 };
 
 // Глобальные
-extern zxALU* 				            ALU;
+extern zxULA* 				            ULA;
 extern uint8_t* 			            opts;
 extern uint8_t* 			            labels;
 extern uint8_t* 			            TMP_BUF;
@@ -53,9 +53,8 @@ extern BREAK_POINT*			            bps;
 extern uint8_t                          numBits[8];
 extern int                              frequencies[3];
 
-#define ZX_TOTAL_RAM                    262144
+#define ZX_TOTAL_RAM                    256 * 1024
 #define LOG_NAME                        "ZX"
-#define ZX_BETADISK_INDEX               524288
 
 // вывод отладочной информации
 void info(const char* msg, const char* file, const char* func, int line, ...);
@@ -72,6 +71,12 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 #define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
 
 constexpr int ZX_SIZE_TMP_BUF           = 1024 * 1024;
+constexpr int INDEX_OPEN                = 256 * 1024;
+constexpr int INDEX_DA                  = 256 * 1024;
+constexpr int INDEX_TEMP                = 512 * 1024;
+constexpr int INDEX_INTERNAL            = 520 * 1024;
+constexpr int INDEX_CNV                 = 528 * 1024;
+constexpr int INDEX_FMT                 = 576 * 1024;
 
 constexpr int ZX_BP_NONE                = 0; // не учитывается
 constexpr int ZX_BP_EXEC                = 1; // исполнение
@@ -107,7 +112,7 @@ constexpr int ZX_PROP_KEY_MODE        = 82; // Режим клавиатуры (
 constexpr int ZX_PROP_VALUES_SEMI_ROW = 83; // Значения в полурядах клавиатуры (8) 93 - 100
 constexpr int ZX_PROP_VALUES_KEMPSTON = 91; // Значение для кемпстон-джойстика
 constexpr int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
-constexpr int ZX_PROP_PORT_FEFC       = 93; // Значение передаваемое в порт компаньона
+constexpr int ZX_PROP_PORT_FEFC       = 96; // Значение передаваемое в порт компаньона
 constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 constexpr int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
 
@@ -144,10 +149,10 @@ constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 constexpr int MODEL_KOMPANION         = 0; // Компаньон
 constexpr int MODEL_48                = 1; // Синклер 48К
 constexpr int MODEL_128               = 3; // Синклер 128К
-constexpr int MODEL_PENTAGON          = 4; // Пентагон 128К
-constexpr int MODEL_SCORPION          = 5; // Скорпион 256К
-constexpr int MODEL_PLUS2             = 6; //
-constexpr int MODEL_PLUS3             = 7; //
+//constexpr int MODEL_PLUS2             = 4; // Синклер +2
+constexpr int MODEL_PLUS3             = 5; // Синклер +3
+constexpr int MODEL_PENTAGON          = 6; // Пентагон 256К
+constexpr int MODEL_SCORPION          = 7; // Скорпион 256К
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -235,14 +240,18 @@ constexpr int RADIX_BOL 				= 6;
 
 #define SAFE_A_DELETE(ptr)              if(ptr) { delete[] ptr; (ptr) = nullptr; }
 #define SAFE_DELETE(ptr)                if(ptr) { delete (ptr); (ptr) = nullptr; }
-#define modifySTATE(a, r)               { (*zxALU::_STATE) &= ~(r); (*zxALU::_STATE) |= (a); }
+#define modifySTATE(a, r)               { (*zxULA::_STATE) &= ~(r); (*zxULA::_STATE) |= (a); }
 #define SWAP_REG(r1, r2)                { auto a = *(r1); auto b = *(r2); *(r1) = b; *(r2) = a; }
+
+inline uint32_t Dword(const uint8_t * ptr)  { return ptr[0] | (uint32_t)(ptr[1]) << 8 | (uint32_t)(ptr[2]) << 16 | (uint32_t)(ptr[3]) << 24; }
+inline uint16_t swap_byte_order(uint16_t v) { return (v >> 8) | (v << 8); }
+inline uint16_t SwapWord(uint16_t v)	    { return swap_byte_order(v); }
 
 // число в строку
 char* ssh_ntos(void* v, int r, char** end = nullptr);
 
 // строку в число
-void* ssh_ston(const char* s, int r, const char** end = nullptr);
+void* ssh_ston(const char* s, int r, char** end = nullptr);
 
 // число в строку с формированием
 char* ssh_fmtValue(int value, int type, bool hex);
@@ -254,10 +263,10 @@ uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_
 int parseExtension(const char* name);
 
 // вернуть реальный адрес памяти
-inline uint8_t* realPtr(uint16_t address) { return &zxALU::memPAGES[address >> 14][address & 16383]; }
+inline uint8_t* realPtr(uint16_t address) { return &zxULA::memPAGES[address >> 14][address & 16383]; }
 
 // проверка на состояние
-inline bool checkSTATE(uint8_t state) { return (*zxALU::_STATE & (state)); }
+inline bool checkSTATE(uint8_t state) { return (*zxULA::_STATE & (state)); }
 
 // читаем 8 бит из памяти
 inline uint8_t rm8(uint16_t address) { return *realPtr(address); }
@@ -266,13 +275,20 @@ inline uint8_t rm8(uint16_t address) { return *realPtr(address); }
 inline uint16_t rm16(uint16_t address) { return (rm8(address) | (rm8((uint16_t) (address + 1)) << 8)); }
 
 // пишем в память 8 битное значение
-inline void wm8(uint8_t* address, uint8_t val) { if(address < ALU->ROMb || address > ALU->ROMe) *address = val;}
+inline void wm8(uint8_t* address, uint8_t val) { if(address < ULA->ROMb || address > ULA->ROMe) *address = val;}
+
+// пропуск пробелов
+inline void ssh_skip_spc(char** s) {
+    auto t = *s; t--;
+    while(*++t == ' ') { }
+    *s = t;
+}
 
 // возвращает количество миллисекунд
-inline u_long currentTimeMillis() {
+inline long currentTimeMillis() {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
-    return (u_long)(((tv.tv_sec * 1000) + (tv.tv_usec / 1000)));
+    return (((tv.tv_sec * 1000) + (tv.tv_usec / 1000)));
 }
 
 inline uint8_t* ssh_memset(void* ptr, int set, size_t count) {

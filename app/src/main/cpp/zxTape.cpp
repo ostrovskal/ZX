@@ -122,7 +122,7 @@ uint8_t *zxTape::saveState(uint8_t *ptr) {
 }
 
 bool zxTape::openTAP(const char *path) {
-    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[262144], true);
+    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true);
     if(!ptr) return false;
     return load(ptr, false) != nullptr;
 }
@@ -133,8 +133,7 @@ bool zxTape::saveTAP(const char *path) {
 }
 
 bool zxTape::openWAV(const char *path) {
-
-    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[262144], true);
+    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true);
     if(!ptr) return false;
     ptr += 14; // skip
 
@@ -240,16 +239,18 @@ bool zxTape::saveWAV(const char *path) {
 }
 
 void zxTape::writePort(uint8_t value) {
+/*
+    snd->beeperWrite(value);
     auto mic    = (uint8_t)(value & 8);
     auto beep   = (uint8_t)(value & 16);
     if (beep != _BEEP) {
         _BEEP = beep;
-        snd->beeperWrite(beep);
     }
     if (mic != _MIC) {
         _MIC = mic;
         snd->beeperWrite(mic);
     }
+*/
 }
 
 void zxTape::updateProps() {
@@ -311,9 +312,9 @@ void zxTape::makeImpulseBuffer(uint8_t* buf, int idx, int& len) {
         auto current = &blocks[idx];
         // преобразуем биты блока в имульсы, в зависимости от делителя частоты
         for (i = 0; i < current->size; i++) {
-            auto byte = current->data[i];
+            auto uint8_t = current->data[i];
             for (int j = 0; j < 8; j++) {
-                if (checkBit(&byte, j)) {
+                if (checkBit(&uint8_t, j)) {
                     // единичный бит
                     makeImpulse(divider * 1710.0, buf, len);
                     makeImpulse(divider * 1710.0, buf, len);
@@ -332,7 +333,7 @@ void zxTape::makeImpulseBuffer(uint8_t* buf, int idx, int& len) {
 bool zxTape::trapSave() {
     if(!isTrap) return false;
 
-    auto cpu = ALU->cpu;
+    auto cpu = ULA->cpu;
     auto a = *cpu->_A;
     auto len = (uint16_t) (*cpu->_DE + 2);
     auto ix = *cpu->_IX;
@@ -354,18 +355,18 @@ bool zxTape::trapLoad() {
         auto len = blk->size - 2;
         auto data = blk->data + 1;
 
-        auto cpu = ALU->cpu;
+        auto cpu = ULA->cpu;
         auto de = *cpu->_DE;
         auto ix = *cpu->_IX;
         if (de != len) LOG_INFO("В перехватчике LOAD отличаются блоки - block: %i (DE: %i != SIZE: %i)!", currentBlock, de, len);
         if (de < len) len = *cpu->_DE;
         for (int i = 0; i < len; i++) ::wm8(realPtr((uint16_t) (ix + i)), data[i]);
-        LOG_DEBUG("trapLoad PC: %i load: %i type: %i addr: %i size: %i", zxALU::PC, *cpu->_F & 1, *cpu->_A, ix, len);
+        LOG_DEBUG("trapLoad PC: %i load: %i type: %i addr: %i size: %i", zxULA::PC, *cpu->_F & 1, *cpu->_A, ix, len);
         *cpu->_AF = 0x00B3;
         *cpu->_BC = 0xB001;
         opts[_RH] = 0; opts[_RL] = data[len];
         if (nextBlock()) updateImpulseBuffer(false);
-        ALU->pauseBetweenTapeBlocks = 50;
+        ULA->pauseBetweenTapeBlocks = 50;
         modifySTATE(ZX_PAUSE, 0);
         return true;
     } else {
@@ -420,7 +421,7 @@ bool zxTape::nextBlock() {
 // 5 - 2(0) - стартовая строка/ 2(3) - адрес/ 2(2) - имя массива
 // 6 - 2(0) - размер basic-проги
 const char* zxTape::getBlockData(int index, uint16_t *data) {
-    static char name[11];
+    auto name = (char*)&TMP_BUF[INDEX_TEMP];
     memset(name, 32, 10);
     memset(data, 255, 7 * 2);
 

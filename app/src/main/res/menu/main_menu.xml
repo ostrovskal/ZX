@@ -25,6 +25,10 @@
                     android:title="@string/menuValue"
                     android:showAsAction="never" />
             </group>
+            <item
+                android:id="@integer/MENU_SHOW_DEBUGGER"
+                android:title="@string/menuExeDebugger"
+                android:showAsAction="never" />
         </menu>
     </item>
     <item
@@ -95,20 +99,20 @@
                     android:title="@string/menuSinclair128"
                     android:showAsAction="never"/>
                 <item
-                    android:id="@integer/MENU_MODEL_PENTAGON"
-                    android:title="@string/menuPentagon"
-                    android:showAsAction="never"/>
-                <item
-                    android:id="@integer/MENU_MODEL_SCORPION"
-                    android:title="@string/menuScorpion"
-                    android:showAsAction="never"/>
-                <item
                     android:id="@integer/MENU_MODEL_PLUS2"
                     android:title="@string/menuPlus2"
                     android:showAsAction="never"/>
                 <item
                     android:id="@integer/MENU_MODEL_PLUS3"
                     android:title="@string/menuPlus3"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@integer/MENU_MODEL_PENTAGON"
+                    android:title="@string/menuPentagon"
+                    android:showAsAction="never"/>
+                <item
+                    android:id="@integer/MENU_MODEL_SCORPION"
+                    android:title="@string/menuScorpion"
                     android:showAsAction="never"/>
             </group>
         </menu>

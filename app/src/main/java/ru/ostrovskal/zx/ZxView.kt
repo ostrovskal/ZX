@@ -17,9 +17,11 @@ import ru.ostrovskal.zx.ZxCommon.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
+
 class ZxView(context: Context) : GLSurfaceView(context) {
 
     private inner class ZxRender : Renderer {
+
         override fun onDrawFrame(gl: GL10) {
             updateState()
         }

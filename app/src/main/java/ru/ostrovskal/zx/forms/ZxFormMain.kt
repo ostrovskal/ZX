@@ -119,6 +119,7 @@ class ZxFormMain: Form() {
                             val cvv = text(R.string.null_text, style_spinner_item_settings) {
                                 layoutParams = LinearLayout.LayoutParams(MATCH, MATCH)
                                 setOnClickListener {
+                                    "quick save".info()
                                     ZxWnd.zxCmd(ZX_CMD_QUICK_SAVE, 0, 0, "")
                                 }
                             }

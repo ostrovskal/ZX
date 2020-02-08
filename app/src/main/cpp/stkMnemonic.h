@@ -31,24 +31,65 @@ enum ZX_CODE_BUTTON {
 static const char* namesCode[] = { "C", "B", "E", "D", "L", "H", "R", "A",
                                    "", "(HL)", "I", "BC", "DE", "HL", "AF", "SP",
                                    "NZ", "Z", "NC", "C", "PO", "PE", "P", "M",
-                                   "XL", "XH", "YL", "YH", "(IX", "(IY", "F", "IX", "IY", "IM ",
-                                   "(BC)", "(DE)",
-                                   "NOP", "EX AF, AF'", "DJNZ ", "JR ",
-                                   "RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF",
-                                   "DI", "EI",
-                                   "ADD ", "ADC ", "SUB ", "SBC ", "AND ", "XOR ", "OR ", "CP ",
-                                   "RLC ", "RRC ", "RL ", "RR ", "SLA ", "SRA ", "SLL ", "SRL ",
+                                   "XL", "XH", "YL", "YH", "F", "IX", "IY",
+                                   "(BC)", "(DE)", "(IX", "(IY", "(SP)",
+                                   "LD ", "JP ", "CALL ","DJNZ ", "JR ",
                                    "BIT ", "RES ", "SET ",
                                    "INC ", "DEC ",
+                                   "EX ", "IM ",
+                                   "ADD ", "ADC ", "SUB ", "SBC ", "AND ", "XOR ", "OR ", "CP ",
+                                   "RLC ", "RRC ", "RL ", "RR ", "SLA ", "SRA ", "SLL ", "SRL ",
+                                   "IN ", "OUT ",
+                                   "RST ", "PUSH ", "POP ",
+                                   "RET ",
+                                    // без операнда
+                                   "NOP", "EX AF, AF'",
+                                   "RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF",
+                                   "DI", "EI",
                                    "RRD", "RLD",
                                    "LDI", "CPI", "INI", "OTI",
                                    "LDD", "CPD", "IND",  "OTD",
                                    "LDIR", "CPIR", "INIR", "OTIR",
                                    "LDDR", "CPDR", "INDR",  "OTDR",
-                                   "EXX", "EX DE, HL", "EX (SP), ", "LD ", "JP ", "CALL ",
-                                   "RET ", "RETI", "RETN", "RST ", "PUSH ", "POP ",
-                                   "HALT", "NEG", "IN ", "OUT ", "*IX*", "*IY*", "*ED*",
-                                   ", ", "0", "(C)"};
+                                   "EXX", "EX DE, HL", "EX (SP), ",
+                                   "RETI", "RETN",
+                                   "HALT", "NEG", "*IX*", "*IY*", "*ED*",
+                                   ", ", "0", "(C)", nullptr};
+
+enum DA_MNEMONIC_NAMES {
+    C_C, C_B, C_E, C_D, C_L, C_H, C_R, C_A,
+    // 8
+    C_NULL, C_PHL,
+    C_I, C_BC, C_DE, C_HL, C_AF, C_SP,
+    // 16
+    C_FNZ, C_FZ, C_FNC, C_FC, C_FPO, C_FPE, C_FP, C_FM,
+    // 24
+    C_XL, C_XH, C_YL, C_YH, C_F, C_IX, C_IY,
+    C_PBC, C_PDE, C_PIX, C_PIY, C_PSP,
+    // 36
+    C_LD, C_JP, C_CALL, C_DJNZ, C_JR,
+    C_BIT, C_RES, C_SET,
+    C_INC, C_DEC,
+    C_EX, C_IM,
+    // 48
+    C_ADD, C_ADC, C_SUB, C_SBC, C_AND, C_XOR, C_OR, C_CP,
+    C_RLC, C_RRC, C_RL, C_RR, C_SLA, C_SRA, C_SLI, C_SRL,
+    C_IN, C_OUT,
+    C_RST, C_PUSH, C_POP, C_RET,
+    C_NOP, C_EX_AF,
+    C_RLCA, C_RRCA, C_RLA, C_RRA, C_DAA, C_CPL, C_SCF, C_CCF,
+    C_DI, C_EI,
+    C_RRD, C_RLD,
+    C_LDI, C_CPI, C_INI, C_OTI,
+    C_LDD, C_CPD, C_IND, C_OTD,
+    C_LDIR, C_CPIR, C_INIR, C_OTIR,
+    C_LDDR, C_CPDR, C_INDR, C_OTDR,
+    C_EXX, C_EX_DE, C_EX_SP,
+    C_RETI, C_RETN,
+    C_HALT, C_NEG, C_IX_NONI, C_IY_NONI, C_ED_NONI,
+    C_COMMA, C_END, C_PC, C_SRC, C_DST, C_CB_PHL,
+    C_N, C_NN, C_PNN, C_NUM
+};
 
 static uint8_t buttons[] = {
         CB_1, 0, CB_2, 0, CB_3, 0, CB_4, 0, CB_5, 0, CB_6, 0, CB_7, 0, CB_8, 0, CB_9, 0, CB_0, 0,
@@ -107,31 +148,6 @@ static uint8_t buttons[] = {
         CB_SPACE, 0, CB_FLUSH, 0, CB_BRIGHT, 0, CB_OVER, 0, CB_INVERSE, 0, CB_RL, 0
 };
 
-enum DA_MNEMONIC_NAMES {
-    C_C, C_B, C_E, C_D, C_L, C_H, C_R, C_A,
-    C_NULL, C_PHL,
-    C_I, C_BC, C_DE, C_HL, C_AF, C_SP,
-    C_FNZ, C_FZ, C_FNC, C_FC, C_FPO, C_FPE, C_FP, C_FM,
-    C_XL, C_XH, C_YL, C_YH, C_PIX, C_PIY, C_F, C_IX, C_IY, C_IM,
-    C_PBC, C_PDE,
-    C_NOP, C_EX_AF, C_DJNZ, C_JR,
-    C_RLCA, C_RRCA, C_RLA, C_RRA, C_DAA, C_CPL, C_SCF, C_CCF,
-    C_DI, C_EI,
-    C_ADD, C_ADC, C_SUB, C_SBC, C_AND, C_XOR, C_OR, C_CP,
-    C_RLC, C_RRC, C_RL, C_RR, C_SLA, C_SRA, C_SLI, C_SRL,
-    C_BIT, C_RES, C_SET,
-    C_INC, C_DEC,
-    C_RRD, C_RLD,
-    C_LDI, C_CPI, C_INI, C_OTI,
-    C_LDD, C_CPD, C_IND, C_OTD,
-    C_LDIR, C_CPIR, C_INIR, C_OTIR,
-    C_LDDR, C_CPDR, C_INDR, C_OTDR,
-    C_EXX, C_EX_DE, C_EX_SP, C_LD, C_JP, C_CALL,
-    C_RET, C_RETI, C_RETN, C_RST, C_PUSH, C_POP,
-    C_HALT, C_NEG, C_IN, C_OUT, C_IX_NONI, C_IY_NONI, C_ED_NONI,
-    C_COMMA, C_END, C_PC, C_SRC, C_DST, C_CB_PHL,
-    C_N, C_NN, C_PNN, C_NUM
-};
 
 enum MNEMONIC_FLAGS {
     _NZ = 1, _Z, _NC, _C, _PO, _PE, _P, _M

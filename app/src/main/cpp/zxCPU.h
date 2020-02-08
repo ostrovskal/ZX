@@ -15,23 +15,23 @@ enum CPU_CYCLES {
     CT_EXE = 0,  // выполение команды
     CT_WAIT,     // задержка
     CT_OCR,      // (operation code read)    - чтение кода операции
-    CT_CBR,      // (control byte read)      - чтение управляющего байта кода операции (ED, DD, FD, CB)
+    CT_CBR,      // (control uint8_t read)      - чтение управляющего байта кода операции (ED, DD, FD, CB)
     CT_IOP,      // (internal CPU-operation) - внутренние операции ЦП, выходные сигналы управления неактивны
     CT_MRD,      // (memory read)            - чтение байта из косвенно адресованной ячейки памяти
-    CT_MRH,      // (memory rend, high byte) - чтение старшего байта 16-разрядного слова из косвенно адресованной ячейки памяти
-    CT_MRL,      // (memory read, low byte)  - чтение младшего байта 16-разрядного слова из косвенно адресованной ячейки памяти
+    CT_MRH,      // (memory rend, high uint8_t) - чтение старшего байта 16-разрядного слова из косвенно адресованной ячейки памяти
+    CT_MRL,      // (memory read, low uint8_t)  - чтение младшего байта 16-разрядного слова из косвенно адресованной ячейки памяти
     CT_MWR,      // (memory write)           - запись байта в косвенно адресованную ячейку памяти
-    CT_MWH,      // (memory write, high byte)- запись старшего байта 16-разрядиого слова в косвенно адресованную ячейку памяти
-    CT_MWL,      // (memory write, low byte) - запись младшего байта 16-разрядного слова в косвенно адресованную ячейку памяти
+    CT_MWH,      // (memory write, high uint8_t)- запись старшего байта 16-разрядиого слова в косвенно адресованную ячейку памяти
+    CT_MWL,      // (memory write, low uint8_t) - запись младшего байта 16-разрядного слова в косвенно адресованную ячейку памяти
     CT_ORD,      // (operand read)           - чтение операнда-байта, непосредственно представленного в команде
-    CT_ORH,      // (operand read, high byte)- чтение старшего байта 16-разрядного слова, непосредственно представленного в команде
-    CT_ORL,      // (operand read, Ion byte) - чтение младшего байта 16-разрядного слова, непосредственно представленного в команде
+    CT_ORH,      // (operand read, high uint8_t)- чтение старшего байта 16-разрядного слова, непосредственно представленного в команде
+    CT_ORL,      // (operand read, Ion uint8_t) - чтение младшего байта 16-разрядного слова, непосредственно представленного в команде
     CT_PRD,      // (port read)              - ввод данных из порта
     CT_PWR,      // (port write)             - вывод данных в порт
-    CT_SRH,      // (stack read, high byte)  - чтение из стека старшего байта
-    CT_SRL,      // (stack read, low byte)   - чтение из стека младшего байта
-    CT_SWH,      // (stack write, high byte) - запись в стек старшего байта
-    CT_SWL,      // (ataok write, low byte)  - запись в стек младшего байта
+    CT_SRH,      // (stack read, high uint8_t)  - чтение из стека старшего байта
+    CT_SRL,      // (stack read, low uint8_t)   - чтение из стека младшего байта
+    CT_SWH,      // (stack write, high uint8_t) - запись в стек старшего байта
+    CT_SWL,      // (ataok write, low uint8_t)  - запись в стек младшего байта
     CT_INTA,     // (interrupt .acknowledge) - подтверждение прерывания микропроцессором
     CT_SPI,      // (stack pointer increment)- инкремент указателя стека в конце цикла
     CT_SPD       // (atack pointer deorement)- декремент указателя стека в конце цикла
@@ -69,13 +69,16 @@ enum CPU_REGS {
     AY_BVOL, AY_CVOL, AY_EFINE, AY_ECOARSE, AY_ESHAPE, AY_PORTA, AY_PORTB, AY_BEEPER,
     // 53
     TRDOS_TRK, TRDOS_SEC, TRDOS_DAT, TRDOS_STS, TRDOS_CMD,
+    // 58
+    MOUSE_K, MOUSE_X, MOUSE_Y,
     RTMP,
-    // 59
+    // 62
     STATE,
     CALL0, CALL1,
+    // 65
     RUS_LAT,
     MODEL,
-    // 64
+    // 67
     COUNT_REGS
 };
 

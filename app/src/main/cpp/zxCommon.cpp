@@ -6,7 +6,7 @@
 #include "zxCommon.h"
 
 uint8_t*    TMP_BUF     = nullptr;
-zxALU*      ALU         = nullptr;
+zxULA*      ULA         = nullptr;
 uint8_t*    opts        = nullptr;
 uint8_t*    labels      = nullptr;
 BREAK_POINT* bps        = nullptr;
@@ -23,7 +23,7 @@ static uint8_t tbl[] =  { 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 static uint8_t valid[] ={ 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   1,  2,  3,  4,  5,  6,  7,  8,  9 };
 
 void info(const char* msg, const char* file, const char* func, int line, ...) {
-    static char buf[256];
+    auto buf = (char*)&TMP_BUF[INDEX_INTERNAL];
     sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
     va_list varArgs;
     va_start(varArgs, line);
@@ -33,7 +33,7 @@ void info(const char* msg, const char* file, const char* func, int line, ...) {
 }
 
 void debug(const char* msg, const char* file, const char* func, int line, ...) {
-    static char buf[256];
+    auto buf = (char*)&TMP_BUF[INDEX_INTERNAL];
     sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
     va_list varArgs;
     va_start(varArgs, line);
@@ -108,7 +108,7 @@ uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* blk, bool sign, uint32_
     }
     if (count) packSegment(&dst, count, block);
     if(sign) {
-        *(u_long *)dst = 0x00eded00;
+        *(uint32_t *)dst = 0x00eded00;
         dst += 4;
     }
     newSize = (uint32_t)(dst - blk);
@@ -126,7 +126,7 @@ static void itos(int n, char** buffer) {
 
 // преобразовать число в строку, в зависимости от системы счисления
 char* ssh_ntos(void* v, int r, char** end) {
-    static char buffer[32];
+    auto buffer = (char*)&TMP_BUF[INDEX_CNV];
     static uint8_t tbl[] = { 0, 10, 15, 4, 1, 1, 7, 3, 8, 10, 4, 10, 0, 0 };
     auto buf = &buffer[16]; *buf = 0;
     if(end) *end = buf;
@@ -185,12 +185,15 @@ static int stoi(const char** s, uint8_t order, uint8_t msk) {
 }
 
 // преобразовать строку в число в зависимости от системы счисления
-void* ssh_ston(const char* s, int r, const char** end) {
+void* ssh_ston(const char* s, int r, char** end) {
     static uint8_t rdx[] = { 10, 8, 16, 4, 2, 1, 8, 2, 10, 8, 10, 8, 0, 0 };
     static uint64_t res;
 
     int sign = 1;
-    if(*s == '+' || *s == '-') sign = (*s++ == '-') ? -1 : 1;
+    if(*s == '+' || *s == '-') {
+        sign = (*s++ == '-') ? -1 : 1;
+        ssh_skip_spc((char**)&s);
+    }
     if(*s == '#') { r = RADIX_HEX; s++; }
     auto msk(rdx[r * 2 + 1]);
     int n(0); double d(0.0);
@@ -209,7 +212,7 @@ void* ssh_ston(const char* s, int r, const char** end) {
                     if (ch > 'F') break;
                     if (!(tbl[ch & 31] & msk)) break;
                 }
-                if(end) *end = e;
+                if(end) *end = (char*)e;
                 end = nullptr;
                 while(--e != s) {
                     auto ch = *e & -33;
@@ -229,7 +232,7 @@ void* ssh_ston(const char* s, int r, const char** end) {
             break;
         default: LOG_DEBUG("Неизвестная система счисления! %i", r); break;
     }
-    if(end) *end = s;
+    if(end) *end = (char*)s;
     return &res;
 }
 
@@ -246,10 +249,10 @@ char* ssh_fmtValue(int value, int offs, bool hex) {
                                          "0X", "0X"
     };
 
-    static char buffer[32];
     char ch;
     char* end = nullptr;
-    auto tmp = &buffer[0];
+    auto buffer = (char*)&TMP_BUF[INDEX_FMT];
+    auto tmp = buffer;
     auto rdx = offs + (hex ? opts[ZX_PROP_SHOW_HEX] : 0);
     auto res = ssh_ntos(&value, rdx & 1, &end);
     auto spec = fmtTypes[rdx];

@@ -7,7 +7,7 @@
 #include "zxSound.h"
 
 class zxTape {
-    friend class zxALU;
+    friend class zxULA;
 public:
     struct TAPE_BLOCK {
         TAPE_BLOCK() : data(nullptr), size(0) { }

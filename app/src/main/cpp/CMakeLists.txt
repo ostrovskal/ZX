@@ -11,7 +11,7 @@ add_library( # Sets the name of the library.
         # Provides a relative path to your source file(s).
         zx-lib.cpp
         zxCommon.cpp
-        zxALU.cpp
+        zxULA.cpp
         zxCPU.cpp
         zxFile.cpp
         zxDA.cpp

@@ -5,7 +5,7 @@
 #pragma once
 
 class zxGPU {
-    friend class zxALU;
+    friend class zxULA;
 public:
     zxGPU();
     ~zxGPU();

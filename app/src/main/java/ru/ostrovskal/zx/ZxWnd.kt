@@ -97,9 +97,9 @@ class ZxWnd : Wnd() {
             props[ZX_CPU_STATE] = state or add
         }
 
-        val modelNames              = listOf(   R.string.menuKompanion, R.string.menuSinclair48, R.string.menuSinclair48,
-                                                        R.string.menuSinclair128, R.string.menuPentagon, R.string.menuScorpion,
-                                                        R.string.menuPlus2, R.string.menuPlus3)
+        val modelNames              = listOf(  R.string.menuKompanion, R.string.menuSinclair48, R.string.menuSinclair48,
+                                                        R.string.menuSinclair128, R.string.menuPlus2, R.string.menuPlus3,
+                                                        R.string.menuPentagon, R.string.menuScorpion)
 
         val props                            = ByteArray(ZX_PROPS_COUNT)
 
