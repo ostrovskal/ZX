@@ -11,6 +11,7 @@
 #include "zxSound.h"
 #include "zxGPU.h"
 #include "zxFDD.h"
+#include "zxAY.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -153,7 +154,7 @@ public:
     zxGPU* gpu;
 
     // звуковая карта
-    zxSound* snd;
+    zxSoundMixer* snd;
 
     // лента
     zxTape* tape;
@@ -171,6 +172,8 @@ public:
     int pauseBetweenTapeBlocks;
 
     int getAddressCpuReg(const char *value);
+
+    jint UpdateSound(uint8_t *buf);
 
 protected:
 

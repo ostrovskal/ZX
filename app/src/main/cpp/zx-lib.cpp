@@ -213,7 +213,7 @@ extern "C" {
 
     jint zxUpdateAudio(JNIEnv* env, jobject, jobject byte_buffer) {
         auto buf = (uint8_t *)env->GetDirectBufferAddress(byte_buffer);
-        return ULA->snd->update(buf);
+        return ULA->UpdateSound(buf);
     }
 
     jint zxStringToNumber(JNIEnv* env, jclass, jstring value, jint radix) {

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "zxSound.h"
+#include "zxAY.h"
 
 class zxTape {
     friend class zxULA;
@@ -22,7 +23,7 @@ public:
 
     };
 
-    zxTape(zxSound* _snd) : _MIC(0), _BEEP(0), countBlocks(0), currentBlock(0), koef(0),
+    zxTape(zxSoundMixer* _snd) : _MIC(0), _BEEP(0), countBlocks(0), currentBlock(0), koef(0),
                             posImpulse(0), lenImpulse(0), sizeBufImpulse(0), bufImpulse(nullptr), snd(_snd), isTrap(false) {
         for(int i = 0 ; i < 128; i++) blocks[i].data = nullptr;
     }
@@ -132,7 +133,7 @@ protected:
     bool isTrap;
 
     // звук
-    zxSound* snd;
+    zxSoundMixer* snd;
 
     // временный буфер импульсов
     uint8_t *bufImpulse;

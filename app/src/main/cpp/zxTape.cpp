@@ -383,7 +383,7 @@ void zxTape::control(int ticks) {
         // для записи в магнитофон
         if(posImpulse < lenImpulse) {
             posImpulse++;
-            snd->beeperWrite((uint8_t) checkBit(bufImpulse, posImpulse));
+//            snd->beeperWrite((uint8_t) checkBit(bufImpulse, posImpulse));
             if (posImpulse >= lenImpulse) {
                 if (nextBlock()) updateImpulseBuffer(false);
             }

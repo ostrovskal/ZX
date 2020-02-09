@@ -108,7 +108,7 @@ zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _F
     cpu = new zxCPU();
     gpu = new zxGPU();
 
-    snd = new zxSound();
+    snd = new zxSoundMixer();
     tape = new zxTape(snd);
     disk = new zxVG93();
 
@@ -680,6 +680,9 @@ void zxULA::updateFrame() {
     auto dest = gpu->frameBuffer;
     if(!dest) return;
 
+    _TICK = 0;
+    snd->frameStart((uint32_t)(_TICK));
+
     auto isBlink = (blink & 16) >> 4;
     auto szBorder = sizeBorder >> 1;
     auto colours = (uint32_t*)&opts[ZX_PROP_COLORS];
@@ -743,6 +746,7 @@ void zxULA::updateFrame() {
     updateCPU(stateDP, false);
     blink++;
     //LOG_INFO("ts: %i", _TICK % machine->tsTotal);
+    snd->frameEnd((uint32_t)_TICK);
 }
 
 void zxULA::quickBP(uint16_t address) {
@@ -887,12 +891,14 @@ void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
                 write1FFD(val);
             } else if(A8A15 == 0xFF) {
                 // устанавливаем текущий регистр
-                opts[AY_REG] = (uint8_t)(val & 15);
+                snd->ioWrite(0, 0xFFFD, val, _TICK);
+                //opts[AY_REG] = (uint8_t)(val & 15);
             } else if(A8A15 == 0xBF) {
                 // записываем значение в текущий регистр
-                auto reg = opts[AY_REG];
-                opts[reg + AY_AFINE] = val;
-                snd->ayWrite(reg, val, _TICK);
+                snd->ioWrite(0, 0xBFFD, val, _TICK);
+//                auto reg = opts[AY_REG];
+//                opts[reg + AY_AFINE] = val;
+//                snd->ayWrite(reg, val, _TICK);
             } else {
 //                LOG_INFO("7FFD A0A7:%i A8A15:%i val:%i", A0A7, A8A15, val);
                 write7FFD(val);
@@ -902,7 +908,7 @@ void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             // 0, 1, 2 - бордер, 3 MIC - при записи, 4 - бипер
             *_FE = val;
             colorBorder = val & 7U;
-            snd->beeperWrite((uint8_t)(val & 24));
+            snd->ioWrite(1, 0xFE, val, _TICK);
             tape->writePort((uint8_t)(val & 24));
             break;
         case 0x1F: case 0x3F: case 0x5F: case 0x7F: case 0xFF:
@@ -1043,23 +1049,7 @@ uint8_t zxULA::readPort(uint8_t A0A7, uint8_t A8A15) {
             }
             break;
         case 0xFD:
-            if(A8A15 == 0xFF) ret = opts[opts[AY_REG] + AY_AFINE];
-            else if(A8A15 == 0xBF) {
-                /*
-                6.4 RD #BFFD(%10xxx1x1xxxxxx01) - порт статуса системных вызовов.
-                RESET: невозможен.
-
-                D0 #BFFD NMI Magic: 0-on, 1-off - индицирует вызов от кнопки Magic.
-                D1 #BFFD NMI Key: 0-on, 1-off - индицирует вызов от кнопки NMI на клавиатуре.
-                D2 #BFFD NMI Instruction eZ80 or non documented command: 0-on, 1-off - индицирует вызов при считывании КОПа
-                              расширенной инструции CPU eZ80 в стандартном режиме, или недокументированной команды.
-                D3 #BFFD NMI I/O Adr eZ80: 0-on, 1-off - индицирует вызов при работе с CPU eZ80, возникающий при обращении к портам в диапазоне #80-#FF.
-                D4 #BFFD NMI Error: 0-on, 1-off - индицирует вызов при ошибке контрольной суммы ОЗУ.
-                D5 #BFFD DMMC ON/OFF: 0-on, 1-off - индицирует включение режима ДММЦ.
-                D6 #BFFD LineNumberV8: 0-high, 1-low - индицирует отображение нижней или верхней половины экранной области в режиме удвоенного вертикального разрешения.
-                D7 #BFFD Screen=1, Border=0 - индицирует прохождение луча по экранной области.            }
-                */
-            }
+            if(A8A15 == 0xFF) ret = snd->ioRead(0, 0xFFFD);//opts[opts[AY_REG] + AY_AFINE];
             break;
         case 0xFE:
             // 0,1,2,3,4 - клавиши полуряда, 6 - EAR, 5,7 - не используется
@@ -1092,6 +1082,13 @@ int zxULA::getAddressCpuReg(const char *value) {
         ret = *(uint16_t*)&opts[regs[i * 3 + 2]];
     }
     return ret;
+}
+
+jint zxULA::UpdateSound(uint8_t *buf) {
+    snd->update(buf);
+    auto size = snd->ready();
+    snd->use(size, buf);
+    return size;
 }
 
 #pragma clang diagnostic pop
