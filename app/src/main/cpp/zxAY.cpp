@@ -165,9 +165,9 @@ void zxAy::write(uint32_t timestamp, uint8_t val) {
     reg[activereg] = val;
     if(timestamp) flush((timestamp * mult_const) >> MULT_C_1);
     switch(activereg) {
-        case 0: case 1: fa = SwapWord(r.fA); break;
-        case 2: case 3: fb = SwapWord(r.fB); break;
-        case 4: case 5: fc = SwapWord(r.fC); break;
+        case 0: case 1: fa = r.fA; break;
+        case 2: case 3: fb = r.fB; break;
+        case 4: case 5: fc = r.fC; break;
         case 6: fn = (uint32_t)val * 2; break;
         case 7:
             bit0 = (uint32_t)(0 - ((val >> 0) & 1));
@@ -189,7 +189,7 @@ void zxAy::write(uint32_t timestamp, uint8_t val) {
             ec = (uint32_t)((val & 0x10)? -1 : 0);
             vc = ((val & 0x0F) * 2 + 1) & ~ec;
             break;
-        case 11: case 12: fe = SwapWord(r.envT); break;
+        case 11: case 12: fe = r.envT; break;
         case 13:
             te = 0;
             // attack/decay
@@ -224,7 +224,6 @@ void zxAy::applyRegs(uint32_t timestamp) {
     for(uint8_t r = 0; r < 16; r++) {
         select(r);
         uint8_t p = reg[r];
-        /* clr cached values */
         write(timestamp, (uint8_t)(p ^ 1));
         write(timestamp, p);
     }
