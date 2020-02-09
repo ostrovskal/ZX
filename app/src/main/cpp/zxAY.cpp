@@ -399,3 +399,10 @@ void zxSoundDev::Use(uint32_t size, uint8_t * ext_buf) {
         ready -= size;
     }
 }
+
+int zxSoundDev::UpdateSound(uint8_t* buf) {
+    Update(buf);
+    auto size = Ready();
+    Use(size, buf);
+    return size;
+}

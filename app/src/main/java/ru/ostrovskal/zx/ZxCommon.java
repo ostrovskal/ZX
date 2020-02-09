@@ -67,6 +67,10 @@ public final class ZxCommon {
     public final static int ZX_CPU_RI               = 24;
     public final static int ZX_CPU_RR               = 25;
     public final static int ZX_CPU_ROM              = 33;
+    public final static int ZX_CPU_MK               = 58;
+    public final static int ZX_CPU_MX               = 59;
+    public final static int ZX_CPU_MY               = 60;
+    public final static int ZX_CPU_CLICK            = 67;
     public final static int ZX_CPU_STATE            = 62;
     public final static int ZX_CPU_RL               = 65;
 
@@ -153,7 +157,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_ACTIVE_DEBUGGING= 142; // Признак активной отладки
 
     // 2. Байтовые значения
-    private static final int ZX_PROP_BORDER_SIZE    = 150; // Размер границы
+    public static final int ZX_PROP_BORDER_SIZE     = 150; // Размер границы
     public static final int ZX_PROP_MODEL_TYPE      = 151; // Модель памяти
     private static final int ZX_PROP_SND_TYPE_AY    = 152; // Тип каналов в звуковом процессоре AY
     private static final int ZX_PROP_SND_FREQUENCY  = 153; // Частота звука
@@ -194,6 +198,7 @@ public final class ZxCommon {
     public static final int ZX_CMD_MAGIC            = 13; // Нажатие на кнопку MAGIC
     public static final int ZX_CMD_DISK_OPS         = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
     public static final int ZX_CMD_QUICK_SAVE       = 15; // Быстрое сохранение
+    public static final int ZX_CMD_VALUE_REG        = 16; // Получить адрес из регистра/значения
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
@@ -433,6 +438,18 @@ public final class ZxCommon {
             ATTR_SSH_HORZ, 10,
             ATTR_SSH_TILE, 0,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_ICONS | THEME
+    };
+
+    public static final int[] style_action_bar = {
+            ATTR_SHADOW_TEXT, R.string.shadow_text,
+            ATTR_COLOR_DEFAULT, ATTR_SSH_COLOR_LARGE | THEME,
+            ATTR_COLOR_HIGHLIGHT, ATTR_SSH_COLOR_NORMAL | THEME,
+            ATTR_GRAVITY, Gravity.CENTER,
+            ATTR_MAX_LINES, 1,
+            ATTR_FONT, R.string.font_small,
+            ATTR_SIZE, R.dimen.normal,
+            ATTR_MIN_HEIGHT, R.dimen.heightSpinnerItem,
+            ATTR_PADDING_HORZ, R.dimen.paddingHorzSelectItem,
     };
 
     public static final int[] style_debugger_flags = {

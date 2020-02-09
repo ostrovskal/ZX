@@ -116,10 +116,9 @@ class ZxFormMain: Form() {
                 wnd.actionBar?.apply {
                     if(customView == null) {
                         ui {
-                            val cvv = text(R.string.null_text, style_spinner_item_settings) {
+                            val cvv = text(R.string.null_text, style_action_bar) {
                                 layoutParams = LinearLayout.LayoutParams(MATCH, MATCH)
                                 setOnClickListener {
-                                    "quick save".info()
                                     ZxWnd.zxCmd(ZX_CMD_QUICK_SAVE, 0, 0, "")
                                 }
                             }

@@ -164,12 +164,12 @@ extern "C" {
                 *(uint32_t *) (opts + (ZX_PROP_COLORS + (idx - ZX_PROP_COLORS) * 4)) = *(uint32_t *) ssh_ston(kv, RADIX_HEX);
             else if(idx < (ZX_PROP_BPS + 8)) {
                 auto bp = &bps[idx - ZX_PROP_BPS];
-                bp->address1 = *(uint16_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
-                bp->address2 = *(uint16_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
-                bp->msk = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
-                bp->val = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
-                bp->ops = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv); kv++;
-                bp->flg = *(uint8_t *)ssh_ston(kv, RADIX_HEX, &kv);
+                bp->address1 = *(uint16_t *)ssh_ston(kv, RADIX_HEX, (char**)&kv); kv++;
+                bp->address2 = *(uint16_t *)ssh_ston(kv, RADIX_HEX, (char**)&kv); kv++;
+                bp->msk = *(uint8_t *)ssh_ston(kv, RADIX_HEX, (char**)&kv); kv++;
+                bp->val = *(uint8_t *)ssh_ston(kv, RADIX_HEX, (char**)&kv); kv++;
+                bp->ops = *(uint8_t *)ssh_ston(kv, RADIX_HEX, (char**)&kv); kv++;
+                bp->flg = *(uint8_t *)ssh_ston(kv, RADIX_HEX, (char**)&kv);
             }
         }
     }
@@ -206,8 +206,14 @@ extern "C" {
             case ZX_CMD_MAGIC:     ULA->cpu->signalNMI(); break;
             case ZX_CMD_DISK_OPS:  ret = ULA->diskOperation(arg1, arg2, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_QUICK_SAVE:ULA->quickSave(); break;
+            case ZX_CMD_VALUE_REG: ret = ULA->getAddressCpuReg(env->GetStringUTFChars(arg3, nullptr)); break;
         }
         return ret;
+    }
+
+    jint zxUpdateAudio(JNIEnv* env, jobject, jobject byte_buffer) {
+        auto buf = (uint8_t *)env->GetDirectBufferAddress(byte_buffer);
+        return ULA->snd->update(buf);
     }
 
     jint zxStringToNumber(JNIEnv* env, jclass, jstring value, jint radix) {
@@ -243,7 +249,8 @@ extern "C" {
             { "zxFormatNumber", "(IIZ)Ljava/lang/String;", (void*)&zxFormatNumber },
             { "zxDebuggerString", "(III)Ljava/lang/String;", (void*)&zxDebuggerString },
             { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },
-            { "zxTapeBlock", "(I[S)Ljava/lang/String;", (void*)&zxTapeBlock }
+            { "zxTapeBlock", "(I[S)Ljava/lang/String;", (void*)&zxTapeBlock },
+            { "zxUpdateAudio", "(Ljava/nio/ByteBuffer;)I", (void*)&zxUpdateAudio }
     };
 
     JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *) {

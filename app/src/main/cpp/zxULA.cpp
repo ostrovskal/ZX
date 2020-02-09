@@ -580,7 +580,7 @@ void zxULA::signalRESET(bool reset) {
     ssh_memset(&opts[ZX_PROP_VALUES_SEMI_ROW], 255, 8);
     opts[ZX_PROP_KEY_MODE] = 0; opts[ZX_PROP_KEY_CURSOR_MODE] = 255;
     // сброс мыши
-    opts[MOUSE_K] = 0xFF; opts[MOUSE_X] = 0xFF; opts[MOUSE_Y] = 0xFF;
+    opts[MOUSE_K] = 0xFF; opts[MOUSE_X] = 128; opts[MOUSE_Y] = 96;
     // сбрасываем джойстики
     opts[ZX_PROP_JOY_ACTION_VALUE] = 0; opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
     joyOldButtons = 0;
@@ -616,7 +616,7 @@ void zxULA::execute() {
     // отображение экрана, воспроизведение звука
     updateFrame();
     gpu->updateFrame();
-    snd->update();
+    //snd->update();
 }
 
 void zxULA::stepDebug() {
@@ -828,7 +828,7 @@ int zxULA::diskOperation(int num, int ops, const char* path) {
         case ZX_DISK_OPS_SAVE:          ret = disk->save(path, num, parseExtension(path)); break;
         case ZX_DISK_OPS_SET_READONLY:  ret = disk->is_readonly(num & 3, (num & 128)); break;
         case ZX_DISK_OPS_TRDOS:         ret = openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx"); break;
-        case ZX_DISK_OPS_RSECTOR:       ret = disk->read_sector(num & 3, num >> 3); break;
+        case ZX_DISK_OPS_RSECTOR:       ret = disk->read_sector(num & 3, (num >> 3) + 1); break;
         case ZX_DISK_COUNT_FILES:       ret = disk->count_files(num & 3, num >> 3); break;
     }
     return ret;
@@ -881,13 +881,7 @@ void zxULA::trap() {
 }
 
 void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
-    //LOG_DEBUG("WRITE UNKNOWN PORT (%02X%02X(%i) - PC: %i", A8A15, A0A7, val, PC);
     switch(A0A7) {
-        case 0xDF:
-            if(A8A15 == 0xFA) opts[MOUSE_K] = val;
-            else if(A8A15 == 0xFB) opts[MOUSE_X] = val;
-            else if(A8A15 == 0xFF) opts[MOUSE_Y] = val;
-            break;
         case 0xFD:
             if(*_MODEL >= MODEL_PLUS3 && A8A15 == 0x1F) {
                 write1FFD(val);
@@ -908,8 +902,8 @@ void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             // 0, 1, 2 - бордер, 3 MIC - при записи, 4 - бипер
             *_FE = val;
             colorBorder = val & 7U;
-            snd->beeperWrite(val);
-            tape->writePort(val & 24);
+            snd->beeperWrite((uint8_t)(val & 24));
+            tape->writePort((uint8_t)(val & 24));
             break;
         case 0x1F: case 0x3F: case 0x5F: case 0x7F: case 0xFF:
             if(checkSTATE(ZX_TRDOS)) {
@@ -1004,7 +998,7 @@ void zxULA::write7FFD(uint8_t val) {
                 *_RAM += (uint8_t) ((*_1FFD & 16) >> 1);
                 break;
             case MODEL_PENTAGON:
-                *_RAM += (uint8_t) ((val & 64) >> 3);
+                *_RAM += (uint8_t) ((val & 192) >> 3);
             default:
                 *_ROM = (uint8_t) ((val & 16) >> 4);
                 break;
@@ -1025,18 +1019,13 @@ uint8_t zxULA::readPort(uint8_t A0A7, uint8_t A8A15) {
             // COVOX
             ret = 0;
             break;
+            // Kempston Mouse
         case 0xDF:
-            /*
-                #FADF — порт кнопок и (по отечественному стандарту) колёсика.
-                        D0: левая кнопка (0=нажата)
-                        D1: правая кнопка (0=нажата)
-                        D2: средняя кнопка (0=нажата)
-                        D3: зарезервировано под ещё одну кнопку (0=нажата)
-                            D4-D7: координата колёсика
-                #FBDF — X-координата (растёт слева направо)
-                #FFDF — Y-координата (растёт снизу вверх)            break;
-            */
-            if(A8A15 == 0xFA) ret = opts[MOUSE_K];
+            if(A8A15 == 0xFA) {
+                // key 254 -> left 253 -> right
+                ret = opts[MOUSE_K];
+                opts[MOUSE_K] = 255;
+            }
             else if(A8A15 == 0xFB) ret = opts[MOUSE_X];
             else if(A8A15 == 0xFF) ret = opts[MOUSE_Y];
             else {
@@ -1086,6 +1075,22 @@ uint8_t zxULA::readPort(uint8_t A0A7, uint8_t A8A15) {
             break;
     }
     if(checkSTATE(ZX_DEBUG)) { if(checkBPs((uint16_t)(A0A7 | (A8A15 << 8)), ZX_BP_RPORT)) return ret; }
+    return ret;
+}
+
+int zxULA::getAddressCpuReg(const char *value) {
+    static uint8_t regs[] = { 'I', 'X', RXL, 'I', 'Y', RYL, 'H', 'L', RL, 'D', 'E', RE, 'B', 'C', RC, 'S', 'P', RSPL, 'P', 'C', RPCL};
+    int ret, i;
+    for(i = 0 ; i < 7; i++) {
+        auto pos = i * 3;
+        if(value[0] == regs[pos] && value[1] == regs[pos + 1])
+            break;
+    }
+    if(i > 6) {
+        ret = *(int*)ssh_ston(value, RADIX_DEC);
+    } else {
+        ret = *(uint16_t*)&opts[regs[i * 3 + 2]];
+    }
     return ret;
 }
 

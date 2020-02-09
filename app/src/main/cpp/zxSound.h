@@ -28,7 +28,7 @@ public:
         BVOL, CVOL, EFINE, ECOARSE, ESHAPE
     };
 
-    int update();
+    int update(uint8_t* buf);
     void ayWrite(uint8_t reg, uint8_t value, long tick);
     void reset();
     void beeperWrite(uint8_t on);

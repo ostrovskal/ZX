@@ -53,7 +53,7 @@ extern BREAK_POINT*			            bps;
 extern uint8_t                          numBits[8];
 extern int                              frequencies[3];
 
-#define ZX_TOTAL_RAM                    256 * 1024
+#define ZX_TOTAL_RAM                    512 * 1024
 #define LOG_NAME                        "ZX"
 
 // вывод отладочной информации
@@ -199,6 +199,7 @@ constexpr int ZX_CMD_JUMP               = 12;// Получение адреса 
 constexpr int ZX_CMD_MAGIC              = 13;// Нажатие на кнопку MAGIC
 constexpr int ZX_CMD_DISK_OPS           = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
 constexpr int ZX_CMD_QUICK_SAVE         = 15; // Быстрое сохранение
+constexpr int ZX_CMD_VALUE_REG          = 16; // Получить адрес из регистра/значения
 
 constexpr int ZX_DISK_OPS_GET_READONLY  = 0; //
 constexpr int ZX_DISK_OPS_EJECT         = 1; //

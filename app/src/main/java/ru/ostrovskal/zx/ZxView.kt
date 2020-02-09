@@ -1,6 +1,9 @@
 package ru.ostrovskal.zx
 
 import android.content.Context
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.os.Message
@@ -14,21 +17,57 @@ import ru.ostrovskal.sshstd.utils.send
 import ru.ostrovskal.sshstd.utils.toBoolean
 import ru.ostrovskal.sshstd.widgets.Controller
 import ru.ostrovskal.zx.ZxCommon.*
+import java.nio.ByteBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 
 class ZxView(context: Context) : GLSurfaceView(context) {
 
+    private var zxHeight          = 0
+    private var zxWidth           = 0
+    private val audio             = Audio()
+
+    @Suppress("DEPRECATION")
+    class Audio {
+        private var track: AudioTrack?  = null
+        private val bbuf      = ByteBuffer.allocateDirect(65536)
+        private val buf                 = ByteArray(65536)
+
+        fun update() {
+            val size = ZxWnd.zxUpdateAudio(bbuf)
+         //   "audio $size".info()
+            if (size != 0) {
+                bbuf.rewind()
+                bbuf.get(buf)
+                bbuf.rewind()
+                track?.write(buf, 0, size * 2)
+            }
+        }
+
+        private fun initialize() {
+            val freq        = 44100
+            val channels    = AudioFormat.CHANNEL_CONFIGURATION_STEREO
+            val format      = AudioFormat.ENCODING_PCM_16BIT
+            val bufSize     = AudioTrack.getMinBufferSize(freq, channels, format)
+            track           = AudioTrack(AudioManager.STREAM_MUSIC, freq, channels, format,
+                bufSize + freq * 2 * 2 * 5 / 50, AudioTrack.MODE_STREAM).apply { play() }
+        }
+
+        init { initialize()  }
+    }
+
     private inner class ZxRender : Renderer {
 
         override fun onDrawFrame(gl: GL10) {
             updateState()
+            audio.update()
         }
 
         override fun onSurfaceChanged(gl: GL10, width: Int, height: Int) {
             GLES20.glViewport(0, 0, width, height)
             ZxWnd.zxCmd(ZX_CMD_PROPS, width, height, "")
+            zxHeight = height; zxWidth = width
             wnd.zxInitialize = true
         }
 
@@ -84,6 +123,27 @@ class ZxView(context: Context) : GLSurfaceView(context) {
         setRenderer(ZxRender())
         debugFlags = 0//DEBUG_CHECK_GL_ERROR
         queueEvent(RunnableParams(Message.obtain().apply { what = ACT_INIT_SURFACE} ) )
+        setOnClickListener {
+            ZxWnd.props[ZX_CPU_MK] = 254.toByte()
+        }
+        setOnLongClickListener {
+            ZxWnd.props[ZX_CPU_MK] = 253.toByte()
+            true
+        }
+        setOnTouchListener { _, event ->
+            val b = ZxWnd.props[ZX_PROP_BORDER_SIZE] * 16
+            val zxScaleWidth = (256 + b * 2f) / zxWidth
+            val zxScaleHeight= (192 + b * 2f) / zxHeight
+            val x = event.x * zxScaleWidth
+            val y = (zxHeight - event.y) * zxScaleHeight
+            if(x >= b && x < (255 + b) && y >= b && y < (192 + b)) {
+                val xx = (x - b).toByte(); val yy = (y - b).toByte()
+                // относительно старых
+                ZxWnd.props[ZX_CPU_MX] = xx
+                ZxWnd.props[ZX_CPU_MY] = yy
+            }
+            false
+        }
     }
 
     // крестовина

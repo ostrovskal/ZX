@@ -84,6 +84,10 @@ size_t zxDA::cmdParser(uint16_t* pc, uint16_t* buffer, bool regSave) {
         n = rm16(vSrc);
     } else if(regDst == _C16 || regDst == _RPHL) {
         n = rm16(vDst);
+    } else if((regSrc == _RBC || regSrc == _RDE) && regDst == _RA) {
+        n = rm16(regSrc == _RBC ? *ULA->cpu->_BC : *ULA->cpu->_DE);
+    } else if((regDst == _RBC || regDst == _RDE) && regSrc == _RA) {
+        n = rm16(regDst == _RBC ? *ULA->cpu->_BC : *ULA->cpu->_DE);
     } else n = 0;
     *buffer++ = (uint16_t)n; *buffer++ = code;
     // длина кодов и они сами
@@ -182,13 +186,13 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
                     // cmd reg, (NN)/(RP)/(HL/IX/IY + D)
                     DA(C_DST); DA(C_COMMA);
                     if(regSrc == _C16) { DA(C_PNN); DA(vSrc); }
-                    else if(regSrc & _R16) DA(C_PBC + (code >> 4));
+                    else if(regSrc & _R16) { DA(C_PBC + (code >> 4)); DA(C_SPTR); }
                     else DA(C_SRC);
                     break;
                 case O_SAVE:
                     // cmd (NN)/(RP)/(HL/IX/IY + D), reg/N
                     if(regDst == _C16) { DA(C_PNN); DA(vDst); }
-                    else if(regDst & _R16) DA(C_PBC + (code >> 4));
+                    else if(regDst & _R16) { DA(C_PBC + (code >> 4)); DA(C_DPTR); }
                     else DA(C_DST); // (HL/IX/IY + D)
                     DA(C_COMMA);
                     if(regSrc == _C8) { DA(C_N); DA(vSrc); }
@@ -269,8 +273,8 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
                 default:
                     lex = (char *) namesCode[token];
             }
-        if(token == C_SRC || token == C_DST || token == C_CB_PHL) {
-            ssh_strcpy(&daResult, namesCode[n]);
+        if(token == C_SRC || token == C_DST || token == C_CB_PHL | token == C_SPTR || token == C_DPTR) {
+            if(token < C_SPTR) ssh_strcpy(&daResult, namesCode[n]);
             if(offs) {
                 lex = ssh_fmtValue(o, ZX_FV_OFFS, true);
                 if (flags & DA_PNN) {
@@ -278,7 +282,7 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
                     lex = ssh_fmtValue(a, ZX_FV_CVAL, true);
                 }
             } else lex = nullptr;
-            if((token == C_DST && regDst == _RPHL) || token == C_CB_PHL || (token == C_SRC && regSrc == _RPHL)) {
+            if(token == C_DPTR || token == C_SPTR || token == C_CB_PHL || (token == C_DST && regDst == _RPHL) || (token == C_SRC && regSrc == _RPHL)) {
                 if (flags & DA_PN) {
                     ssh_strcpy(&daResult, lex);
                     lex = ssh_fmtValue((uint8_t) val16, ZX_FV_PVAL8, true);

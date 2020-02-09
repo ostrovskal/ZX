@@ -32,7 +32,7 @@ static const char* namesCode[] = { "C", "B", "E", "D", "L", "H", "R", "A",
                                    "", "(HL)", "I", "BC", "DE", "HL", "AF", "SP",
                                    "NZ", "Z", "NC", "C", "PO", "PE", "P", "M",
                                    "XL", "XH", "YL", "YH", "F", "IX", "IY",
-                                   "(BC)", "(DE)", "(IX", "(IY", "(SP)",
+                                   "(IX", "(IY", "(BC)", "(DE)", "(SP)",
                                    "LD ", "JP ", "CALL ","DJNZ ", "JR ",
                                    "BIT ", "RES ", "SET ",
                                    "INC ", "DEC ",
@@ -65,7 +65,7 @@ enum DA_MNEMONIC_NAMES {
     C_FNZ, C_FZ, C_FNC, C_FC, C_FPO, C_FPE, C_FP, C_FM,
     // 24
     C_XL, C_XH, C_YL, C_YH, C_F, C_IX, C_IY,
-    C_PBC, C_PDE, C_PIX, C_PIY, C_PSP,
+    C_PIX, C_PIY, C_PBC, C_PDE, C_PSP,
     // 36
     C_LD, C_JP, C_CALL, C_DJNZ, C_JR,
     C_BIT, C_RES, C_SET,
@@ -74,20 +74,26 @@ enum DA_MNEMONIC_NAMES {
     // 48
     C_ADD, C_ADC, C_SUB, C_SBC, C_AND, C_XOR, C_OR, C_CP,
     C_RLC, C_RRC, C_RL, C_RR, C_SLA, C_SRA, C_SLI, C_SRL,
+    // 64
     C_IN, C_OUT,
     C_RST, C_PUSH, C_POP, C_RET,
     C_NOP, C_EX_AF,
     C_RLCA, C_RRCA, C_RLA, C_RRA, C_DAA, C_CPL, C_SCF, C_CCF,
+    // 80
     C_DI, C_EI,
     C_RRD, C_RLD,
     C_LDI, C_CPI, C_INI, C_OTI,
     C_LDD, C_CPD, C_IND, C_OTD,
     C_LDIR, C_CPIR, C_INIR, C_OTIR,
     C_LDDR, C_CPDR, C_INDR, C_OTDR,
+    // 100
     C_EXX, C_EX_DE, C_EX_SP,
     C_RETI, C_RETN,
     C_HALT, C_NEG, C_IX_NONI, C_IY_NONI, C_ED_NONI,
-    C_COMMA, C_END, C_PC, C_SRC, C_DST, C_CB_PHL,
+    C_COMMA, C_END,
+    // 112
+    C_PC, C_SRC, C_DST, C_CB_PHL,
+    C_SPTR, C_DPTR,
     C_N, C_NN, C_PNN, C_NUM
 };
 

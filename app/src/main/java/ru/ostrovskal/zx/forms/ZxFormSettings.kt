@@ -25,6 +25,7 @@ import ru.ostrovskal.sshstd.widgets.Check
 import ru.ostrovskal.sshstd.widgets.Seek
 import ru.ostrovskal.sshstd.widgets.Text
 import ru.ostrovskal.sshstd.widgets.html.Html
+import ru.ostrovskal.sshstd.widgets.lists.Ribbon
 import ru.ostrovskal.sshstd.widgets.lists.Spinner
 import ru.ostrovskal.zx.R
 import ru.ostrovskal.zx.ZxCommon.*
@@ -34,15 +35,20 @@ import java.util.*
 
 @Suppress("unused")
 class ZxFormSettings : Form() {
+
+    // структура каталога диска
+    private class DiskCatalog(val name: String, val type: String, val addr: Int, val len: Int, val count: Int, val sec: Int, val track: Int)
+
     companion object {
+
+        // каталог диска
+        private val catalog= MutableList(0) { DiskCatalog("", "", 0, 0, 0, 0, 0) }
+
         // количество блоков ленты
-        private var countTapeBlocks            = 0
+        private var countTapeBlocks             = 0
 
         // выбранный диск
         private var numDisk                     = 0
-
-        // количество файлов на диске
-        private var countDiskFiles              = 0
 
         // указатель на объект справки
         private var html: Html?                = null
@@ -51,7 +57,6 @@ class ZxFormSettings : Form() {
         private val settingsAY      = listOf("MONO", "ABC", "ACB")
         private val settingsFreq    = listOf("44100", "22050", "11025")
         private val namesDisk       = listOf("A: ", "B: ", "C: ", "D: ")
-        private val diskSectors                 = ByteArray(2048) { 0 }
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
 
@@ -201,20 +206,19 @@ class ZxFormSettings : Form() {
                 adapter = ArrayListAdapter(context, Popup(), Item(), namesDisk)
                 itemClickListener = { _, _, p, _ ->
                     numDisk = p
+                    catalog.clear()
                     var path = "disk$p".s
                     val isEmpty = path.isBlank()
                     if (isEmpty) path = context.getString(R.string.diskEmpty)
                     else {
-                        // прочитать количество файлов
-                        countDiskFiles = ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_COUNT_FILES, "")
-                        // прочитать сектор каталог
-                        repeat(8) { dsk ->
-                            ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk or (dsk shl 3), ZX_DISK_OPS_RSECTOR, "")
-                            ZxWnd.props.copyInto(diskSectors, dsk shl 8, ZX_PROP_VALUES_SECTOR, ZX_PROP_VALUES_SECTOR + 255)
-                        }
+                        // прочитать каталог
+                        makeCatalog()
                     }
                     // в текст поставить выбранный диск
-                    (root as? TabLayout)?.apply { currentContent.byIdx<Text>(1).text = path }
+                    (root as? TabLayout)?.apply {
+                        currentContent.byIdx<Text>(1).text = path
+                        currentContent.byIdx<Ribbon>(2).adapter = DiskAdapter(context, DiskItem())
+                    }
                 }
             }.lps(0, 0, 3, 2)
             text(R.string.app_name).lps(3, 0, 10, 2)
@@ -223,6 +227,29 @@ class ZxFormSettings : Form() {
                 padding = 4.dp
                 backgroundSet(style_backgrnd_io)
             }.lps(0, 2, 10, 8)
+        }
+    }
+
+    private fun makeCatalog() {
+        repeat(8) { sec ->
+            ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk or (sec shl 3), ZX_DISK_OPS_RSECTOR, "")
+            repeat(16) { idx ->
+                val pos = idx * 16
+                val marker = ZxWnd.props[ZX_PROP_VALUES_SECTOR + pos]
+                if(marker == 0.toByte()) return
+                if(marker >= 32.toByte()) {
+                    // файл есть - 0-7 имя 8-тип 9,10-адрес 11,12-размер 13-количество секторов 14-первый сектор 15-первая дорожка
+                    val name = StringBuilder(8)
+                    repeat(8) { name.append(ZxWnd.props[ZX_PROP_VALUES_SECTOR + pos + it].toChar()) }
+                    val type   = "<${ZxWnd.props[ZX_PROP_VALUES_SECTOR + pos + 8].toChar()}>"
+                    val addr   = ZxWnd.read16(ZX_PROP_VALUES_SECTOR + pos + 9)
+                    val length = ZxWnd.read16(ZX_PROP_VALUES_SECTOR + pos + 11)
+                    val count  = ZxWnd.read8(ZX_PROP_VALUES_SECTOR + pos + 13)
+                    val sector = ZxWnd.read8(ZX_PROP_VALUES_SECTOR + pos + 14)
+                    val track  = ZxWnd.read8(ZX_PROP_VALUES_SECTOR + pos + 15)
+                    catalog.add(DiskCatalog(name.toString(), type, addr, length, count, sector, track))
+                }
+            }
         }
     }
 
@@ -566,28 +593,23 @@ class ZxFormSettings : Form() {
 
     inner class DiskAdapter(context: Context, item: UiComponent) : ArrayListAdapter<String>(context, item, item, listOf("")) {
         override fun getItem(position: Int): String {
-/*
-            val idx = position * 8 + 258
-            val pos = position + 1
-            val flag = ZxWnd.props[idx + 7]
-            if(flag != ZX_BP_NONE) {
-                val tp = ZxFormBreakPoints.type[flag.toInt()]
-                val addr1 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx), ZX_FV_OPS16, true)
-                val addr2 = ZxWnd.zxFormatNumber(ZxWnd.read16(idx + 2), ZX_FV_OPS16, true)
-                return if(flag == ZX_BP_EXEC) {
-                    "$pos\t\t$addr1\t-\t$addr2\t\t---\t\t---\t\t--\t\t$tp"
-                } else {
-                    val value = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 4), ZX_FV_OPS8, true)
-                    val mask = ZxWnd.zxFormatNumber(ZxWnd.read8(idx + 5), ZX_FV_OPS8, true)
-                    val cond = ZxFormBreakPoints.cond[ZxWnd.props[idx + 6].toInt()]
-                    "$pos\t\t$addr1\t-\t$addr2\t\t$value\t\t$mask\t\t$cond\t\t$tp"
+            if(position < catalog.size) {
+                val file = catalog[position]
+                val pos = position + 1
+                val addr = ZxWnd.zxFormatNumber(file.addr, ZX_FV_OPS16, false)
+                val length = ZxWnd.zxFormatNumber(file.addr, ZX_FV_OPS16, false)
+                val count = ZxWnd.zxFormatNumber(file.count, ZX_FV_OPS8, false)
+                val sector = ZxWnd.zxFormatNumber(file.sec, ZX_FV_OPS8, false)
+                val track = ZxWnd.zxFormatNumber(file.track, ZX_FV_OPS8, false)
+                if(Config.isPortrait) {
+                    return "$pos\t${file.name}\t\t${file.type}\t\t$addr - $length\t\t$count\t$sector\t$track"
                 }
+                return "$pos\t\t${file.name}\t\t${file.type}\t\t$addr\t - \t$length\t\t$count\t\t$sector\t\t$track"
             }
-            return "$pos\t\t-----\t-\t-----\t\t---\t\t---\t\t--"
-*/
-            return "serg"
+            return ""
         }
-        override fun getCount() = countDiskFiles
+
+        override fun getCount() = catalog.size
 
         override fun getItemId(position: Int) = -1L
     }

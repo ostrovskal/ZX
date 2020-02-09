@@ -48,7 +48,7 @@ void zxSound::updateProps() {
             0x9204, 0xAFF1, 0xD921, 0xFFFF
     };
 
-    if(!isInit) initDriver();
+//    if(!isInit) initDriver();
 
     int f;
 
@@ -111,7 +111,7 @@ void zxSound::updateProps() {
         } else if(sound_stereo_ay == 2) {
             rchan2pos = pos; rchan3pos = 0;
         }
-        makePlayer(true);
+  //      makePlayer(true);
     }
 }
 
@@ -150,7 +150,7 @@ void zxSound::reset() {
 }
 
 void zxSound::ayWrite(uint8_t reg, uint8_t val, long tick) {
-    if(bufferQueue && isAyEnabled) {
+    if(isAyEnabled) {
         if (reg < 16) {
             if (countSamplers < AY_SAMPLERS) {
                 samplers[countSamplers].tstates = tick % ULA->machine->tsTotal;
@@ -322,14 +322,12 @@ void zxSound::beeperWrite(uint8_t on) {
     }
 }
 
-//short tmpBuf[4096];
-
-int zxSound::update() {
+int zxSound::update(uint8_t* buf) {
     static int silent_level = -1;
     signed short *ptr;
     int f, silent(1);
 
-    if(bufferQueue && isEnabled && opts[ZX_PROP_EXECUTE]) {
+    if(isEnabled && opts[ZX_PROP_EXECUTE]) {
         int fulllen = sndBufSize * 2;
         ptr = sndBuf + beeperPos * 2;
         for (f = beeperPos; f < sndBufSize; f++) ptr = write_buf_pstereo(ptr, beeperOldVal);
@@ -345,6 +343,9 @@ int zxSound::update() {
         if (chk != silent_level) silent = 0;
         silent_level = sndBuf[fulllen - 1];
 
+        memcpy(buf, sndBuf, fulllen * sizeof(short));
+/*
+
         if(!silent) {
             int delay = 1000000;
             while (isPlaying && delay-- > 0) {}
@@ -352,11 +353,13 @@ int zxSound::update() {
             memcpy(sndPlayBuf, sndBuf, fulllen * sizeof(short));
             (*bufferQueue)->Enqueue(bufferQueue, sndPlayBuf, (uint32_t) fulllen * sizeof(short));
         }
+*/
+        beeperOldPos = -1;
+        beeperPos = 0;
+        countSamplers = 0;
+        return silent != 0 ? 0 : fulllen;
     }
-    beeperOldPos = -1;
-    beeperPos = 0;
-    countSamplers = 0;
-    return !silent;
+    return 0;
 }
 
 void callback_ay8912(SLBufferQueueItf, void*) {

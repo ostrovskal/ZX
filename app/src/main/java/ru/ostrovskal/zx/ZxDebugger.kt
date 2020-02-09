@@ -222,20 +222,16 @@ class ZxDebugger {
             DEBUGGER_ACT_SET_ASM   -> {
                 val txt = asm.text.toString()
                 if(list.mode == ZX_DEBUGGER_MODE_DT) {
-                    // address,value
                     val addr = txt.substringBefore(',')
+                    // если адрес - это регистр
+                    data = ZxWnd.zxCmd(ZX_CMD_VALUE_REG, 0, 0, addr)
                     if(addr != txt) {
+                        // address, value
                         val value = txt.substringAfter(',')
-                        val a = ZxWnd.zxStringToNumber(addr, 0)
                         val v = ZxWnd.zxStringToNumber(value, 0)
-                        ZxWnd.zxCmd(ZX_CMD_POKE, a, v, "")
-                        // если адрес лежит вне видимого диапазона - установить его
-                        data = list.entryData
-                        val finish = data + list.countData * list.countItems
-                        if(a < data || a > finish) data = a
-                    } else {
-                        data = ZxWnd.zxStringToNumber(addr, 0)
+                        ZxWnd.zxCmd(ZX_CMD_POKE, data, v, "")
                     }
+                    // если адрес лежит вне видимого диапазона - установить его
                     flags = ZX_DSL
                 } else {
                     if(ZxWnd.zxCmd(ZX_CMD_ASSEMBLER, list.selItem, 0, txt) != 1) {

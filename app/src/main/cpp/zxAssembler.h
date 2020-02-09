@@ -29,6 +29,9 @@ public:
 protected:
     void skip_spc(char** text);
 private:
+    bool checkFlags(int flags, bool is_jr);
+    bool checkReg16(int reg, bool is_sp);
+    bool checkReg8(int reg);
     int get_word(char** text);
     int parse_operand(char** text);
     int cmd_parser(uint16_t addr);
@@ -48,10 +51,4 @@ private:
     uint8_t disp;
     int16_t number;
     uint8_t* buf;
-
-    bool checkFlags(int flags);
-
-    bool checkReg16(int reg, bool is_sp);
-
-    bool checkReg8(int reg);
 };

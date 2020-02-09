@@ -15,7 +15,7 @@
     </style>
 
     <style name="ActionBarStyle" parent="android:style/Widget.Holo.Light.ActionBar">
-        <item name="android:background">@color/actionBarBackground</item>
+        <item name="android:background">@drawable/zx_logo</item>
     </style>
 
     <style name="ZxStyle" parent="StdTheme">

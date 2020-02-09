@@ -58,6 +58,7 @@ public:
     uint32_t Ready() const { return ready; }
     const void*	Ptr() const { return buffer; }
     void Use(uint32_t size, uint8_t * ext_buf = nullptr);
+    int UpdateSound(uint8_t* buf);
 
     enum { BUFFER_LEN = 16384 };
 

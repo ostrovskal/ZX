@@ -906,7 +906,7 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
 }
 
 int zxVG93::read_sector(int num, int sec) {
-    auto sector = fdds[num].get_sec(sec);
+    auto sector = fdds[num].get_sec(0, 0, sec);
     if(sector) memcpy(&opts[ZX_PROP_VALUES_SECTOR], sector->content, 256);
     else memset(&opts[ZX_PROP_VALUES_SECTOR], 0, 256);
     return sector != nullptr;

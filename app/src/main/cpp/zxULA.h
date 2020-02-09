@@ -152,6 +152,9 @@ public:
     // видеокарта
     zxGPU* gpu;
 
+    // звуковая карта
+    zxSound* snd;
+
     // лента
     zxTape* tape;
 
@@ -166,6 +169,8 @@ public:
 
     // пауза между загрузкой блоков
     int pauseBetweenTapeBlocks;
+
+    int getAddressCpuReg(const char *value);
 
 protected:
 
@@ -214,9 +219,6 @@ protected:
 
     // цвет и размер границы
     uint32_t sizeBorder, colorBorder;
-
-    // звуковая карта
-    zxSound* snd;
 
     // дисковод
     zxVG93* disk;

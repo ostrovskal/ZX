@@ -29,6 +29,7 @@ import ru.ostrovskal.zx.ZxCommon.*
 import ru.ostrovskal.zx.forms.ZxFormMain
 import java.io.File
 import java.io.FileNotFoundException
+import java.nio.ByteBuffer
 import kotlin.experimental.and
 import kotlin.experimental.inv
 import kotlin.experimental.or
@@ -111,6 +112,9 @@ class ZxWnd : Wnd() {
                                                 R.integer.MENU_MRU, R.integer.I_MRU, R.integer.MENU_POKES, R.integer.I_POKES,
                                                 R.integer.MENU_DEBUGGER_LABEL, R.integer.I_ADDRESS, R.integer.MENU_DEBUGGER_CODE, R.integer.I_CODE,
                                                 R.integer.MENU_DEBUGGER_VALUE, R.integer.I_VALUE)
+        @JvmStatic
+        external fun zxUpdateAudio(buf: ByteBuffer): Int
+
         @JvmStatic
         external fun zxInit(asset: AssetManager, savePath: String, error: Boolean)
 
