@@ -5,10 +5,10 @@
 #pragma once
 
 #include "zxSound.h"
-#include "zxAY.h"
 
 class zxTape {
     friend class zxULA;
+    friend class zxFormats;
 public:
     struct TAPE_BLOCK {
         TAPE_BLOCK() : data(nullptr), size(0) { }
@@ -33,20 +33,8 @@ public:
     // управление импульсами
     void control(int ticks);
 
-    // загрузить WAV
-    bool openWAV(const char *path);
-
-    // сохранить WAV
-    bool saveWAV(const char *path);
-
-    // загрузить TAP
-    bool openTAP(const char *path);
-
-    // сохранить TAP
-    bool saveTAP(const char *path);
-
     // загрузить состояние
-    uint8_t* loadState(uint8_t *ptr);
+    uint8_t* restoreState(uint8_t *ptr);
 
     // сохранить состояние
     uint8_t *saveState(uint8_t *ptr);

@@ -11,7 +11,7 @@
 #include "zxSound.h"
 #include "zxGPU.h"
 #include "zxFDD.h"
-#include "zxAY.h"
+#include "zxSound.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -55,6 +55,7 @@ struct BREAK_POINT {
 };
 
 class zxULA {
+    friend class zxFormats;
 public:
     zxULA();
     ~zxULA();
@@ -131,6 +132,9 @@ public:
     // счетчик тактов
     static long _TICK;
 
+    // счетчик тактов в кадре
+    static uint32_t frameTick;
+
     // адрес возврата
     static uint16_t* _CALL;
 
@@ -180,16 +184,10 @@ public:
 protected:
 
     // загрузка состояния
-    bool openState(const char *path);
-
-    // загрузка файла в формате Z80
-    bool openZ80(const char *path);
+    bool restoreState(const char *path);
 
     // сохранение состояния
     bool saveState(const char* path);
-
-    // сохранение файла в формате Z80
-    bool saveZ80(const char *path);
 
     // исполнение инструкции процессора
     int step(bool allow_int);

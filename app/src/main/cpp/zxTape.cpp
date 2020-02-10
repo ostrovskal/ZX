@@ -5,22 +5,6 @@
 #include "zxCommon.h"
 #include "zxTape.h"
 
-struct WAV {
-    uint32_t fileID;		// RIFF
-    uint32_t fileSize;		// len + 8 + 12 + 16
-    uint32_t waveID;		// WAVE
-    uint32_t chunkID;		// fmt_
-    uint32_t wFormatTag;	// 16
-    uint16_t nChannels;		// 1/2
-    uint16_t nChannels1;	// 1/2
-    uint32_t nSamplesPerSec;// 11025/22050/44100
-    uint32_t nAvgBytesPerSec;// 11025/22050/44100
-    uint16_t nBlockAlign;	// 1
-    uint16_t wBitsPerSample;// 8/16
-    uint32_t nData;			// data
-    uint32_t nDataSize;		// len
-};
-
 inline bool zxTape::checkBit(uint8_t* src, int pos) {
     return (src[pos >> 3] & numBits[7 - (pos % 8)]) != 0;
 }
@@ -105,7 +89,7 @@ uint8_t* zxTape::save(int root, uint8_t* buf, bool packed) {
     return buf;
 }
 
-uint8_t *zxTape::loadState(uint8_t *ptr) {
+uint8_t *zxTape::restoreState(uint8_t *ptr) {
     // сигнатура
     if(ptr[0] != 'S' || ptr[1] != 'E' || ptr[2] != 'R' || ptr[3] != 'G') {
         LOG_INFO("Сигнатура ленты некорректна!", 0);
@@ -121,136 +105,7 @@ uint8_t *zxTape::saveState(uint8_t *ptr) {
     return save(currentBlock, ptr, true);
 }
 
-bool zxTape::openTAP(const char *path) {
-    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true);
-    if(!ptr) return false;
-    return load(ptr, false) != nullptr;
-}
-
-bool zxTape::saveTAP(const char *path) {
-    auto buf = save(0, TMP_BUF, false);
-    return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, true);
-}
-
-bool zxTape::openWAV(const char *path) {
-    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true);
-    if(!ptr) return false;
-    ptr += 14; // skip
-
-    WAV wav;
-
-    wav.wFormatTag		= *(uint16_t*)ptr; ptr += sizeof(uint16_t);
-    // Only PCM files supported!
-    if(wav.wFormatTag != 1)
-        return false;
-
-    wav.nChannels 		= *(uint16_t*)ptr; ptr += sizeof(uint16_t);
-    // Only MONO and STEREO files supported!
-    if(wav.nChannels != 2 && wav.nChannels != 1)
-        return false;
-
-    wav.nSamplesPerSec 	= *(uint32_t*)ptr; ptr += sizeof(uint32_t) + 6;
-    // Supported SamplesPerSec are : 11025, 22050, 44100!
-    if(wav.nSamplesPerSec != 11025 && wav.nSamplesPerSec != 44100 && wav.nSamplesPerSec != 22050)
-        return false;
-
-    wav.wBitsPerSample	= *(uint16_t*)ptr; ptr += sizeof(uint16_t) + 4;
-    // Only 8 and 16 bit files supported!
-    if(wav.wBitsPerSample != 8 && wav.wBitsPerSample != 16)
-        return false;
-
-    reset();
-
-    uint8_t posBit = 0;
-    uint32_t counter = 0;
-
-    auto len32 = *(uint32_t*)ptr; ptr += sizeof(uint32_t);
-    auto true_len = len32;
-
-    if(wav.nSamplesPerSec == 11025) true_len *= 2;
-    if(wav.wBitsPerSample == 16) { true_len /= 2; len32 /= 2; }
-    if(wav.nChannels == 2) { true_len /= 2; len32 /= 2; }
-
-    true_len /= 8;
-    true_len++;
-
-    auto data = new uint8_t[true_len];
-
-    for(uint32_t i = 0; i < len32; i++) {
-        uint16_t value;
-        bool bit;
-        if(wav.nChannels == 1) {
-            if(wav.wBitsPerSample == 16) {
-                value = *(uint16_t*)ptr;
-                ptr += sizeof(uint16_t);
-            } else {
-                value = *ptr++;
-            }
-        } else {
-            if(wav.wBitsPerSample == 16) {
-                auto tmp1 = (*(uint16_t*)ptr) / 2; ptr += sizeof(uint16_t);
-                auto tmp2 = (*(uint16_t*)ptr) / 2; ptr += sizeof(uint16_t);
-                value = (uint16_t)(tmp1 + tmp2);
-            }
-            else {
-                auto tmp1 = (*ptr++) / 2;
-                auto tmp2 = (*ptr++) / 2;
-                value = (uint8_t)(tmp1 + tmp2);
-            }
-        }
-        if(wav.wBitsPerSample == 8) bit = value > 127; else bit = value < 32768;
-        if(wav.nSamplesPerSec == 11025) {
-            expandBit(data, counter++, bit);
-            posBit = (uint8_t)((posBit + 1) & 7);
-        }
-        expandBit(data, counter++, bit);
-        posBit = (uint8_t)((posBit + 1) & 7);
-    }
-    return true;
-}
-
-bool zxTape::saveWAV(const char *path) {
-    // расчитать размер блока данных
-    auto size = calcSizeBufferImpulse(true);
-    auto buf = new uint8_t[size];
-    zxFile f;
-    if(f.open(zxFile::makePath(path, true).c_str(), zxFile::create_write)) {
-        WAV wav{'FFIR', 0, 'EVAW', ' tmf', 16, 1, 1, (uint32_t)freq, (uint32_t)freq, 1, 8, 'atad', 0};
-        f.write(&wav, sizeof(WAV));
-        int len = 0, root = 0, tmp;
-        size = 0;
-        while(root < countBlocks) {
-            len = 0;
-            makeImpulseBuffer(buf, root, len);
-            for (int i = 0; i < len; i++) {
-                auto bt = (uint8_t)(checkBit(buf, i) ? 250 : 5);
-                // TODO: сделать накопление хотя бы по 8 байт
-                f.write(&bt, 1);
-            }
-            root++;
-            size += len;
-        }
-        tmp = (size + 8 + 12 + 16);
-        f.set_pos(4, 0); f.write(&tmp, 4);
-        f.set_pos(sizeof(WAV) - 4, 0); f.write(&size, 4);
-        delete[] buf;
-    }
-    return true;
-}
-
 void zxTape::writePort(uint8_t value) {
-/*
-    snd->beeperWrite(value);
-    auto mic    = (uint8_t)(value & 8);
-    auto beep   = (uint8_t)(value & 16);
-    if (beep != _BEEP) {
-        _BEEP = beep;
-    }
-    if (mic != _MIC) {
-        _MIC = mic;
-        snd->beeperWrite(mic);
-    }
-*/
 }
 
 void zxTape::updateProps() {

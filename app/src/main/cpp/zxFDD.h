@@ -162,7 +162,7 @@ public:
     void vg93_write(uint8_t port, uint8_t v, int tact);
 
     // восстановить состояние
-    uint8_t* loadState(uint8_t* ptr);
+    uint8_t* restoreState(uint8_t* ptr);
 
     // сохранить состояние
     uint8_t* saveState(uint8_t* ptr);

@@ -104,7 +104,7 @@
 
 uint64_t Z80FQ = 3500000;
 
-uint8_t* zxVG93::loadState(uint8_t* ptr) {
+uint8_t* zxVG93::restoreState(uint8_t* ptr) {
     return ptr;
 }
 

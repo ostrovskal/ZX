@@ -8,14 +8,19 @@
 #include "stkMnemonic.h"
 #include "zxDA.h"
 #include "zxSound.h"
+#include "zxFormats.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "missing_default_case"
 
 static uint8_t mem1FFD[] = { 0, 1, 2, 3,  4, 5, 6, 7,  4, 5, 6, 3,  4, 7, 6, 3,  0, 5, 2, 0 };
+static int atrTab[192];
+static uint8_t colTab[512];
+
 
 // текущий счетчик инструкций
-long zxULA::_TICK(0);
+long     zxULA::_TICK(0);
+uint32_t zxULA::frameTick(0);
 
 uint16_t* zxULA::_CALL(nullptr);
 uint16_t zxULA::PC(0);
@@ -78,19 +83,26 @@ static uint8_t semiRows[] = {
         8, 0x02, 0, 0, 8, 0x01, 0, 0, 8, 0x08, 0, 0, 8, 0x04, 0, 0, 8, 0x10, 0, 0
 };
 
-static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
-    uint32_t size;
-    uint8_t* buf = *buffer;
-    *buffer = packBlock(src, src + 16384, &buf[3], false, size);
-    *(uint16_t*)buf = (uint16_t)size;
-    buf[2] = page;
-}
-
 zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _FF(255), colorBorder(7),
                  blink(0), sizeBorder(0), machine(nullptr), ROMb(nullptr), ROMtr(nullptr),
                  cpu(nullptr), snd(nullptr), tape(nullptr), disk(nullptr), gpu(nullptr) {
     RAMs = new uint8_t[ZX_TOTAL_RAM];
     ROMtr = new uint8_t[1 << 14];
+
+    // вычисление таблицы адреса строк экрана
+    for(int line = 0; line < 192; line++) atrTab[line] = (((line & 192) << 5) + ((line & 7) << 8) + ((line & 56) << 2));
+    for(int a = 0; a < 256; a++) {
+        auto ink	= (uint8_t)((a >> 0) & 7);
+        auto paper	= (uint8_t)((a >> 3) & 7);
+        auto bright	= (uint8_t)((a >> 6) & 1);
+        auto flash	= (uint8_t)((a >> 7) & 1);
+        if(ink) ink |= bright << 3;
+        if(paper) paper |= bright << 3;
+        auto c1 = (uint8_t)((paper << 4) | ink);
+        if(flash) { auto t = ink; ink = paper; paper = t; }
+        auto c2 = (uint8_t)((paper << 4) | ink);
+        colTab[a] = c1; colTab[a + 256] = c2;
+    }
 
     // инициализация системы
     _MODEL     		= &opts[MODEL];
@@ -136,25 +148,25 @@ bool zxULA::load(const char *path, int type) {
     bool ret = false;
     switch(type) {
         case ZX_CMD_IO_WAVE:
-            ret = tape->openWAV(path);
+            ret = zxFormats::openWAV(path);
             break;
         case ZX_CMD_IO_TAPE:
-            ret = tape->openTAP(path);
+            ret = zxFormats::openTAP(path);
             if(ret && opts[ZX_PROP_TRAP_TAPE]) {
-                ret = openZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
+                ret = zxFormats::openZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
             }
             break;
         case ZX_CMD_IO_STATE:
-            ret = openState(path);
+            ret = restoreState(path);
             break;
         case ZX_CMD_IO_Z80:
-            ret = openZ80(path);
+            ret = zxFormats::openZ80(path);
             break;
     }
     return ret;
 }
 
-bool zxULA::openState(const char *path) {
+bool zxULA::restoreState(const char *path) {
     auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], false);
     if(!ptr) return false;
     // меняем модель
@@ -174,13 +186,13 @@ bool zxULA::openState(const char *path) {
     auto ptrName = (const char*)ptr;
     ptr += strlen(ptrName) + 1;
     // восстанавливаем состояние ленты
-    if(!(ptr = tape->loadState(ptr))) {
+    if(!(ptr = tape->restoreState(ptr))) {
         LOG_DEBUG("Не удалось восстановить состояние ленты!!!", nullptr)
         signalRESET(true);
         return false;
     }
     // восстанавливаем состояние дисков
-    if(!disk->loadState(ptr)) {
+    if(!disk->restoreState(ptr)) {
         LOG_DEBUG("Не удалось восстановить состояние дисков!!!", nullptr)
         signalRESET(true);
         return false;
@@ -213,193 +225,23 @@ bool zxULA::saveState(const char* path) {
     return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, false);
 }
 
-bool zxULA::openZ80(const char *path) {
-    size_t sz;
-    HEAD1_Z80* head1 = nullptr;
-    HEAD2_Z80* head2 = nullptr;
-    HEAD3_Z80* head3 = nullptr;
-    uint8_t model = MODEL_48;
-    int version;
-    int pages = 3;
-
-    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true, &sz);
-    if(!ptr) return false;
-
-    int length = sizeof(HEAD1_Z80);
-    head1 = (HEAD1_Z80*)ptr;
-    auto isCompressed = (head1->STATE1 & 0x20) == 0x20;
-    auto PC = head1->PC;
-    if(PC == 0) {
-        // версия 2 или 3
-        head2 = (HEAD2_Z80*)ptr;
-        length += head2->length + 2;
-        auto mode = head2->hardMode;
-        switch(length) {
-            case 55:
-                version = 2;
-                model = (uint8_t)(mode < 3 ? MODEL_48 : MODEL_128);
-                break;
-            case 86: case 87:
-                version = 3;
-                model = (uint8_t)(mode < 4 ? MODEL_48 : MODEL_128);
-                break;
-            default: LOG_DEBUG("Недопустимый формат файла %s!", path); return false;
-        }
-        if(model == MODEL_48) {
-            pages = (head2->emulateFlags & 0x80) ? 1 : 3;
-        } else if(model == MODEL_128) {
-            pages = 8;
-        } else if(mode == 9) {
-            model = MODEL_PENTAGON;
-            pages = 8;
-        } else if(mode == 10) {
-            model = MODEL_SCORPION;
-            pages = 16;
-        } else {
-            LOG_INFO("Неизвестное оборудование %i в (%s)", mode, path);
-            return false;
-        }
-        LOG_DEBUG("version:%i length:%i model:%i pages:%i mode:%i", version, length, model, pages, mode);
-        if(version >= 3) {
-            head3 = (HEAD3_Z80*)ptr;
-            head2 = &head3->head2;
-        }
-        head1 = &head2->head1;
-        PC = head2->PC;
-    }
-    ptr += length;
-    sz -= length;
-    // формируем страницы во временном буфере
-    if(head2) {
-        for(int i = 0 ; i < pages; i++) {
-            auto sizeData = *(uint16_t*)ptr; ptr += 2;
-            auto numPage = *ptr++ - 3;
-            isCompressed = sizeData != 0xFFFF;
-            auto sizePage = (uint32_t)(isCompressed ? sizeData : 0x4000);
-            auto isValidPage = false;
-            switch(model) {
-                case MODEL_48:
-                    isValidPage = true;
-                    switch(numPage) {
-                        // 4->2 5->7 8->5
-                        case 1: numPage = 2; break;
-                        case 2: numPage = 7; break;
-                        case 5: numPage = 5; break;
-                        default: isValidPage = false;
-                    }
-                    break;
-                case MODEL_128:
-                case MODEL_PENTAGON:
-                case MODEL_SCORPION:
-                    isValidPage = numPage == i;
-                    break;
-            }
-            if(!isValidPage) {
-                LOG_DEBUG("Неизвестная страница %i в (%s)!", numPage, path);
-                return false;
-            }
-            auto page = &TMP_BUF[numPage << 14];
-            if(!unpackBlock(ptr, page, page + 16384, sizePage, isCompressed)) {
-                LOG_DEBUG("Ошибка при распаковке страницы %i в %s!", numPage, path);
-                return false;
-            }
-            ptr += sizePage;
-            sz -= (sizePage + 3);
-        }
-    } else {
-        if(!unpackBlock(ptr, TMP_BUF, &TMP_BUF[49152], sz, isCompressed)) {
-            LOG_DEBUG("Ошибка при распаковке %s!", path);
-            return false;
-        }
-        // перераспределяем буфер 0->5, 1->2, 2->7
-        memcpy(&TMP_BUF[5 << 14], &TMP_BUF[0 << 14], 16384);
-        memcpy(&TMP_BUF[7 << 14], &TMP_BUF[2 << 14], 16384);
-        memcpy(&TMP_BUF[2 << 14], &TMP_BUF[1 << 14], 16384);
-    }
-    // меняем модель памяти и иинициализируем регистры
-    auto isZ80 = strcasecmp(path + strlen(path) - 4, ".z80") == 0;
-    changeModel(model, isZ80);
-    *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL;
-    *cpu->_A = head1->A; *cpu->_F = head1->F; opts[RA_] = head1->A_; opts[RF_] = head1->F_;
-    *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY;
-    *cpu->_I = head1->I; *cpu->_IM = (uint8_t)(head1->STATE2 & 3);
-    *cpu->_IFF1 = head1->IFF1; *cpu->_IFF2 = head1->IFF2;
-    if(head1->STATE1 == 255) head1->STATE1 = 1;
-    *cpu->_R |= (head1->STATE1 << 7) | (head1->R & 0x7F);
-    writePort(0xfe, 0, (uint8_t)(224 | ((head1->STATE1 & 14) >> 1)));
-    memcpy(&opts[RC_], &head1->BC_, 6);
-    *cpu->_PC = PC;
-    LOG_INFO("Z80 Start PC: %i", PC);
-    if(head2) {
-        writePort(0xfd, 0x7f, head2->hardState);
-        memcpy(&opts[AY_AFINE], head2->sndRegs, 16);
-        writePort(0xfd, 0xff, head2->sndChipRegNumber);
-    }
-    if(head3 && length == 87) writePort(0xfd, 0x1f, head3->port1FFD);
-    // копируем буфер
-    memcpy(RAMs, TMP_BUF, 256 * 1024);
-    return true;
-}
-
 bool zxULA::save(const char *path, int type) {
     bool ret = false;
     switch(type) {
         case ZX_CMD_IO_WAVE:
-            ret = tape->saveWAV(path);
+            ret = zxFormats::saveWAV(path);
             break;
         case ZX_CMD_IO_TAPE:
-            ret = tape->saveTAP(path);
+            ret = zxFormats::saveTAP(path);
             break;
         case ZX_CMD_IO_STATE:
             ret = saveState(path);
             break;
         case ZX_CMD_IO_Z80:
-            ret = saveZ80(path);
+            ret = zxFormats::saveZ80(path);
             break;
     }
     return ret;
-}
-
-bool zxULA::saveZ80(const char *path) {
-    static uint8_t models[] = { 0, 0, 0, 4, 4, 4, 9, 10 };
-    static HEAD3_Z80 head;
-
-    auto head2 = &head.head2;
-    auto head1 = &head2->head1;
-    memset(&head, 0, sizeof(HEAD3_Z80));
-
-    auto buf = TMP_BUF;
-    // основные
-    head1->BC = *cpu->_BC; head1->DE = *cpu->_DE; head1->HL = *cpu->_HL;
-    head1->A = *cpu->_A; head1->F = *cpu->_F; head1->A_ = opts[RA_]; head1->F_ = opts[RF_];
-    head1->SP = *cpu->_SP; head1->IX = *cpu->_IX; head1->IY = *cpu->_IY; head1->PC = 0;
-    head1->STATE2 = *cpu->_IM; head1->IFF1 = *cpu->_IFF1; head1->IFF2 = *cpu->_IFF2;
-    head1->I = *cpu->_I; head1->R = (uint8_t)(*cpu->_R & 127);
-    head1->STATE1 = (uint8_t)((*cpu->_R & 128) >> 7) | (uint8_t)((*_FE & 7) << 1);
-    memcpy(&head1->BC_, &opts[RC_], 6);
-    // для режима 128К
-    head2->PC = *cpu->_PC;
-    head2->hardMode = models[*_MODEL];
-    head2->length = 55;
-    head.port1FFD = *_1FFD;
-    head2->hardState = *_7FFD;
-    head2->sndChipRegNumber = opts[AY_REG];
-    memcpy(head2->sndRegs, &opts[AY_AFINE], 16);
-    ssh_memzero(head2->sndRegs, 16);
-    // формируем буфер из содержимого страниц
-    ssh_memcpy(&buf, &head, sizeof(HEAD3_Z80));
-    // страницы, в зависимости от режима
-    if(*_MODEL < MODEL_128) {
-        // 4->2 5->7 8->5
-        packPage(&buf, &RAMs[5 << 14], 8);
-        packPage(&buf, &RAMs[2 << 14], 4);
-        packPage(&buf, &RAMs[7 << 14], 5);
-    } else {
-        for(int i = 0; i < machine->ramPages; i++) {
-            packPage(&buf, &RAMs[i << 14], (uint8_t)(i + 3));
-        }
-    }
-    return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, true);
 }
 
 void zxULA::updateProps(int filter) {
@@ -613,10 +455,9 @@ void zxULA::setPages() {
 }
 
 void zxULA::execute() {
-    // отображение экрана, воспроизведение звука
+    // формирование/отображение экрана
     updateFrame();
     gpu->updateFrame();
-    //snd->update();
 }
 
 void zxULA::stepDebug() {
@@ -624,7 +465,9 @@ void zxULA::stepDebug() {
     // убрать отладчик - чтобы не сработала точка останова
     modifySTATE(0, ZX_DEBUG | ZX_HALT);
     // перехват системных процедур
-    _TICK += cpu->step();
+    auto ticks = cpu->step();
+    _TICK += ticks;
+    frameTick += ticks;
     trap();
     modifySTATE(ZX_DEBUG, 0);
 }
@@ -657,11 +500,13 @@ void zxULA::updateCPU(int todo, bool interrupt) {
         ticks = step(true);
         todo -= ticks;
         _TICK += ticks;
+        frameTick += ticks;
     }
     while(todo > 0) {
         ticks = step(false);
         todo -= ticks;
         _TICK += ticks;
+        frameTick += ticks;
     }
     deltaTSTATE = todo;
 }
@@ -669,7 +514,7 @@ void zxULA::updateCPU(int todo, bool interrupt) {
 void zxULA::updateFrame() {
     static uint32_t frames[2] = { 0, 0 };
 
-    uint32_t line, i, tmp, c;
+    uint32_t line, i, c;
 
     if(pauseBetweenTapeBlocks > 0) {
         pauseBetweenTapeBlocks--;
@@ -680,8 +525,8 @@ void zxULA::updateFrame() {
     auto dest = gpu->frameBuffer;
     if(!dest) return;
 
-    _TICK = 0;
-    snd->frameStart((uint32_t)(_TICK));
+    frameTick = (uint32_t)(_TICK % machine->tsTotal);
+    snd->frameStart(frameTick);
 
     auto isBlink = (blink & 16) >> 4;
     auto szBorder = sizeBorder >> 1;
@@ -709,18 +554,14 @@ void zxULA::updateFrame() {
             *dest++ = c; *dest++ = c;
         }
         *_STATE |= ZX_SCR;
-        auto rb = (((line & 192) << 5) + ((line & 7) << 8) + ((line & 56) << 2));
+        auto rb = atrTab[line];
         for (int ri = 0; ri < 32; ri++) {
-            _FF = pageATTRIB[ri + ((line >> 3) << 5)];
-            frames[0] = colours[(_FF & 120) >> 3];
-            frames[1] = colours[(_FF & 7) | ((_FF & 64) >> 3)];
-            if ((_FF & 128) && isBlink) {
-                tmp = frames[0];
-                frames[0] = frames[1];
-                frames[1] = tmp;
-            }
+            _FF = pageATTRIB[ri + ((line & 248) << 2)];
+            auto idx = colTab[(((_FF & 128) && isBlink) << 8) + _FF];
+            frames[1] = colours[idx & 15];
+            frames[0] = colours[idx >> 4];
+            auto v = pageVRAM[rb];
             for(int b = 7 ; b >= 0; b--) {
-                auto v = pageVRAM[rb];
                 *dest++ = frames[(v >> b) & 1];
                 if(!(b & 1)) updateCPU(1, false);
             }
@@ -745,8 +586,8 @@ void zxULA::updateFrame() {
     }
     updateCPU(stateDP, false);
     blink++;
-    //LOG_INFO("ts: %i", _TICK % machine->tsTotal);
-    snd->frameEnd((uint32_t)machine->tsTotal);
+    //LOG_INFO("ts: %i", _TICK % ts);
+    snd->frameEnd(frameTick);
 }
 
 void zxULA::quickBP(uint16_t address) {
@@ -831,7 +672,7 @@ int zxULA::diskOperation(int num, int ops, const char* path) {
         case ZX_DISK_OPS_OPEN:          ret = (int)disk->open(path, num, parseExtension(path)); break;
         case ZX_DISK_OPS_SAVE:          ret = disk->save(path, num, parseExtension(path)); break;
         case ZX_DISK_OPS_SET_READONLY:  ret = disk->is_readonly(num & 3, (num & 128)); break;
-        case ZX_DISK_OPS_TRDOS:         ret = openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx"); break;
+        case ZX_DISK_OPS_TRDOS:         ret = zxFormats::openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx"); break;
         case ZX_DISK_OPS_RSECTOR:       ret = disk->read_sector(num & 3, (num >> 3) + 1); break;
         case ZX_DISK_COUNT_FILES:       ret = disk->count_files(num & 3, num >> 3); break;
     }
@@ -848,7 +689,7 @@ void zxULA::quickSave() {
         file.close();
         a++;
     }
-    saveZ80(strstr(buf, "SAVERS/"));
+    zxFormats::saveZ80(strstr(buf, "SAVERS/"));
 }
 
 void zxULA::trap() {
@@ -891,14 +732,10 @@ void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
                 write1FFD(val);
             } else if(A8A15 == 0xFF) {
                 // устанавливаем текущий регистр
-                snd->ioWrite(0, 0xFFFD, val, _TICK);
-                //opts[AY_REG] = (uint8_t)(val & 15);
+                snd->ioWrite(0, 0xFFFD, val, frameTick);
             } else if(A8A15 == 0xBF) {
                 // записываем значение в текущий регистр
-                snd->ioWrite(0, 0xBFFD, val, _TICK);
-//                auto reg = opts[AY_REG];
-//                opts[reg + AY_AFINE] = val;
-//                snd->ayWrite(reg, val, _TICK);
+                snd->ioWrite(0, 0xBFFD, val, frameTick);
             } else {
 //                LOG_INFO("7FFD A0A7:%i A8A15:%i val:%i", A0A7, A8A15, val);
                 write7FFD(val);
@@ -908,7 +745,7 @@ void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             // 0, 1, 2 - бордер, 3 MIC - при записи, 4 - бипер
             *_FE = val;
             colorBorder = val & 7U;
-            snd->ioWrite(1, 0xFE, val, _TICK);
+            snd->ioWrite(1, 0xFE, val, frameTick);
             tape->writePort((uint8_t)(val & 24));
             break;
         case 0x1F: case 0x3F: case 0x5F: case 0x7F: case 0xFF:

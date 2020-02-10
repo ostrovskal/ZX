@@ -6,6 +6,22 @@
 
 #pragma pack(push, 1)
 
+struct WAV {
+    uint32_t fileID;		// RIFF
+    uint32_t fileSize;		// len + 8 + 12 + 16
+    uint32_t waveID;		// WAVE
+    uint32_t chunkID;		// fmt_
+    uint32_t wFormatTag;	// 16
+    uint16_t nChannels;		// 1/2
+    uint16_t nChannels1;	// 1/2
+    uint32_t nSamplesPerSec;// 11025/22050/44100
+    uint32_t nAvgBytesPerSec;// 11025/22050/44100
+    uint16_t nBlockAlign;	// 1
+    uint16_t wBitsPerSample;// 8/16
+    uint32_t nData;			// data
+    uint32_t nDataSize;		// len
+};
+
 struct HEAD1_Z80 {
     uint8_t A, F;
     uint16_t BC, HL, PC, SP;
