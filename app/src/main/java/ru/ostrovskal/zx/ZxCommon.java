@@ -70,7 +70,6 @@ public final class ZxCommon {
     public final static int ZX_CPU_MK               = 58;
     public final static int ZX_CPU_MX               = 59;
     public final static int ZX_CPU_MY               = 60;
-    public final static int ZX_CPU_CLICK            = 67;
     public final static int ZX_CPU_STATE            = 62;
     public final static int ZX_CPU_RL               = 65;
 
@@ -159,13 +158,14 @@ public final class ZxCommon {
     // 2. Байтовые значения
     public static final int ZX_PROP_BORDER_SIZE     = 150; // Размер границы
     public static final int ZX_PROP_MODEL_TYPE      = 151; // Модель памяти
-    private static final int ZX_PROP_SND_TYPE_AY    = 152; // Тип каналов в звуковом процессоре AY
-    private static final int ZX_PROP_SND_FREQUENCY  = 153; // Частота звука
-    private static final int ZX_PROP_SND_VOLUME_BP  = 154; // Громкость бипера
-    private static final int ZX_PROP_SND_VOLUME_AY  = 155; // Громкость AY
-    private static final int ZX_PROP_CPU_SPEED      = 156; // Скорость процессора
-    public static final int ZX_PROP_KEY_SIZE        = 157; // Размер экранной клавиатуры
-    public static final int ZX_PROP_JOY_SIZE        = 158; // Размер экранного джойстика
+    private static final int ZX_PROP_SND_CHIP_AY    = 152; // Тип звукового сопроцессора
+    private static final int ZX_PROP_SND_CHANNEL_AY = 153; // Раскладка каналов в звуковом процессоре
+    public static final int ZX_PROP_SND_FREQUENCY   = 154; // Частота звука
+    private static final int ZX_PROP_SND_VOLUME_BP  = 155; // Громкость бипера
+    private static final int ZX_PROP_SND_VOLUME_AY  = 156; // Громкость AY
+    private static final int ZX_PROP_CPU_SPEED      = 157; // Скорость процессора
+    public static final int ZX_PROP_KEY_SIZE        = 158; // Размер экранной клавиатуры
+    public static final int ZX_PROP_JOY_SIZE        = 159; // Размер экранного джойстика
 
     // 3. Целые значения
     public static final int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
@@ -211,7 +211,6 @@ public final class ZxCommon {
     public static final int ZX_DISK_OPS_SET_READONLY= 4; //
     public static final int ZX_DISK_OPS_TRDOS       = 5; //
     public static final int ZX_DISK_OPS_RSECTOR     = 6; //
-    public static final int ZX_DISK_COUNT_FILES     = 7; //
 
     private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 
@@ -550,8 +549,9 @@ public final class ZxCommon {
 
     public static final int[] settingsCommon    = { ZX_PROP_CPU_SPEED, ZX_PROP_JOY_SIZE, ZX_PROP_BORDER_SIZE, ZX_PROP_KEY_SIZE};
     public static final int[] settingsCheckSnd  = { ZX_PROP_SND_BP, ZX_PROP_SND_AY };
-    public static final int[] settingsSnd       = { ZX_PROP_SND_TYPE_AY, ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
-    public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_TYPE_AY, 0, ZX_PROP_SND_FREQUENCY, 0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
+    public static final int[] settingsSnd       = { ZX_PROP_SND_CHIP_AY, ZX_PROP_SND_CHANNEL_AY, ZX_PROP_SND_FREQUENCY, ZX_PROP_SND_VOLUME_BP, ZX_PROP_SND_VOLUME_AY };
+    public static final int[] settingsAllSnd    = { 0, ZX_PROP_SND_CHIP_AY, 0, ZX_PROP_SND_CHANNEL_AY, 0, ZX_PROP_SND_FREQUENCY,
+                                                    0, ZX_PROP_SND_VOLUME_BP, 0, ZX_PROP_SND_VOLUME_AY,
                                                     ZX_PROP_SND_BP, ZX_PROP_SND_AY};
 
     public static final int[] debuggerLand = {
@@ -618,4 +618,6 @@ public final class ZxCommon {
             "Ф", "И", "С", "В", "У", "А", "П", "Р", "Ш", "О", "Л", "Д", "Ь", "Т", "Щ", "З", "Й", "К", "Ы", "Е", "Г", "М", "Ц", "Ч", "Н", "Я",
             "ф", "и", "с", "в", "у", "а", "п", "р", "ш", "о", "л", "д", "ь", "т", "щ", "з", "й", "к", "ы", "е", "г", "м", "ц", "ч", "н", "я"
     };
+
+    public static final int[] frequency = { 48000, 44100, 22050, 11025 };
 }

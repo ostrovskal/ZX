@@ -60,7 +60,7 @@ void zxSound::updateProps() {
     isBpEnabled     = isEnabled && opts[ZX_PROP_SND_BP];
     clockAY         = opts[ZX_PROP_TURBO_MODE] ? 1773400 * 2 : 1773400;
 
-    auto modeAy     = opts[ZX_PROP_SND_TYPE_AY];
+    auto modeAy     = opts[ZX_PROP_SND_CHANNEL_AY];
     auto vAy        = opts[ZX_PROP_SND_VOLUME_AY] * 256;
     auto vBp        = opts[ZX_PROP_SND_VOLUME_BP];
     auto freq       = frequencies[opts[ZX_PROP_SND_FREQUENCY]];

@@ -83,7 +83,7 @@ class ZxFormMain: Form() {
     @SuppressLint("SetTextI18n")
     override fun handleMessage(msg: Message): Boolean {
         when(msg.action) {
-            ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal         -> zxview?.updateJoy()
+            ZxWnd.ZxMessages.ACT_UPDATE_AUDIO.ordinal,
             ZxWnd.ZxMessages.ACT_UPDATE_FILTER.ordinal,
             ZxWnd.ZxMessages.ACT_RESET.ordinal,
             ZxWnd.ZxMessages.ACT_MODEL.ordinal,
@@ -91,6 +91,7 @@ class ZxFormMain: Form() {
             ZxWnd.ZxMessages.ACT_IO_LOAD.ordinal,
             ZxWnd.ZxMessages.ACT_IO_SAVE.ordinal            -> zxview?.callAction(msg)
             ZxWnd.ZxMessages.ACT_UPDATE_KEY_BUTTONS.ordinal -> keyboard.update()
+            ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal         -> zxview?.updateJoy()
             ZxWnd.ZxMessages.ACT_UPDATE_DEBUGGER.ordinal    -> {
                 msg.obj?.apply {
                     val msk = msg.obj.toString().toBoolean()

@@ -44,8 +44,10 @@ class ZxView(context: Context) : GLSurfaceView(context) {
             }
         }
 
-        private fun initialize() {
-            val freq        = 44100
+        fun initialize() {
+            track?.apply { stop(); release() }
+
+            val freq        = frequency[ZxWnd.props[ZX_PROP_SND_FREQUENCY].toInt()]
             val channels    = AudioFormat.CHANNEL_CONFIGURATION_STEREO
             val format      = AudioFormat.ENCODING_PCM_16BIT
             val bufSize     = AudioTrack.getMinBufferSize(freq, channels, format)
@@ -85,6 +87,9 @@ class ZxView(context: Context) : GLSurfaceView(context) {
             when(msg.action) {
                 ACT_INIT_SURFACE                                    -> {
                     update = true
+                }
+                ZxWnd.ZxMessages.ACT_UPDATE_AUDIO.ordinal            -> {
+                    audio.initialize()
                 }
                 ZxWnd.ZxMessages.ACT_PRESS_MAGIC.ordinal            -> {
                     ZxWnd.zxCmd(ZX_CMD_MAGIC, 0, 0, "")

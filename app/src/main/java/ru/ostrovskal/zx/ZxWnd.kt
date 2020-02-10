@@ -72,7 +72,9 @@ class ZxWnd : Wnd() {
         // выделение элемента в списке отладчика
         ACT_DEBUGGER_SELECT_ITEM,
         // нажатие на кнопку MAGIC
-        ACT_PRESS_MAGIC
+        ACT_PRESS_MAGIC,
+        // обновление параметров аудио
+        ACT_UPDATE_AUDIO
     }
 
     // главная разметка

@@ -4,51 +4,30 @@
 
 #pragma once
 
-enum CHIP_TYPE { CHIP_AY, CHIP_YM, CHIP_MAX };
+extern uint8_t* opts;
 
 constexpr uint32_t TICK_FF                      = 6;
 constexpr uint32_t TICK_F                       = (1 << TICK_FF);
 constexpr uint32_t MULT_C_1                     = 14;
-constexpr uint32_t SNDR_DEFAULT_SYSTICK_RATE    = 69888 * 50; // ZX-Spectrum Z80 clock
-constexpr uint32_t SNDR_DEFAULT_SAMPLE_RATE     = 44100;
-constexpr uint32_t SNDR_DEFAULT_AY_RATE         = 1773400;//1774400; // original ZX-Spectrum soundchip clock fq
 
 struct CHANNEL {
+    // левый канал
     uint16_t left;
+    // правый канал
     uint16_t right;
 };
 
 union SNDSAMPLE {
-    // left/right channels in low/high WORDs
+    // левый/правый каналы в младшем/старшем слове
     uint32_t sample;
-    // or left/right separately
+    // или правый/левый каналы раздельно
     CHANNEL ch;
-};
-
-#pragma pack(push, 1)
-struct AYREGS {
-    uint16_t fA, fB, fC;
-    uint8_t noise, mix;
-    uint8_t vA, vB, vC;
-    uint16_t envT;
-    uint8_t env;
-    uint8_t portA, portB;
-};
-#pragma pack(pop)
-
-struct SNDCHIP_VOLTAB {
-    uint32_t v[32];
-};
-
-struct SNDCHIP_PANTAB {
-    uint32_t raw[6];
 };
 
 class zxSoundDev {
 public:
-    enum { BUFFER_LEN = 16384 };
     zxSoundDev() : mix_l(0), mix_r(0), s1_l(0), s1_r(0), s2_l(0), s2_r(0) {
-        setTimings(SNDR_DEFAULT_SYSTICK_RATE, SNDR_DEFAULT_SAMPLE_RATE);
+        setTimings(3500000, 44100);
     }
 
     virtual void frameStart(uint32_t tacts) {
@@ -68,14 +47,11 @@ public:
     void audioDataUse(uint32_t size) { dstpos = buffer; }
     void setTimings(uint32_t clock, uint32_t sample) { clock_rate = clock; sample_rate = sample; tick = base_tick = 0; dstpos = buffer; }
     void* audioData() { return buffer; }
-    uint32_t audioDataReady() {
-        auto sub = dstpos - buffer;
-        return sub * sizeof(SNDSAMPLE);
-    }
+    uint32_t audioDataReady() { return (dstpos - buffer) * sizeof(SNDSAMPLE); }
 protected:
     uint32_t mix_l, mix_r;
     uint32_t clock_rate, sample_rate;
-    SNDSAMPLE buffer[BUFFER_LEN];
+    SNDSAMPLE buffer[16384];
     SNDSAMPLE* dstpos;
 private:
     void flush(uint32_t endtick);
@@ -86,19 +62,33 @@ private:
 
 class zxBeeper: public zxSoundDev {
 public:
+    zxBeeper() : volSpk(9), volMic(7) { }
     virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) {
-        auto spk = (short)(v & 16) << 9;// 8192
-        auto mic = (short)(v & 8) << 7; // 1024
-        auto mono = spk + mic;
+        auto spk = (short)(((v & 16) >> 4) * volSpk);
+        auto mic = (short)(((v & 8)  >> 3) * volMic);
+//        auto spk = (short)(((v & 16) << volSpk) - 1);
+//        auto mic = (short)(((v & 8)  << volMic) - 1);
+        auto mono = (spk + mic);
         update(tact, (uint32_t)mono, (uint32_t)mono);
     }
+    void setVolumes(int8_t v) {
+        auto ampBeeper = (short)((2.5f * v) * 256);
+        volSpk = ampBeeper << 1;
+        volMic = volSpk >> 2;
+/*
+        if(v > 12) v = 12;
+        volSpk = (uint8_t)v; v -= 2;
+        if(v < 0) v = 0; else if(v > 10) v = 10;
+        volMic = (uint8_t)v;
+*/
+    }
+    short volSpk, volMic;
 };
 
 class zxAy : public zxSoundDev {
 public:
     zxAy();
     virtual ~zxAy() {}
-
     enum {
         AFINE, ACOARSE, BFINE, BCOARSE, CFINE, CCOARSE, NOISEPER, ENABLE, AVOL,
         BVOL, CVOL, EFINE, ECOARSE, ESHAPE
@@ -119,18 +109,16 @@ public:
         zxSoundDev::frameEnd(t);
         passed_clk_ticks += tacts; passed_chip_ticks += t;
     }
-    virtual uint8_t ioRead(uint16_t port) { return read(); }
+    virtual uint8_t ioRead(uint16_t port) { if(opts[AY_REG] > 15) return 0xFF; return opts[AY_AFINE + opts[AY_REG]]; }
 
-    void setChip(CHIP_TYPE type) { chiptype = type; }
+    void setChip(int type) { chiptype = type; }
     void setTimings(uint32_t system_clock_rate, uint32_t chip_clock_rate, uint32_t sample_rate);
-    void setVolumes(uint32_t global_vol, const SNDCHIP_VOLTAB *voltab, const SNDCHIP_PANTAB *stereo);
-    //void setRegs(const uint8_t _reg[16]) { memcpy(reg, _reg, sizeof(reg)); applyRegs(0); }
+    void setVolumes(uint32_t global_vol, int chip, int stereo);
     void reset(uint32_t timestamp = 0);
 
 protected:
-    void select(uint8_t nreg) { if(chiptype == CHIP_AY) nreg &= 0x0F; activereg = nreg; }
+    void select(uint8_t nreg) { if(chiptype == 0) nreg &= 0x0F; opts[AY_REG] = nreg; }
     void write(uint32_t timestamp, uint8_t val);
-    uint8_t read() { if(activereg >= 0x10) return 0xFF; return reg[activereg & 0x0F]; }
 private:
     int denv;
     uint32_t t, ta, tb, tc, tn, te, env;
@@ -139,14 +127,8 @@ private:
     uint32_t ea, eb, ec, va, vb, vc;
     uint32_t fa, fb, fc, fn, fe;
     uint32_t mult_const;
-    uint8_t activereg;
     uint32_t vols[6][32];
-    CHIP_TYPE chiptype;
-
-    union {
-        uint8_t reg[16];
-        AYREGS r;
-    };
+    int chiptype;
 
     uint32_t chip_clock_rate, system_clock_rate;
     uint64_t passed_chip_ticks, passed_clk_ticks;
@@ -157,16 +139,11 @@ private:
 
 class zxSoundMixer {
 public:
-    enum { BUF_SIZE = 65536 };
-    zxSoundMixer() : rdy(0) {}
+    zxSoundMixer() : rdy(0), isEnable(true), isAyEnable(true), isBpEnable(true) {}
     void update(uint8_t * ext_buf);
     void use(uint32_t size, uint8_t * ext_buf = nullptr);
-    void reset() {
-        ay.reset();
-    }
-    void updateProps() {
-
-    }
+    void updateProps();
+    void reset() { ay.reset(); }
     void ioWrite(int dev, uint16_t port, uint8_t v, long tact) {
         switch(dev) {
             case 0: ay.ioWrite(port, v, (uint32_t)tact); break;
@@ -191,8 +168,14 @@ public:
     }
     uint32_t ready() const { return rdy; }
 protected:
+    // признак включенного звука
+    bool isEnable;
+    // признак включенного AY
+    bool isAyEnable;
+    // признак включенного бипера
+    bool isBpEnable;
     // выходной буфер
-    uint8_t	buffer[BUF_SIZE];
+    uint8_t	buffer[65536];
     // размер данных
     uint32_t rdy;
     // 1 источник - бипер

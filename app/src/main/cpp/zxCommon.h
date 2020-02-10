@@ -51,10 +51,7 @@ extern std::string 			            FOLDER_FILES;
 extern std::string 			            FOLDER_CACHE;
 extern BREAK_POINT*			            bps;
 extern uint8_t                          numBits[8];
-extern int                              frequencies[3];
-
-#define ZX_TOTAL_RAM                    512 * 1024
-#define LOG_NAME                        "ZX"
+extern uint32_t                         frequencies[];
 
 // вывод отладочной информации
 void info(const char* msg, const char* file, const char* func, int line, ...);
@@ -70,6 +67,9 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 
 #define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
 
+#define LOG_NAME                        "ZX"
+
+constexpr int ZX_TOTAL_RAM              = 512 * 1024;
 constexpr int ZX_SIZE_TMP_BUF           = 1024 * 1024;
 constexpr int INDEX_OPEN                = 256 * 1024;
 constexpr int INDEX_DA                  = 256 * 1024;
@@ -131,11 +131,12 @@ constexpr int ZX_PROP_SHOW_HEX        = 137; // Признак 16-тирично
 // 2. Байтовые значения
 constexpr int ZX_PROP_BORDER_SIZE     = 150; // Размер границы
 constexpr int ZX_PROP_MODEL_TYPE      = 151; // Модель памяти
-constexpr int ZX_PROP_SND_TYPE_AY     = 152; // Раскладка каналов в звуковом процессоре AY
-constexpr int ZX_PROP_SND_FREQUENCY   = 153; // Частота звука
-constexpr int ZX_PROP_SND_VOLUME_BP   = 154; // Громкость бипера
-constexpr int ZX_PROP_SND_VOLUME_AY   = 155; // Громкость AY
-constexpr int ZX_PROP_CPU_SPEED       = 156; // Скорость процессора
+constexpr int ZX_PROP_SND_CHIP_AY     = 152; // Тип звукового сопроцессора
+constexpr int ZX_PROP_SND_CHANNEL_AY  = 153; // Раскладка каналов в звуковом процессоре
+constexpr int ZX_PROP_SND_FREQUENCY   = 154; // Частота звука
+constexpr int ZX_PROP_SND_VOLUME_BP   = 155; // Громкость бипера
+constexpr int ZX_PROP_SND_VOLUME_AY   = 156; // Громкость AY
+constexpr int ZX_PROP_CPU_SPEED       = 157; // Скорость процессора
 
 // 3. Целые значения
 constexpr int ZX_PROP_COLORS          = 170; // значения цветов (16 * 4) 170 - 233
@@ -246,7 +247,7 @@ constexpr int RADIX_BOL 				= 6;
 
 inline uint32_t Dword(const uint8_t * ptr)  { return ptr[0] | (uint32_t)(ptr[1]) << 8 | (uint32_t)(ptr[2]) << 16 | (uint32_t)(ptr[3]) << 24; }
 inline uint16_t swap_byte_order(uint16_t v) { return (v >> 8) | (v << 8); }
-inline uint16_t SwapWord(uint16_t v)	    { return swap_byte_order(v); }
+//inline uint16_t SwapWord(uint16_t v)	    { return swap_byte_order(v); }
 
 // число в строку
 char* ssh_ntos(void* v, int r, char** end = nullptr);

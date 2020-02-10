@@ -54,8 +54,9 @@ class ZxFormSettings : Form() {
         private var html: Html?                = null
 
         private val tapeTypes       = listOf("BASIC", "NumberArray", "StringArray", "Bytes")
-        private val settingsAY      = listOf("MONO", "ABC", "ACB")
-        private val settingsFreq    = listOf("44100", "22050", "11025")
+        private val settingsChannAY = listOf("MONO", "ABC", "ACB", "BAC", "BCA", "CAB", "CBA")
+        private val settingsChipAY  = listOf("AY", "YM")
+        private val settingsFreq    = listOf("48000", "44100", "22050", "11025")
         private val namesDisk       = listOf("A: ", "B: ", "C: ", "D: ")
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
@@ -74,7 +75,8 @@ class ZxFormSettings : Form() {
 
         private val idNulls         = listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5, R.id.button6, R.id.button7, R.id.button8)
 
-        private val idSpinners      = listOf(R.id.spinner5, R.id.spinner6, R.id.spinner7, R.id.spinner8, R.id.spinner9, R.id.spinner10, R.id.spinner11, R.id.spinner12)
+        private val idSpinners      = listOf(  R.id.spinner2, R.id.spinner3, R.id.spinner4, R.id.spinner5, R.id.spinner6,
+                                                        R.id.spinner7, R.id.spinner8, R.id.spinner9, R.id.spinner10, R.id.spinner11, R.id.spinner12)
 
         private val idSeeks         = listOf(R.id.seek1, R.id.seek2, R.id.seek3, R.id.seek4, R.id.seek5, R.id.seek6, R.id.seek7, R.id.seek8, R.id.seek9, R.id.seek10)
 
@@ -84,6 +86,7 @@ class ZxFormSettings : Form() {
     private var curView         = 0
     private var updateJoy       = false
     private var updateKey       = false
+    private var updateSnd       = false
     private val copyProps       = ByteArray(ZX_PROPS_COUNT)
 
     override fun getTheme() = R.style.dialog_progress
@@ -153,7 +156,7 @@ class ZxFormSettings : Form() {
                 repeat(4) { x ->
                     val pos = y * 4 + x
                     text(textsJoy[pos], style_text_settings).lps(x * 5 + 1, 4 + y * 7, 4, 3)
-                    spinner(idSpinners[pos]) {
+                    spinner(idSpinners[pos + 3]) {
                         adapter = ArrayListAdapter(context, Popup(), Item(), keyButtons)
                         selection = ZxWnd.props[ZX_PROP_JOY_KEYS + pos].toInt()
                         itemClickListener = { _, _, p, _ ->
@@ -167,29 +170,31 @@ class ZxFormSettings : Form() {
 
     private val soundPage: TabLayout.Content.() -> View = {
         val textsSnd = context.loadResource("settingsSndTexts", "array", IntArray(0))
+        val spinns   = listOf(0, 2, 3, 3, 7, 3)
         var volBp: Seek? = null
         var volAy: Seek? = null
         cellLayout(10, 21) {
-            repeat(2) { x ->
-                text(textsSnd[x], style_text_settings).lps(1 + x * 5, 0, 4, 3)
-                spinner(if(x == 0) R.id.spinner3 else R.id.spinner4) {
-                    adapter = ArrayListAdapter(context, Popup(), Item(), if(x == 0) settingsAY else settingsFreq)
+            repeat(3) { x ->
+                text(textsSnd[x], style_text_settings).lps(x * 4, 0, 4, 3)
+                spinner(idSpinners[x]) {
+                    adapter = ArrayListAdapter(context, Popup(), Item(), when(x) { 0 -> settingsChipAY; 1-> settingsChannAY; else -> settingsFreq } )
                     itemClickListener = { _, _, p, _ ->
                         ZxWnd.props[settingsSnd[x]] = p.toByte()
+                        updateSnd = true
                     }
-                }.lps(x * 5, 3, 4, 4)
+                }.lps(spinns[x * 2], 3, spinns[x * 2 + 1], 4)
             }
             repeat(2) { x ->
-                text(textsSnd[x + 2], style_text_settings).lps(x * 5, 9, 4, 3)
-                val sk = seek(idSeeks[x], if(x == 0) 0..16 else 0..28, true) {
+                text(textsSnd[x + 3], style_text_settings).lps(x * 5, 9, 4, 3)
+                val sk = seek(idSeeks[x], if(x == 0) 0..12 else 0..15, true) {
                     setOnClickListener {
-                        ZxWnd.props[settingsSnd[x + 2]] = progress.toByte()
+                        ZxWnd.props[settingsSnd[x + 3]] = progress.toByte()
                     }
                 }.lps(x * 5, 12, 5, 4)
                 if(x == 0) volBp = sk else volAy = sk
             }
             repeat(2) { x ->
-                check(idNulls[x + 2], textsSnd[x + 4]) {
+                check(idNulls[x + 2], textsSnd[x + 5]) {
                     setOnClickListener {
                         ZxWnd.props[settingsCheckSnd[x]] = if(isChecked) 1 else 0
                         if(x == 0) volBp?.apply { isEnabled = this@check.isChecked }
@@ -359,6 +364,7 @@ class ZxFormSettings : Form() {
                     super.footer(btn, param)
                     if (updateJoy) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_JOY.ordinal)
                     if (updateKey) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_MAIN_LAYOUT.ordinal)
+                    if (updateSnd) send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_AUDIO.ordinal)
                 }
                 ZxPreset.save()
                 ZxWnd.zxCmd(ZX_CMD_PROPS, "filter".i, 0, "")
@@ -454,7 +460,7 @@ class ZxFormSettings : Form() {
     }
 
     private fun defaultSound(content: View, settings: Array<String>, reset: Boolean) {
-        for (idx in 9 downTo 0) {
+        for (idx in 11 downTo 0) {
             val opt = settingsAllSnd[idx]
             if(opt > 0) {
                 if(reset) {
@@ -463,12 +469,13 @@ class ZxFormSettings : Form() {
                 }
                 val v = ZxWnd.props[opt].toInt()
                 when (idx) {
-                    1, 3     -> content.byIdx<Spinner>(idx).selection   = v
-                    5, 7     -> content.byIdx<Seek>(idx).progress       = v
-                    8, 9     -> content.byIdx<Check>(idx).isChecked     = v != 0
+                    1, 3, 5  -> content.byIdx<Spinner>(idx).selection   = v
+                    7, 9     -> content.byIdx<Seek>(idx).progress       = v
+                    10, 11   -> content.byIdx<Check>(idx).isChecked     = v != 0
                 }
             }
         }
+        if(reset) { updateSnd = true }
     }
 
     private fun defaultCommon(content: View, settings: Array<String>, reset: Boolean) {

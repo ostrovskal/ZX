@@ -21,6 +21,8 @@ struct ZX_MACHINE {
     int tsDelay[8];
     // всего стейтов на кадр
     long tsTotal;
+    // частота звукового процессора
+    u_long ayClock;
     // частота процессора
     u_long cpuClock;
     // всего страниц ОЗУ
