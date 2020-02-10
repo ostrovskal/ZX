@@ -35,6 +35,17 @@ constexpr double filter_sum_full     = 1.0, filter_sum_half = 0.5;
 constexpr uint32_t filter_sum_full_u = (uint32_t)(filter_sum_full * 0x10000);
 constexpr uint32_t filter_sum_half_u = (uint32_t)(filter_sum_half * 0x10000);
 
+zxSoundDev::zxSoundDev() : mix_l(0), mix_r(0), s1_l(0), s1_r(0), s2_l(0), s2_r(0) {
+    auto clock_rate = (ULA && ULA->machine) ? ULA->machine->cpuClock : 3500000;
+    updateProps(clock_rate);
+}
+
+void zxSoundDev::updateProps(uint32_t _clock_rate) {
+    clock_rate = _clock_rate;
+    tick = base_tick = 0; dstpos = buffer;
+    sample_rate = frequencies[opts[ZX_PROP_SND_FREQUENCY]];
+}
+
 void zxSoundDev::update(uint32_t tact, uint32_t l, uint32_t r) {
     if(!((l ^ mix_l) | (r ^ mix_r))) return;
     auto endtick = (uint32_t)((tact * (uint64_t)sample_rate * TICK_F) / clock_rate);
@@ -86,14 +97,14 @@ void zxSoundDev::flush(uint32_t endtick) {
 }
 
 void zxSoundMixer::update(uint8_t * ext_buf) {
-    auto ready_min = ay.audioDataReady();
+    auto ready_min = acpu->audioDataReady();
     auto ready_s = bp.audioDataReady();
     if(ready_min > ready_s) ready_min = ready_s;
     if(rdy + ready_min > 65536) { rdy = 0; ready_min = 0; }
     if(ready_min) {
         auto buf = ext_buf ? ext_buf : buffer;
         auto p = (int*)(buf + rdy);
-        auto s0 = (int*)ay.audioData();
+        auto s0 = (int*)acpu->audioData();
         auto s1 = (int*)bp.audioData();
         for(int i = ready_min / 4; --i >= 0;) {
             if(i > 8) {
@@ -107,7 +118,7 @@ void zxSoundMixer::update(uint8_t * ext_buf) {
         }
         rdy += ready_min;
     }
-    ay.audioDataUse(ay.audioDataReady());
+    acpu->audioDataUse(acpu->audioDataReady());
     bp.audioDataUse(bp.audioDataReady());
 }
 
@@ -121,6 +132,12 @@ void zxSoundMixer::use(uint32_t size, uint8_t * ext_buf) {
     }
 }
 
+void zxBeeper::updateProps(uint32_t v) {
+    clock_rate = ((ULA && ULA->machine) ? ULA->machine->cpuClock : 3500000) * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
+    volSpk = (int)((2.5f * v) * 512);
+    volMic = volSpk >> 2;
+}
+
 void zxSoundMixer::updateProps() {
     reset();
 
@@ -128,18 +145,11 @@ void zxSoundMixer::updateProps() {
     isAyEnable     = isEnable && opts[ZX_PROP_SND_AY];
     isBpEnable     = isEnable && opts[ZX_PROP_SND_BP];
 
-    auto clockCPU  = (uint32_t)(ULA->machine->cpuClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1));
-    auto clockAY   = (uint32_t)(ULA->machine->ayClock  * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1));
-
     auto chipAy    = opts[ZX_PROP_SND_CHIP_AY];
-    auto chanAy    = opts[ZX_PROP_SND_CHANNEL_AY];
-    auto vAy       = opts[ZX_PROP_SND_VOLUME_AY];
-    auto vBp       = opts[ZX_PROP_SND_VOLUME_BP];
-    auto freq      = frequencies[opts[ZX_PROP_SND_FREQUENCY]];
+    acpu = (chipAy == 0 ? (zxSoundDev*)&ay : (zxSoundDev*)&ym);
 
-    ay.setTimings(clockCPU, clockAY, freq);
-    ay.setVolumes(vAy, chipAy, chanAy);
-    bp.setVolumes(vBp);
+    acpu->updateProps();
+    bp.updateProps(opts[ZX_PROP_SND_VOLUME_BP]);
 }
 
 zxAy::zxAy() : t(0), ta(0), tb(0), tc(0), tn(0), te(0), env(0), denv(0),
@@ -149,8 +159,7 @@ zxAy::zxAy() : t(0), ta(0), tb(0), tc(0), tn(0), te(0), env(0), denv(0),
                 fa(0), fb(0), fc(0), fn(0), fe(0) {
     opts[AY_REG] = 0;
     setChip(0);
-    setTimings(3500000, 1773400, 44100);
-    setVolumes(15, 0, 1);
+    updateProps();
     reset();
 }
 
@@ -221,19 +230,22 @@ void zxAy::write(uint32_t timestamp, uint8_t val) {
     }
 }
 
-void zxAy::setTimings(uint32_t system, uint32_t chip, uint32_t sample) {
-    chip /= 8;
-    system_clock_rate = system;
-    chip_clock_rate = chip;
+void zxAy::updateProps(uint32_t clock_rate) {
+    clock_rate     = ((ULA && ULA->machine) ? ULA->machine->cpuClock : 3500000) * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
+    auto clockAY   = ((ULA && ULA->machine)  ? ULA->machine->ayClock  : 1773400) * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
+    auto chip      = opts[ZX_PROP_SND_CHIP_AY];
+    auto chan      = opts[ZX_PROP_SND_CHANNEL_AY];
+    auto vol       = (int)opts[ZX_PROP_SND_VOLUME_AY];
+
+    auto voltab = &chipVol[chip];
+    auto stereo = &stereoMode[chan];
+
+    system_clock_rate = clock_rate;
+    chip_clock_rate = clockAY >> 3;
     mult_const = (uint32_t)(((uint64_t)chip_clock_rate << MULT_C_1) / system_clock_rate);
-    zxSoundDev::setTimings(chip, sample);
+    zxSoundDev::updateProps(chip_clock_rate);
     passed_chip_ticks = passed_clk_ticks = 0;
     t = 0; ns = 0xFFFF;
-}
-
-void zxAy::setVolumes(uint32_t vol, int chip, int mode) {
-    auto voltab = &chipVol[chip];
-    auto stereo = &stereoMode[mode];
     vol = vol * 2184 + 7;
     for (int j = 0; j < 6; j++)
         for (int i = 0; i < 32; i++)
@@ -252,4 +264,213 @@ void zxAy::applyRegs(uint32_t timestamp) {
         write(timestamp, (uint8_t)(p ^ 1));
         write(timestamp, p);
     }
+}
+
+#define CLOCK_RESET(clock)  tickAY = (int)(65536. * clock / frequency)
+#define GEN_STEREO(pos, val)                                        \
+    if((pos) < 0) {                                                 \
+        rstereobuf_l[rstereopos] += (val);                          \
+        rstereobuf_r[(rstereopos - pos) % STEREO_BUF_SIZE] += (val);\
+    } else {								                        \
+        rstereobuf_l[(rstereopos + pos) % STEREO_BUF_SIZE] += (val);\
+        rstereobuf_r[rstereopos] += (val); }
+
+void zxYm::updateProps(uint32_t) {
+    static int levels[16] = {
+            0x0000, 0x0385, 0x053D, 0x0770, 0x0AD7, 0x0FD5, 0x15B0, 0x230C,
+            0x2B4C, 0x43C1, 0x5A4B, 0x732F, 0x9204, 0xAFF1, 0xD921, 0xFFFF
+    };
+
+    reset();
+
+    auto turbo      = opts[ZX_PROP_TURBO_MODE] ? 2 : 1;
+    tsmax           = ((ULA && ULA->machine) ? ULA->machine->cpuClock : 3500000) * turbo / 50;
+    clockAY         = ((ULA && ULA->machine) ? ULA->machine->ayClock  : 1773400) * turbo;
+
+    auto modeAy     = opts[ZX_PROP_SND_CHANNEL_AY];
+    auto vAy        = opts[ZX_PROP_SND_VOLUME_AY] * 256;
+    auto freq       = frequencies[opts[ZX_PROP_SND_FREQUENCY]];
+
+    frequency = freq;
+    sound_stereo_ay = modeAy;
+    for (int f = 0; f < 16; f++) toneLevels[f] = (uint32_t) ((levels[f] * vAy + 0x8000) / 0xffff);
+    CLOCK_RESET(clockAY);
+
+    noiseTick = noisePeriod = 0;
+    envIntTick = envTick = envPeriod = 0;
+    toneSubCycles = envSubCycles = 0;
+
+    for (int f = 0; f < 3; f++) {
+        toneTick[f] = toneHigh[f] = 0;
+        tonePeriod[f] = 1;
+    }
+
+    sndBufSize  = frequency / 50;
+    memset(rstereobuf_l, 0, sizeof(rstereobuf_l));
+    memset(rstereobuf_r, 0, sizeof(rstereobuf_r));
+    int pos = 6 * frequency / 8000;
+    rstereopos = 0; rchan1pos = -pos;
+    if(sound_stereo_ay == 1) {
+        rchan2pos = 0; rchan3pos = pos;
+    } else if(sound_stereo_ay == 2) {
+        rchan2pos = pos; rchan3pos = 0;
+    }
+}
+
+void zxYm::reset(uint32_t timestamp) {
+    int f;
+
+    memset(buffer, 0, sndBufSize * 2 * sizeof(short));
+    countSamplers = 0;
+    for(f = 0; f < 16; f++) ioWrite((uint8_t)f, 0, timestamp);
+    for(f = 0; f < 3; f++) toneHigh[f] = 0;
+    toneSubCycles = envSubCycles = 0;
+    CLOCK_RESET(clockAY);
+}
+
+void zxYm::write(uint8_t val, uint32_t tick) {
+    auto reg = opts[AY_REG];
+    if (reg < 16) {
+        opts[reg + AY_AFINE] = val;
+        if (countSamplers < AY_SAMPLERS) {
+            samplers[countSamplers].tstates = tick;
+            samplers[countSamplers].reg = reg;
+            samplers[countSamplers].val = val;
+            countSamplers++;
+        }
+    }
+}
+
+void* zxYm::audioData() {
+    static int rng = 1;
+    static int noise_toggle = 0;
+    static int envFirst = 1, envRev = 0, envCounter = 15;
+    int toneLevel[3], chans[3];
+    int mixer, envshape;
+    int f, g, level, count;
+    signed short *ptr;
+    struct AY_SAMPLER *change_ptr = samplers;
+    int changes_left = countSamplers;
+    int reg, r;
+    int frameTime = (int)(tsmax * 50);
+    uint32_t tone_count, noise_count;
+
+    memset(buffer, 0, sndBufSize * 2 * sizeof(short));
+    for(f = 0; f < countSamplers; f++) samplers[f].ofs = (uint16_t)((samplers[f].tstates * frequency) / frameTime);
+    for(f = 0, ptr = (short*)buffer; f < sndBufSize; f++) {
+        while(changes_left && f >= change_ptr->ofs) {
+            ayRegs[reg = change_ptr->reg] = change_ptr->val;
+            change_ptr++; changes_left--;
+            switch(reg) {
+                case AFINE: case ACOARSE: case BFINE: case BCOARSE: case CFINE: case CCOARSE:
+                    r = reg >> 1;
+                    tonePeriod[r] = (uint32_t)((ayRegs[reg & ~1] | (ayRegs[reg | 1] & 15) << 8));
+                    if(!tonePeriod[r]) tonePeriod[r]++;
+                    if(toneTick[r] >= tonePeriod[r] * 2) toneTick[r] %= tonePeriod[r] * 2;
+                    break;
+                case NOISEPER:
+                    noiseTick = 0;
+                    noisePeriod = (uint32_t)(ayRegs[reg] & 31);
+                    break;
+                case EFINE: case ECOARSE:
+                    envPeriod = ayRegs[EFINE] | (ayRegs[ECOARSE] << 8);
+                    break;
+                case ESHAPE:
+                    envIntTick = envTick = envSubCycles = 0;
+                    envFirst = 1;
+                    envRev = 0;
+                    envCounter = (ayRegs[13] & AY_ENV_ATTACK) ? 0 : 15;
+                    break;
+            }
+        }
+        for(g = 0 ; g < 3; g++) toneLevel[g] = toneLevels[ayRegs[AVOL + g] & 15];
+        envshape = ayRegs[ESHAPE];
+        level = toneLevels[envCounter];
+        for(g = 0; g < 3; g++) { if(ayRegs[AVOL + g] & 16) toneLevel[g] = level; }
+        envSubCycles += tickAY;
+        noise_count = 0;
+        while(envSubCycles >= (16 << 16)) {
+            envSubCycles -= (16 << 16);
+            noise_count++;
+            envTick++;
+            while(envTick>=envPeriod) {
+                envTick -= envPeriod;
+                if(envFirst || ((envshape & AY_ENV_CONT) && !(envshape & AY_ENV_HOLD))) {
+                    auto t = (envshape & AY_ENV_ATTACK) ? 1 : -1;
+                    if(envRev) envCounter -= t; else envCounter += t;
+                    if(envCounter < 0) envCounter = 0;
+                    if(envCounter > 15) envCounter = 15;
+                }
+                envIntTick++;
+                while(envIntTick >= 16) {
+                    envIntTick -= 16;
+                    if(!(envshape & AY_ENV_CONT)) envCounter = 0;
+                    else {
+                        if(envshape & AY_ENV_HOLD) {
+                            if(envFirst && (envshape & AY_ENV_ALT)) envCounter = (envCounter ? 0 : 15);
+                        }
+                        else {
+                            if(envshape & AY_ENV_ALT) envRev = !envRev;
+                            else envCounter = (envshape & AY_ENV_ATTACK) ? 0 : 15;
+                        }
+                    }
+                    envFirst = 0;
+                }
+                if(!envPeriod) break;
+            }
+        }
+        mixer = ayRegs[ENABLE];
+        toneSubCycles += tickAY;
+        tone_count = toneSubCycles >> 19;
+        toneSubCycles &= (8 << 16) - 1;
+        int channelSum = 0;
+        for(int chan = 0; chan < 3; chan++) {
+            auto channel = toneLevel[chan];
+            level = channel;
+            auto is_on = !(mixer & (1 << chan));
+            auto is_low = false;
+            if(is_on) {
+                channel = 0;
+                if(level) { if(toneHigh[chan]) channel = level; else channel = -level, is_low = 1; }
+            }
+            toneTick[chan] += tone_count;
+            count = 0;
+            while(toneTick[chan] >= tonePeriod[chan]) {
+                count++;
+                toneTick[chan] -= tonePeriod[chan];
+                toneHigh[chan] = (uint32_t)!toneHigh[chan];
+                if(is_on && count == 1 && level && toneTick[chan] < tone_count)	{
+                    auto t = (level * 2 * toneTick[chan] / tone_count);
+                    if(is_low) channel += t; else channel -= t;
+                }
+            }
+            if(is_on && count > 1) channel = -level;
+            if((mixer & (8 << chan)) == 0 && noise_toggle) channel = 0;
+            chans[chan] = channel;
+            channelSum += channel;
+        }
+        if(sound_stereo_ay == 0) {
+            (*ptr++) += channelSum;
+            (*ptr++) += channelSum;
+        } else {
+            GEN_STEREO(rchan1pos, chans[0]);
+            GEN_STEREO(rchan2pos, chans[1]);
+            GEN_STEREO(rchan3pos, chans[2]);
+            (*ptr++) += rstereobuf_l[rstereopos];
+            (*ptr++) += rstereobuf_r[rstereopos];
+            rstereobuf_l[rstereopos] = rstereobuf_r[rstereopos] = 0;
+            rstereopos++;
+            if(rstereopos >= STEREO_BUF_SIZE) rstereopos = 0;
+        }
+        noiseTick += noise_count;
+        while(noiseTick >= noisePeriod) {
+            noiseTick -= noisePeriod;
+            if((rng & 1) ^ ((rng & 2) ? 1 : 0)) noise_toggle = !noise_toggle;
+            rng |= ((rng & 1) ^ ((rng & 4) ? 1 : 0)) ? 0x20000 : 0;
+            rng >>= 1;
+            if(!noisePeriod) break;
+        }
+    }
+    countSamplers = 0;
+    return buffer;
 }

@@ -12,7 +12,6 @@
 #include "zxGPU.h"
 #include "zxFDD.h"
 #include "zxSound.h"
-#include "zxWD93.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -21,11 +20,13 @@ struct ZX_MACHINE {
     // задержки стейтов для пикселей экрана
     int tsDelay[8];
     // всего стейтов на кадр
-    long tsTotal;
+    uint32_t tsTotal;
+    // первый цикл кадра
+    uint32_t tsFirst;
     // частота звукового процессора
-    u_long ayClock;
+    uint32_t ayClock;
     // частота процессора
-    u_long cpuClock;
+    uint32_t cpuClock;
     // всего страниц ОЗУ
     int ramPages;
     // страница ПЗУ при старте
@@ -158,7 +159,7 @@ public:
     zxCPU* cpu;
 
     // дисковод
-    WD1793* disk;
+    zxVG93* disk;
 
     // видеокарта
     zxGPU* gpu;

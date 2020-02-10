@@ -4,8 +4,7 @@
 
 #pragma once
 
-#define Z80FQ           3500000
-//extern uint64_t Z80FQ;
+extern long         Z80FQ;
 
 #define MAX_TRK     86
 #define MAX_HEAD    2
@@ -25,17 +24,12 @@ inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
 inline uint16_t wordBE(const uint8_t* ptr)	{ return ptr[0] << 8 | ptr[1]; }
 
 enum FDD_CMD {
-//    CB_SEEK_RATE	= 0x03,
     CB_SEEK_VERIFY	= 0x04,
-    //CB_SEEK_HEADLOAD= 0x08,
     CB_SEEK_TRKUPD	= 0x10,
     CB_SEEK_DIR		= 0x20,
     CB_SYS_HLT      = 0x08,
     CB_WRITE_DEL	= 0x01,
-    CB_SIDE_CMP		= 0x02,
     CB_DELAY		= 0x04,
-    //CB_SIDE			= 0x08,
-    CB_SIDE_SHIFT	= 3,
     CB_MULTIPLE		= 0x10,
     CB_RESET        = 0x04
 };
@@ -120,7 +114,7 @@ public:
     zxDisk::TRACK* get_trk() { return disk->track(trk, head); }
     zxDisk::TRACK::SECTOR* get_sec(int sec) { return &get_trk()->sectors[sec]; }
     zxDisk::TRACK::SECTOR* get_sec(int trk, int head, int sec);
-    uint64_t engine(uint64_t v = (uint64_t)-1) { if(v != -1) motor = v; return motor; }
+    uint64_t engine(long v = -1) { if(v != -1) motor = v; return motor; }
 
     bool protect;
 protected:
@@ -135,10 +129,9 @@ protected:
     uint16_t CRC(uint8_t * src, int size) const;
 
 protected:
-    uint64_t motor;
+    long     motor, ts;
     uint8_t  trk;
     uint8_t  head;
-    uint64_t ts;
     zxDisk*  disk;
 };
 
@@ -160,33 +153,24 @@ public:
     void eject(int num) { fdds[num].eject(); }
 
     // записать в порт
-    void vg93_write(uint8_t port, uint8_t v, int tact);
-
+    void vg93_write(uint8_t port, uint8_t v);
     // восстановить состояние
     uint8_t* restoreState(uint8_t* ptr);
-
     // сохранить состояние
     uint8_t* saveState(uint8_t* ptr);
-
     // прочитать из порта
-    uint8_t vg93_read(uint8_t port, int tact);
-
+    uint8_t vg93_read(uint8_t port);
     // установка/чтение режима защиты записи
     int is_readonly(int num, int write = -1) { if(write != -1) fdds[num].protect = write != 0; return fdds[num].is_protect(); }
-
     // сохранение диска
     int save(const char *path, int num, int type);
-
     // обновление свойств
     void updateProps();
-
+    // прочитать содержимое сектора
     int read_sector(int num, int sec);
-
-    int count_files(int num, int is_del);
-
 protected:
     // выполнение
-    void exec(int tact);
+    void exec();
 
     // чтение первого байта
     void read_byte();
@@ -232,10 +216,8 @@ private:
     int16_t rwptr;
     // длина буфера чтения/записи
     int16_t rwlen;
-    // следующее время
-    uint64_t next;
-    // время ожидания сектора
-    uint64_t end_waiting_am;
+    // следующее время/время ожидания сектора
+    long next, end_waiting_am;
     // текущее состояние
     uint8_t	state;
     // состояние порта 0xFF

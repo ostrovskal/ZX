@@ -102,7 +102,7 @@
 
 #define Min(o, p)	(o < p ? o : p)
 
-//uint64_t Z80FQ = 3500000;
+long Z80FQ = 3500000;
 
 uint8_t* zxVG93::restoreState(uint8_t* ptr) {
     return ptr;
@@ -481,7 +481,7 @@ bool zxFDD::read_fdi(const void *data, size_t data_size){
 zxVG93::zxVG93() : next(0), head(0), direction(0), rqs(R_NONE),
                    system(0), end_waiting_am(0), found_sec(nullptr), rwptr(0), rwlen(0), crc(0), start_crc(-1) {
     _ST_SET(S_IDLE, S_IDLE);
-//    Z80FQ = 3500000;
+    Z80FQ = 3500000;
     fdd = fdds;
     opts[TRDOS_SEC] = 1;
     opts[TRDOS_CMD] = opts[TRDOS_DAT] = opts[TRDOS_TRK] = opts[TRDOS_STS] = 0;
@@ -518,8 +518,8 @@ uint16_t zxVG93::CRC(uint8_t* src, int size) const {
     return c;
 }
 
-void zxVG93::exec(int tact) {
-    auto time = ULA->_TICK + tact;
+void zxVG93::exec() {
+    auto time = ULA->_TICK;
     // Неактивные диски игнорируют бит HLT
     if(time > fdd->engine() && (system & CB_SYS_HLT)) fdd->engine(0);
     fdd->is_disk() ? opts[TRDOS_STS] &= ~ST_NOTRDY : opts[TRDOS_STS] |= ST_NOTRDY;
@@ -855,8 +855,8 @@ void zxVG93::find_sec() {
     state = S_IDLE;
 }
 
-uint8_t zxVG93::vg93_read(uint8_t port, int tact) {
-    exec(tact);
+uint8_t zxVG93::vg93_read(uint8_t port) {
+    exec();
     uint8_t ret(0xff);
     switch(port) {
         case 0x1F: rqs &= ~R_INTRQ; ret = opts[TRDOS_STS]; break;
@@ -868,8 +868,8 @@ uint8_t zxVG93::vg93_read(uint8_t port, int tact) {
     return ret;
 }
 
-void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
-    exec(tact);
+void zxVG93::vg93_write(uint8_t port, uint8_t v) {
+    exec();
     switch(port) {
         case 0x1F:
             // прерывание команды
@@ -879,7 +879,7 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v, int tact) {
             }
             if(opts[TRDOS_STS] & ST_BUSY) return;
             opts[TRDOS_CMD] = v;
-            next = ULA->_TICK + tact;
+            next = ULA->_TICK;
             opts[TRDOS_STS] |= ST_BUSY; rqs = R_NONE;
             // команды чтения/записи
             if(opts[TRDOS_CMD] & 0x80) {
@@ -910,9 +910,4 @@ int zxVG93::read_sector(int num, int sec) {
     if(sector) memcpy(&opts[ZX_PROP_VALUES_SECTOR], sector->content, 256);
     else memset(&opts[ZX_PROP_VALUES_SECTOR], 0, 256);
     return sector != nullptr;
-}
-
-int zxVG93::count_files(int num, int is_del) {
-    auto sector = fdds[num].get_sec(9);
-    return sector ? sector->content[is_del ? 244 : 228] : 0;
 }

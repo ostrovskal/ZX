@@ -37,35 +37,35 @@ ZX_MACHINE machines[] = {
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            69888, 1773400, 3500000, 8, 1, 0, 1, 17, "KOMPANION" },
+            69888, 14336, 1773400, 3500000, 8, 1, 0, 1, 17, "KOMPANION" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            69888, 1773400, 3500000, 8, 1, 1, 1, 17, "SINCLER 48K" },
+            69888, 14336, 1773400, 3500000, 8, 1, 1, 1, 17, "SINCLER 48K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            69888, 1773400, 3500000, 8, 1, 2, 1, 17, "SINCLER 48K 2006" },
+            69888, 14336, 1773400, 3500000, 8, 1, 2, 1, 17, "SINCLER 48K 2006" },
         {   {   { 63 * 228, 8 + 24, 44 + 24, 56 * 228 }, { 47 * 228, 8 + 16, 44 + 16, 40 * 228 },
                 { 31 * 228, 8 + 8, 44 + 8, 24 * 228 }, { 15 * 228, 8, 44, 8 * 228 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            70908, 1773400, 3546900, 8, 0, 3, 2, 17, "SINCLER 128K" },
+            70908, 14336, 1773400, 3546900, 8, 0, 3, 2, 17, "SINCLER 128K" },
         {   {   { 63 * 228, 8 + 24, 44 + 24, 56 * 228 }, { 47 * 228, 8 + 16, 44 + 16, 40 * 228 },
                 { 31 * 228, 8 + 8, 44 + 8, 24 * 228 }, { 15 * 228, 8, 44, 8 * 228 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            70908, 1773400, 3546900, 8, 0, 11, 2, 17, "SINCLER PLUS2" },
+            70908, 14336, 1773400, 3546900, 8, 0, 11, 2, 17, "SINCLER PLUS2" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            69888, 1773400, 3546900, 8, 2, 13, 4, 17, "SINCLAIR PLUS3" },
+            69888, 14336, 1773400, 3546900, 8, 2, 13, 4, 17, "SINCLAIR PLUS3" },
         {   {   { 80 * 224, 8 + 24, 40 + 24, 48 * 224 }, { 64 * 224, 8 + 16, 40 + 16, 32 * 224 },
                 { 48 * 224, 8 + 8, 40 + 8, 16 * 224 }, { 32 * 224, 8, 40, 0 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            71680, 1792000, 3575000, 32, 0, 5, 2, 17, "PENTAGON 512K" },
+            71680, 14336, 1792000, 3575000, 32, 0, 5, 2, 17, "PENTAGON 512K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            69888, 1750000, 3500000, 16, 0, 7, 3, 10, "SCORPION 256K" }
+            69888, 14336, 1750000, 3500000, 16, 0, 7, 3, 10, "SCORPION 256K" }
 };
 
 static uint8_t semiRows[] = {
@@ -122,7 +122,7 @@ zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _F
 
     snd = new zxSoundMixer();
     tape = new zxTape(snd);
-    disk = new WD1793();
+    disk = new zxVG93();
 
     assembler = new zxAssembler();
     debugger = new zxDebugger();
@@ -749,7 +749,7 @@ void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             break;
         case 0x1F: case 0x3F: case 0x5F: case 0x7F: case 0xFF:
             if(checkSTATE(ZX_TRDOS)) {
-                disk->vg93_write(A0A7, val, 0);
+                disk->vg93_write(A0A7, val);
             } else {
 
             }
@@ -852,16 +852,16 @@ void zxULA::write7FFD(uint8_t val) {
 uint8_t zxULA::readPort(uint8_t A0A7, uint8_t A8A15) {
     uint8_t ret = _FF;
     switch(A0A7) {
-        case 0x1F:
-            if(!checkSTATE(ZX_TRDOS)) { ret = (*_MODEL == MODEL_SCORPION && *_ROM == 2) ? _FF: *_KEMPSTON; break; }
-        case 0x3F: case 0x5F: case 0x7F: case 0xFF:
-            if(checkSTATE(ZX_TRDOS)) ret = disk->vg93_read(A0A7, 0);
+        case 0x1F: case 0x3F: case 0x5F: case 0x7F: case 0xFF:
+            if(checkSTATE(ZX_TRDOS) || (*_MODEL == MODEL_SCORPION && *_ROM == 2)) {
+                ret = disk->vg93_read(A0A7);
+            } else ret = *_KEMPSTON;
             break;
+        // COVOX
         case 0xBF:
-            // COVOX
             ret = 0;
             break;
-            // Kempston Mouse
+        // Kempston Mouse
         case 0xDF:
             if(A8A15 == 0xFA) {
                 // key 254 -> left 253 -> right
@@ -885,7 +885,7 @@ uint8_t zxULA::readPort(uint8_t A0A7, uint8_t A8A15) {
             }
             break;
         case 0xFD:
-            if(A8A15 == 0xFF) ret = snd->ioRead(0, 0xFFFD);//opts[opts[AY_REG] + AY_AFINE];
+            if(A8A15 == 0xFF) ret = snd->ioRead(0, 0xFFFD);
             break;
         case 0xFE:
             // 0,1,2,3,4 - клавиши полуряда, 6 - EAR, 5,7 - не используется

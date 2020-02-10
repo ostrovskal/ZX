@@ -23,7 +23,6 @@ add_library( # Sets the name of the library.
         zxSound.cpp
         zxFDD.cpp
         zxFormats.cpp
-        zxWD93.cpp
         zxSound.cpp)
 
 find_library( # Sets the name of the path variable.

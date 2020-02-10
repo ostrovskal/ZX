@@ -26,28 +26,23 @@ union SNDSAMPLE {
 
 class zxSoundDev {
 public:
-    zxSoundDev() : mix_l(0), mix_r(0), s1_l(0), s1_r(0), s2_l(0), s2_r(0) {
-        setTimings(3500000, 44100);
-    }
-
+    zxSoundDev();
     virtual void frameStart(uint32_t tacts) {
         auto endtick = (uint32_t)((tacts * (uint64_t)sample_rate * TICK_F) / clock_rate);
         base_tick = tick - endtick;
     }
-
     virtual void frameEnd(uint32_t tacts) {
         auto endtick = (uint32_t)((tacts * (uint64_t)sample_rate * TICK_F) / clock_rate);
         flush(base_tick + endtick);
     }
-
+    virtual void reset(uint32_t timestamp = 0) { memset(buffer, 0, sizeof(buffer)); }
     virtual void update(uint32_t tact, uint32_t l, uint32_t r);
     virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) { }
     virtual uint8_t ioRead(uint16_t port) { return 0xff; }
-
-    void audioDataUse(uint32_t size) { dstpos = buffer; }
-    void setTimings(uint32_t clock, uint32_t sample) { clock_rate = clock; sample_rate = sample; tick = base_tick = 0; dstpos = buffer; }
-    void* audioData() { return buffer; }
-    uint32_t audioDataReady() { return (dstpos - buffer) * sizeof(SNDSAMPLE); }
+    virtual void updateProps(uint32_t clock_rate = 0);
+    virtual void audioDataUse(uint32_t size) { dstpos = buffer; }
+    virtual void* audioData() { return buffer; }
+    virtual uint32_t audioDataReady() { return (dstpos - buffer) * sizeof(SNDSAMPLE); }
 protected:
     uint32_t mix_l, mix_r;
     uint32_t clock_rate, sample_rate;
@@ -63,19 +58,76 @@ private:
 class zxBeeper: public zxSoundDev {
 public:
     zxBeeper() : volSpk(12800), volMic(3200) { }
-    virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) {
+    virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
         auto spk = (short)(((v & 16) >> 4) * volSpk);
         auto mic = (short)(((v & 8)  >> 3) * volMic);
         auto mono = (uint32_t)(spk + mic);
         update(tact, mono, mono);
     }
-    void setVolumes(int8_t v) {
-        volSpk = (int)((2.5f * v) * 512);
-        volMic = volSpk >> 2;
-    }
-    void reset() { memset(buffer, 0, sizeof(buffer)); }
+    virtual void updateProps(uint32_t clock_rate = 0) override;
 protected:
     int volSpk, volMic;
+};
+
+#define AY_SAMPLERS     8000
+#define AY_ENV_CONT	    8
+#define AY_ENV_ATTACK	4
+#define AY_ENV_ALT	    2
+#define AY_ENV_HOLD	    1
+#define STEREO_BUF_SIZE 1024
+
+class zxYm: public zxSoundDev {
+public:
+    struct AY_SAMPLER {
+        uint32_t tstates;
+        uint16_t ofs;
+        uint8_t reg, val;
+    };
+
+    zxYm() : tsmax(0), sound_stereo_ay(0), frequency(44100) { }
+
+    enum {
+        AFINE, ACOARSE, BFINE, BCOARSE, CFINE, CCOARSE, NOISEPER, ENABLE, AVOL,
+        BVOL, CVOL, EFINE, ECOARSE, ESHAPE
+    };
+    virtual void frameStart(uint32_t tacts) override { }
+    virtual void frameEnd(uint32_t tacts) override { }
+    virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
+        if(port == 0xFFFD) { opts[AY_REG] = v; }
+        else if(port == 0xBFFD) write(v, tact);
+    }
+    virtual void reset(uint32_t timestamp = 0) override;
+    virtual void updateProps(uint32_t clock_rate = 0) override;
+    virtual void audioDataUse(uint32_t size) override { }
+    virtual void* audioData() override;
+    virtual uint8_t ioRead(uint16_t port) override { if(opts[AY_REG] > 15) return 0xFF; return opts[AY_AFINE + opts[AY_REG]]; }
+    virtual uint32_t audioDataReady() override { return sndBufSize * 2 * sizeof(short); }
+protected:
+    void write(uint8_t val, uint32_t tact);
+    // режим стерео для AM(ABC = 1, ACB = 0)
+    int sound_stereo_ay;
+    // циклов на кадр
+    uint32_t tsmax;
+    // частота звука
+    int frequency;
+    // массив сэмплов
+    AY_SAMPLER samplers[AY_SAMPLERS];
+    // текущее количество сэмплов
+    int countSamplers;
+    // размер звукового буфера
+    int sndBufSize;
+    // левый/правый буфер для стерео режима
+    int rstereobuf_l[STEREO_BUF_SIZE], rstereobuf_r[STEREO_BUF_SIZE];
+    int rstereopos, rchan1pos, rchan2pos, rchan3pos;
+    // параметры 3-х канального AY
+    uint32_t toneTick[3], toneHigh[3], noiseTick;
+    uint32_t tonePeriod[3], noisePeriod, envPeriod;
+    uint32_t envIntTick, envTick, tickAY;
+    uint32_t toneSubCycles, envSubCycles;
+    uint8_t  ayRegs[16];
+    uint32_t toneLevels[16];
+    // частота звукового процессора
+    uint32_t clockAY;
 };
 
 class zxAy : public zxSoundDev {
@@ -87,30 +139,27 @@ public:
         BVOL, CVOL, EFINE, ECOARSE, ESHAPE
     };
 
-    virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) {
-        if(port == 0xFFFD) select(v);
-        else if(port == 0xBFFD) write((uint32_t)tact, v);
-    }
-    virtual void frameStart(uint32_t tacts) {
+    virtual void frameStart(uint32_t tacts) override {
         t = tacts * chip_clock_rate / system_clock_rate;
         zxSoundDev::frameStart(t);
     }
 
-    virtual void frameEnd(uint32_t tacts) {
+    virtual void frameEnd(uint32_t tacts) override {
         auto end_chip_tick = ((passed_clk_ticks + tacts) * chip_clock_rate) / system_clock_rate;
         flush((uint32_t)(end_chip_tick - passed_chip_ticks));
         zxSoundDev::frameEnd(t);
         passed_clk_ticks += tacts; passed_chip_ticks += t;
     }
-    virtual uint8_t ioRead(uint16_t port) { if(opts[AY_REG] > 15) return 0xFF; return opts[AY_AFINE + opts[AY_REG]]; }
-
+    virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
+        if(port == 0xFFFD) select(v);
+        else if(port == 0xBFFD) write(tact, v);
+    }
+    virtual uint8_t ioRead(uint16_t port) override { if(opts[AY_REG] > 15) return 0xFF; return opts[AY_AFINE + opts[AY_REG]]; }
+    virtual void updateProps(uint32_t clock_rate = 0) override;
+    virtual void reset(uint32_t timestamp = 0) override;
     void setChip(int type) { chiptype = type; }
-    void setTimings(uint32_t system_clock_rate, uint32_t chip_clock_rate, uint32_t sample_rate);
-    void setVolumes(uint32_t global_vol, int chip, int stereo);
-    void reset(uint32_t timestamp = 0);
-
 protected:
-    void select(uint8_t nreg) { if(chiptype == 0) nreg &= 0x0F; opts[AY_REG] = nreg; }
+    void select(uint8_t v) { if(chiptype == 0) v &= 0x0F; opts[AY_REG] = v; }
     void write(uint32_t timestamp, uint8_t val);
 private:
     void flush(uint32_t chiptick);
@@ -130,7 +179,7 @@ private:
 
 class zxSoundMixer {
 public:
-    zxSoundMixer() : rdy(0), isEnable(true), isAyEnable(true), isBpEnable(true) {}
+    zxSoundMixer() : acpu(&ay), rdy(0), isEnable(true), isAyEnable(true), isBpEnable(true) {}
     void update(uint8_t * ext_buf);
     void use(uint32_t size, uint8_t * ext_buf = nullptr);
     void updateProps();
@@ -138,7 +187,7 @@ public:
     void ioWrite(int dev, uint16_t port, uint8_t v, uint32_t tact) {
         if(isEnable) {
             switch (dev) {
-                case 0: if(isAyEnable) ay.ioWrite(port, v, tact); break;
+                case 0: if(isAyEnable) acpu->ioWrite(port, v, tact); break;
                 case 1: if(isBpEnable) bp.ioWrite(port, v, tact); break;
             }
         }
@@ -146,19 +195,19 @@ public:
     uint8_t ioRead(int dev, uint16_t port) {
         if(isEnable) {
             switch (dev) {
-                case 0: if(isAyEnable) return ay.ioRead(port); break;
+                case 0: if(isAyEnable) return acpu->ioRead(port); break;
                 case 1: if(isBpEnable) return bp.ioRead(port); break;
             }
         }
         return 0xff;
     }
     void frameStart(uint32_t tacts) {
-        ay.frameStart(tacts);
+        acpu->frameStart(tacts);
         bp.frameStart(tacts);
     }
 
     void frameEnd(uint32_t tacts) {
-        ay.frameEnd(tacts);
+        acpu->frameEnd(tacts);
         bp.frameEnd(tacts);
     }
     uint32_t ready() const { return rdy; }
@@ -175,6 +224,10 @@ protected:
     uint32_t rdy;
     // 1 источник - бипер
     zxBeeper bp;
-    // 2 источник - звуковой процессор
+    // 2 источник - звуковой процессор1
     zxAy ay;
+    // 3 источник - звуковой процессор2
+    zxYm ym;
+    // текущий
+    zxSoundDev* acpu;
 };
