@@ -4,7 +4,8 @@
 
 #pragma once
 
-extern uint64_t Z80FQ;
+#define Z80FQ           3500000
+//extern uint64_t Z80FQ;
 
 #define MAX_TRK     86
 #define MAX_HEAD    2

@@ -12,6 +12,7 @@
 #include "zxGPU.h"
 #include "zxFDD.h"
 #include "zxSound.h"
+#include "zxWD93.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -156,6 +157,9 @@ public:
     // процессор
     zxCPU* cpu;
 
+    // дисковод
+    WD1793* disk;
+
     // видеокарта
     zxGPU* gpu;
 
@@ -222,9 +226,6 @@ protected:
 
     // цвет и размер границы
     uint32_t sizeBorder, colorBorder;
-
-    // дисковод
-    zxVG93* disk;
 
     // имя проги
     std::string name;

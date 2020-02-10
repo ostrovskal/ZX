@@ -332,42 +332,89 @@ bool zxFormats::saveRZX(const char *path) {
     return false;
 }
 
-bool zxFormats:openTRD(const char *path) {
+bool zxFormats::openTRD(const char *path) {
+    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true);
+    if(!ptr) return false;
+    auto disk = &ULA->disk->fdd[0];
+    disk->format_trd();
+    for (unsigned i = 0; i < 655360; i += 0x100) {
+        disk->t.seek(disk, i >> 13, (i >> 12) & 1, LOAD_SECTORS);
+        disk->t.write_sector(((i >> 8) & 0x0F) + 1, ptr + i);
+    }
+    return true;
+}
+
+bool zxFormats::saveTRD(const char *path) {
+/*
+    auto disk = &ULA->disk->fdd[0];
+    uint8_t zerosec[256] = { 0 };
+    for (int i = 0; i < 2560; i++) {
+        disk->t.seek(this, i >> 5, (i >> 4) & 1, LOAD_SECTORS);
+        auto hdr = disk->t.get_sector((i & 0x0F) + 1);
+        uint8_t * ptr = zerosec;
+        if (hdr) ptr = hdr->data;
+        if (!ptr) ptr = zerosec;
+        if (fwrite(ptr, 1, 256, disk->ff) != 256) return false;
+    }
+*/
     return false;
 }
 
-bool zxFormats:saveTRD(const char *path) {
+bool zxFormats::openSCL(const char *path) {
+    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true);
+    if(!ptr) return false;
+    auto disk = &ULA->disk->fdd[0];
+    disk->emptydisk();
+    int size, i;
+    for (i = size = 0; i < ptr[8]; i++) size += ptr[9 + 14 * i + 13];
+    if (size > 2544) {
+        disk->t.seek(disk, 0, 0, LOAD_SECTORS);
+        auto s8 = disk->t.get_sector(9);
+        *(short*)(s8->data + 0xE5) = (short)size;
+        disk->t.write_sector(9, s8->data);
+    }
+    auto data = ptr + 9 + 14 * ptr[8];
+    for (i = 0; i < ptr[8]; i++) {
+        if (!disk->addfile(ptr + 9 + 14 * i, data)) return false;
+        data += ptr[9 + 14 * i + 13] * 0x100;
+    }
+    return true;
+}
+
+bool zxFormats::saveSCL(const char *path) {
     return false;
 }
 
-bool zxFormats:openSCL(const char *path) {
+bool zxFormats::openFDI(const char *path) {
     return false;
 }
 
-bool zxFormats:saveSCL(const char *path) {
+bool zxFormats::saveFDI(const char *path) {
     return false;
 }
 
-bool zxFormats:openFDI(const char *path) {
+bool zxFormats::openUDI(const char *path) {
     return false;
 }
 
-bool zxFormats:saveFDI(const char *path) {
+bool zxFormats::saveUDI(const char *path) {
     return false;
 }
 
-bool zxFormats:openUDI(const char *path) {
+bool zxFormats::openTD0(const char *path) {
     return false;
 }
 
-bool zxFormats:saveUDI(const char *path) {
+bool zxFormats::saveTD0(const char *path) {
     return false;
 }
+/*
 
-bool zxFormats:openTD0(const char *path) {
-    return false;
+int FDD::read_hob()
+{
+    if (!rawdata) emptydisk();
+    snbuf[13] = snbuf[14];
+    int r = addfile(snbuf, snbuf+0x11);
+    return r;
 }
-
-bool zxFormats:saveTD0(const char *path) {
-    return false;
-}
+*/

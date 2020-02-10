@@ -102,7 +102,7 @@
 
 #define Min(o, p)	(o < p ? o : p)
 
-uint64_t Z80FQ = 3500000;
+//uint64_t Z80FQ = 3500000;
 
 uint8_t* zxVG93::restoreState(uint8_t* ptr) {
     return ptr;
@@ -150,7 +150,7 @@ int zxVG93::save(const char *path, int num, int type) {
 }
 
 void zxVG93::updateProps() {
-    Z80FQ = ULA->machine->cpuClock;
+//    Z80FQ = ULA->machine->cpuClock;
 }
 
 /*
@@ -481,7 +481,7 @@ bool zxFDD::read_fdi(const void *data, size_t data_size){
 zxVG93::zxVG93() : next(0), head(0), direction(0), rqs(R_NONE),
                    system(0), end_waiting_am(0), found_sec(nullptr), rwptr(0), rwlen(0), crc(0), start_crc(-1) {
     _ST_SET(S_IDLE, S_IDLE);
-    Z80FQ = 3500000;
+//    Z80FQ = 3500000;
     fdd = fdds;
     opts[TRDOS_SEC] = 1;
     opts[TRDOS_CMD] = opts[TRDOS_DAT] = opts[TRDOS_TRK] = opts[TRDOS_STS] = 0;

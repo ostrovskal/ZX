@@ -61,7 +61,7 @@ ZX_MACHINE machines[] = {
         {   {   { 80 * 224, 8 + 24, 40 + 24, 48 * 224 }, { 64 * 224, 8 + 16, 40 + 16, 32 * 224 },
                 { 48 * 224, 8 + 8, 40 + 8, 16 * 224 }, { 32 * 224, 8, 40, 0 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
-            71680, 1792000, 3575000, 16, 0, 5, 2, 17, "PENTAGON 512K" },
+            71680, 1792000, 3575000, 32, 0, 5, 2, 17, "PENTAGON 512K" },
         {   {   { 64 * 224, 8 + 24, 40 + 24, 56 * 224 }, { 48 * 224, 8 + 16, 40 + 16, 40 * 224 },
                 { 32 * 224, 8 + 8, 40 + 8, 24 * 224 }, { 16 * 224, 8, 40, 8 * 224 } },
             { 6, 5, 4, 3, 2, 1, 0, 0 },
@@ -122,7 +122,7 @@ zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _F
 
     snd = new zxSoundMixer();
     tape = new zxTape(snd);
-    disk = new zxVG93();
+    disk = new WD1793();
 
     assembler = new zxAssembler();
     debugger = new zxDebugger();
@@ -674,7 +674,6 @@ int zxULA::diskOperation(int num, int ops, const char* path) {
         case ZX_DISK_OPS_SET_READONLY:  ret = disk->is_readonly(num & 3, (num & 128)); break;
         case ZX_DISK_OPS_TRDOS:         ret = zxFormats::openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx"); break;
         case ZX_DISK_OPS_RSECTOR:       ret = disk->read_sector(num & 3, (num >> 3) + 1); break;
-        case ZX_DISK_COUNT_FILES:       ret = disk->count_files(num & 3, num >> 3); break;
     }
     return ret;
 }
@@ -698,7 +697,7 @@ void zxULA::trap() {
         // активность TR DOS
         if (!checkSTATE(ZX_TRDOS)) {
             if (pc >= 15616 && pc <= 15871) {
-//                if(PC == 15616) saveZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx");
+//                if(PC == 15616) zxFormats::saveZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx");
                 if(*_ROM == 1) {
                     *_STATE |= ZX_TRDOS;
                     setPages();
@@ -707,7 +706,7 @@ void zxULA::trap() {
             bool success = false;
             if (pc == 1218) success = tape->trapSave();
             else if (pc == 1366 || pc == 1378) {
-//                saveZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
+//                zxFormats::saveZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
                 success = tape->trapLoad();
             }
             if (success) {
