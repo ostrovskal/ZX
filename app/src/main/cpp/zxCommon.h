@@ -71,7 +71,7 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 
 constexpr int ZX_TOTAL_RAM              = 512 * 1024;
 constexpr int ZX_SIZE_TMP_BUF           = 1024 * 1024;
-constexpr int INDEX_OPEN                = 256 * 1024;
+constexpr int INDEX_OPEN                = 580 * 1024;
 constexpr int INDEX_DA                  = 256 * 1024;
 constexpr int INDEX_TEMP                = 512 * 1024;
 constexpr int INDEX_INTERNAL            = 520 * 1024;

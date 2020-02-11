@@ -11,45 +11,14 @@ extern long         Z80FQ;
 #define MAX_SEC     32
 #define MAX_TRK_LEN 6250
 
-#define ID_TRK      0
-#define ID_HEAD     1
-#define ID_SEC      2
-#define ID_LEN      3
-#define ID_CRC      4
-
 #define FDD_RPS     5 // скорость вращения
 #define PHYS_CYL    86
 
 inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
 inline uint16_t wordBE(const uint8_t* ptr)	{ return ptr[0] << 8 | ptr[1]; }
 
-enum FDD_CMD {
-    CB_SEEK_VERIFY	= 0x04,
-    CB_SEEK_TRKUPD	= 0x10,
-    CB_SEEK_DIR		= 0x20,
-    CB_SYS_HLT      = 0x08,
-    CB_WRITE_DEL	= 0x01,
-    CB_DELAY		= 0x04,
-    CB_MULTIPLE		= 0x10,
-    CB_RESET        = 0x04
-};
-
-enum FDD_STATE {
-    S_IDLE, S_WAIT, S_PREPARE_CMD, S_CMD_RW, S_FIND_SEC,
-    S_READ, S_WRSEC, S_WRITE, S_WRTRACK, S_WR_TRACK_DATA, S_TYPE1_CMD,
-    S_STEP, S_SEEKSTART, S_SEEK, S_VERIFY
-};
-enum { C_WTRK = 0xF0, C_RTRK = 0xE0, C_RSEC = 0x80, C_WSEC = 0xA0, C_RADR = 0xC0, C_INTERRUPT = 0xD0 };
-
 #define _ST_SET(current, next)      state = ((current) | ((next) << 4))
 #define _ST_NEXT                    state = ((state & 240) >> 4)
-
-enum FDD_REQ { R_NONE, R_DRQ = 0x40, R_INTRQ = 0x80 };
-enum FDD_STATUS {
-    ST_BUSY	= 0x01, ST_INDEX = 0x02, ST_DRQ	= 0x02, ST_TRK00 = 0x04,
-    ST_LOST	= 0x04, ST_CRCERR = 0x08, ST_NOT_SEC = 0x10, ST_SEEKERR	= 0x10,
-    ST_RECORDT = 0x20, ST_HEADL = 0x20, /*ST_WRFAULT = 0x20, */ST_WRITEP = 0x40, ST_NOTRDY = 0x80
-};
 
 class zxDisk {
 public:
@@ -69,7 +38,7 @@ public:
             // содержимое - идет сразу после A1,A1,A1,(F8/FB)
             uint8_t* content;
         };
-        TRACK() : len(6400), content(nullptr), caption(nullptr), total_sec(0) {}
+        TRACK() : len(6400), content(nullptr), caption(nullptr), total_sec(0) { memset(sectors, 0, sizeof(sectors)); }
         void write(int pos, uint8_t val) { content[pos] = val; }
         void update();
         // длина дорожки - 6250 байт
@@ -89,7 +58,7 @@ public:
 protected:
     TRACK	    tracks[MAX_TRK][MAX_HEAD];
     uint8_t*    raw;
-
+    enum { ID_TRK = 0, ID_HEAD, ID_SEC, ID_LEN, ID_CRC };
 };
 
 class zxFDD {
@@ -108,13 +77,13 @@ public:
     //bool is_boot();
     bool open(const void* data, size_t data_size, int type);
 
-    uint64_t ticks() const { return ts; }
+    long ticks() const { return ts; }
+    long engine(long v = -1) { if(v != -1) motor = v; return motor; }
     uint8_t track(int v = -1) { if(v != -1) trk = (uint8_t)v; return trk; }
 
     zxDisk::TRACK* get_trk() { return disk->track(trk, head); }
     zxDisk::TRACK::SECTOR* get_sec(int sec) { return &get_trk()->sectors[sec]; }
     zxDisk::TRACK::SECTOR* get_sec(int trk, int head, int sec);
-    uint64_t engine(long v = -1) { if(v != -1) motor = v; return motor; }
 
     bool protect;
 protected:
@@ -137,23 +106,36 @@ protected:
 
 class zxVG93 {
 public:
+    enum FDD_REQ { R_NONE, R_DRQ = 0x40, R_INTRQ = 0x80 };
+    enum { C_WTRK = 0xF0, C_RTRK = 0xE0, C_RSEC = 0x80, C_WSEC = 0xA0, C_RADR = 0xC0, C_INTERRUPT = 0xD0 };
+    enum FDD_STATUS {
+        ST_BUSY	= 0x01, ST_INDEX = 0x02, ST_DRQ	= 0x02, ST_TRK00 = 0x04,
+        ST_LOST	= 0x04, ST_CRCERR = 0x08, ST_NOT_SEC = 0x10, ST_SEEKERR	= 0x10,
+        ST_RECORDT = 0x20, ST_HEADL = 0x20, /*ST_WRFAULT = 0x20, */ST_WRITEP = 0x40, ST_NOTRDY = 0x80
+    };
+    enum FDD_STATE {
+        S_IDLE, S_WAIT, S_PREPARE_CMD, S_CMD_RW, S_FIND_SEC,
+        S_READ, S_WRSEC, S_WRITE, S_WRTRACK, S_WR_TRACK_DATA, S_TYPE1_CMD,
+        S_STEP, S_SEEKSTART, S_SEEK, S_VERIFY
+    };
+    enum FDD_CMD {
+        CB_SEEK_VERIFY = 0x04, CB_SEEK_TRKUPD = 0x10, CB_SEEK_DIR = 0x20, CB_SYS_HLT = 0x08, CB_WRITE_DEL = 0x01,
+        CB_DELAY = 0x04, CB_MULTIPLE = 0x10, CB_RESET = 0x04
+    };
     // конструктор
     zxVG93();
-
     // монтировать образ
     bool open(const char* path, int drive, int type);
-
     // признак наличия бута
     //bool is_boot(int drive) { return fdds[drive].is_boot(); }
-
     // сброс
     void reset() { }
-
     // извлечь
     void eject(int num) { fdds[num].eject(); }
-
     // записать в порт
     void vg93_write(uint8_t port, uint8_t v);
+    // перехват команд
+    void trap(uint16_t pc);
     // восстановить состояние
     uint8_t* restoreState(uint8_t* ptr);
     // сохранить состояние
@@ -171,25 +153,18 @@ public:
 protected:
     // выполнение
     void exec();
-
     // чтение первого байта
     void read_byte();
-
     // имем сектор на дорожке
     void find_sec();
-
     // признак готовности
     bool ready();
-
     // загрузска трека
     void load() { fdd->seek(fdd->track(), head); }
-
     // получение импульса
     void get_index(int s_next);
-
     // вычисление КК
     uint16_t CRC(uint8_t * src, int size) const;
-
     // вычисление КК
     uint16_t CRC(uint8_t v, uint16_t prev = 0xcdb4) const;
 private:
@@ -206,7 +181,10 @@ private:
     void cmdWriteTrack();
     void cmdSeek();
     void cmdVerify();
-    // начальная КК
+    // следующее время/время ожидания сектора
+    int nfdd;
+    long next, end_waiting_am;
+    // начальный КК
     int8_t start_crc;
     // головка
     uint8_t head;
@@ -216,8 +194,6 @@ private:
     int16_t rwptr;
     // длина буфера чтения/записи
     int16_t rwlen;
-    // следующее время/время ожидания сектора
-    long next, end_waiting_am;
     // текущее состояние
     uint8_t	state;
     // состояние порта 0xFF

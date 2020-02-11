@@ -153,9 +153,9 @@ void zxVG93::updateProps() {
 //    Z80FQ = ULA->machine->cpuClock;
 }
 
-/*
 static const char* boot_sign = "boot    B";
 
+static int _rwlen;
 static char buf_str[65536];
 void log_to_data(bool is_text, const char* title, uint8_t* data, int trk, int sec, int head) {
     auto s = &buf_str[0];
@@ -175,14 +175,14 @@ void log_to_data(bool is_text, const char* title, uint8_t* data, int trk, int se
     LOG_INFO("%s t:%i s:%i h:%i -- %s", title, trk, sec, head, buf_str);
 
 }
-*/
 
-zxDisk::zxDisk(int _trks, int _heads){
+zxDisk::zxDisk(int _trks, int _heads) {
     trks = _trks; heads = _heads;
     uint16_t data_len = MAX_TRK_LEN;
     int size = _trks * _heads * data_len;
     raw = new uint8_t[size];
     memset(raw, 0, (size_t)size);
+    memset(tracks, 0, sizeof(tracks));
     for(int i = 0; i < _trks; ++i) {
         for(int j = 0; j < _heads; ++j) {
             auto t = &tracks[i][j];
@@ -407,17 +407,16 @@ bool zxFDD::read_scl(const void* data, size_t data_size) {
     return true;
 }
 
-bool zxFDD::read_trd(const void *data, size_t data_size){
+bool zxFDD::read_trd(const void *data, size_t data_size) {
     make_trd();
-    enum { TRD_SIZE = 655360 };
-    if(data_size > TRD_SIZE) data_size = TRD_SIZE;
+    if(data_size > 655360) data_size = 655360;
     for(size_t i = 0; i < data_size; i += 0x100) {
         write_sec(i >> 13, (i >> 12) & 1, ((i >> 8) & 0x0f) + 1, (const uint8_t *)data + i);
     }
     return true;
 }
 
-bool zxFDD::read_fdi(const void *data, size_t data_size){
+bool zxFDD::read_fdi(const void *data, size_t data_size) {
     delete disk;
     auto buf = (const uint8_t*)data;
     disk = new zxDisk(buf[4], buf[6]);
@@ -478,7 +477,7 @@ bool zxFDD::read_fdi(const void *data, size_t data_size){
 //                                                  VG93                                                                 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-zxVG93::zxVG93() : next(0), head(0), direction(0), rqs(R_NONE),
+zxVG93::zxVG93() : next(0), head(0), direction(0), rqs(R_NONE), state(S_IDLE), nfdd(-1),
                    system(0), end_waiting_am(0), found_sec(nullptr), rwptr(0), rwlen(0), crc(0), start_crc(-1) {
     _ST_SET(S_IDLE, S_IDLE);
     Z80FQ = 3500000;
@@ -660,12 +659,8 @@ void zxVG93::cmdWriteTrackData() {
         _ST_SET(S_WAIT, S_WR_TRACK_DATA);
     } else {
         LOG_DEBUG("S_WR_TRACK_DATA FINISH idx:%i", rwptr);
-        //log_to_data(false, "write track", fdd->get_trk()->content, opts[TRDOS_TRK], opts[TRDOS_SEC], head);
+        log_to_data(false, "write track", fdd->get_trk()->content, opts[TRDOS_TRK], opts[TRDOS_SEC], head);
         fdd->get_trk()->update(); state = S_IDLE;
-        if(fdd->track() == 0) {
-            LOG_DEBUG("SET DATA SECTOR 9", 0);
-            fdd->fillDiskConfig(fdd->get_sec(9));
-        }
     }
 }
 
@@ -689,7 +684,7 @@ void zxVG93::get_index(int s_next) {
     auto trlen = (uint32_t)(t->len * fdd->ticks());
     auto ticks = (uint32_t)(next % trlen);
     next += (trlen - ticks);
-    rwptr = 0; rwlen = t->len;
+    rwptr = 0; rwlen = t->len; _rwlen = rwlen;
     _ST_SET(S_WAIT, s_next);
 }
 
@@ -700,14 +695,14 @@ void zxVG93::cmdWriteTrack() {
     } else {
         start_crc = -1;
         get_index(S_WR_TRACK_DATA);
-        int i;
-        for(i = 0 ; i < 80; i++) fdd->write(rwptr++, 0x4e);
-        for(i = 0 ; i < 12; i++) fdd->write(rwptr++, 0);
-        for(i = 0 ; i < 3;  i++) fdd->write(rwptr++, 0xc2);
-        fdd->write(rwptr++, 0xfc);
-        //for(i = 0 ; i < 40; i++) fdd->write(rwptr++, 0x4e);
+//        int i;
+//        for(i = 0 ; i < 80; i++) fdd->write(rwptr++, 0x4e);
+//        for(i = 0 ; i < 12; i++) fdd->write(rwptr++, 0);
+//        for(i = 0 ; i < 3;  i++) fdd->write(rwptr++, 0xc2);
+//        fdd->write(rwptr++, 0xfc);
+//        //for(i = 0 ; i < 40; i++) fdd->write(rwptr++, 0x4e);
         end_waiting_am = next + 5 * Z80FQ / FDD_RPS;
-        rwlen -= rwptr;
+//        rwlen -= rwptr;
         LOG_DEBUG("S_WRITE_TRACK idx:%i len:%i", rwptr, rwlen);
     }
 }
@@ -799,7 +794,7 @@ void zxVG93::cmdStep() {
         // позиционирование дорожки
         if(!(cmd & 0xe0) || (cmd & CB_SEEK_TRKUPD)) opts[TRDOS_TRK] += direction;
         // проверка на допустимые дорожки
-        int cyl = fdd->track() + direction; if(cyl < 0) cyl = 0; if(cyl >= PHYS_CYL) cyl = PHYS_CYL;
+        int cyl = fdd->track() + direction; if(cyl < 0) cyl = 0; if(cyl >= PHYS_CYL) cyl = PHYS_CYL - 1;
         fdd->track(cyl);
         next += Z80FQ / 1000;
         _ST_SET(S_WAIT, (cmd & 0xe0) ? S_VERIFY : S_SEEK);
@@ -817,11 +812,13 @@ void zxVG93::cmdSeek() {
 
 void zxVG93::cmdVerify() {
     find_sec();
+    state = S_IDLE;
+/*
     if(!(opts[TRDOS_CMD] & CB_SEEK_VERIFY)) {
-        state = S_IDLE;
     } else {
         end_waiting_am = next + 6 * Z80FQ / FDD_RPS;
     }
+*/
 }
 
 void zxVG93::find_sec() {
@@ -836,11 +833,7 @@ void zxVG93::find_sec() {
             auto secMatch = sec->sec() == opts[TRDOS_SEC];
             auto trkMatch = sec->trk() == opts[TRDOS_TRK];
             auto headMatch = sec->head() == head;
-            if (secMatch && trkMatch && headMatch) {
-                found_sec = sec;
-                wait = sec->caption - t->content;
-                break;
-            }
+            if (secMatch && trkMatch && headMatch) { found_sec = sec; wait = (int)(sec->caption - t->content); break; }
         }
     }
     if(found_sec) {
@@ -878,6 +871,7 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v) {
                 return;
             }
             if(opts[TRDOS_STS] & ST_BUSY) return;
+//            LOG_INFO("nfdd:%i(%i)-%X-%X", nfdd, fdd->is_disk(), fdd, &fdds[nfdd]);
             opts[TRDOS_CMD] = v;
             next = ULA->_TICK;
             opts[TRDOS_STS] |= ST_BUSY; rqs = R_NONE;
@@ -897,9 +891,10 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v) {
         case 0x5F: opts[TRDOS_SEC] = v; break;
         case 0x7F: opts[TRDOS_DAT] = v; rqs &= ~R_DRQ; opts[TRDOS_STS] &= ~ST_DRQ; break;
         case 0xFF: system = v;
+            nfdd = v & 3;
             fdd = &fdds[v & 3];
             head = (uint8_t)((v & 0x10) == 0);
-//            LOG_INFO(("WRITE SYSTEM: HEAD %i MFM:%i HLT: %i"), head, (uint8_t)((v & 16) != 0), (uint8_t)((v & 8) != 0));
+            //LOG_INFO(("WRITE SYSTEM: HEAD %i MFM:%i HLT: %i drive:%i"), head, (uint8_t)((v & 16) != 0), (uint8_t)((v & 8) != 0), v & 3);
             // сброс контроллера
             if(!(v & CB_RESET)) { opts[TRDOS_STS] = ST_NOTRDY; rqs = R_INTRQ; fdd->engine(0); state = S_IDLE; }
     }
@@ -911,3 +906,51 @@ int zxVG93::read_sector(int num, int sec) {
     else memset(&opts[ZX_PROP_VALUES_SECTOR], 0, 256);
     return sector != nullptr;
 }
+
+void zxVG93::trap(uint16_t pc) {
+//    LOG_INFO("PC:%X %X%X%X%X%X%X%X%X%X", pc, rm8(23773), rm8(23773), rm8(23774), rm8(23775), rm8(23776), rm8(23777), rm8(23778), rm8(23779), rm8(23780));
+}
+/*
+C=init #3D98 C=13 #01D3
+C=1 #3DCB C=OPEN_VERIFY_FILE #290F
+C=2 #3E63 C=15 #01D3
+C=3 #3F02 C=16 #01D3
+C=4 #3F06 C=17 #01D3
+C=R_SECTOR #1E3D C=ERASE_FILE #2926
+C=W_SECTOR #1E4D C=19 #28E0
+C=R_CATALOG #28D8 C=20 #28E3
+C=R_CAPTION_FILE #165C C=21 #2739
+C=W_CAPTION_FILE #1664 C=22 #1FEB
+C=F_FILE #1CF0 C=23 #1FF6
+C=SAVE_CODE_FILE #28FB C=24 #0405
+C=SAVE_BASIC_FILE #28F2
+
+void WD1793::trdos_traps() {
+    if (pc == 0x3E01 && bankr[0][0x3E01] == 0x0D) { cpu.a = cpu.c = 1; return; } // no delays
+    if (pc == 0x3FEC && bankr[0][0x3FED] == 0xA2 &&
+        (state == S_READ || (state2 == S_READ && state == S_WAIT))) {
+        trdos_load = ROMLED_TIME;
+        if (rqs & DRQ) {
+            z80dbg::wm(cpu.hl, data); // move byte from controller
+            cpu.hl++, cpu.b--;
+            rqs &= ~DRQ; status &= ~WDS_DRQ;
+        }
+        while (rwlen) { // move others
+            z80dbg::wm(cpu.hl, trkcache.trkd[rwptr++]); rwlen--;
+            cpu.hl++; cpu.b--;
+        }
+        cpu.pc += 2; // skip INI
+        return;
+    }
+    if (pc == 0x3FD1 && bankr[0][0x3FD2] == 0xA3 &&
+        (rqs & DRQ) && (rwlen>1) && (state == S_WRITE || (state2 == S_WRITE && state == S_WAIT))) {
+        trdos_save = ROMLED_TIME;
+        while (rwlen > 1) {
+            trkcache.write(rwptr++, z80dbg::rm(cpu.hl), 0); rwlen--;
+            cpu.hl++; cpu.b--;
+        }
+        cpu.pc += 2; // skip OUTI
+        return;
+    }
+}
+*/

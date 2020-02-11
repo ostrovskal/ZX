@@ -106,16 +106,7 @@ void zxSoundMixer::update(uint8_t * ext_buf) {
         auto p = (int*)(buf + rdy);
         auto s0 = (int*)acpu->audioData();
         auto s1 = (int*)bp.audioData();
-        for(int i = ready_min / 4; --i >= 0;) {
-            if(i > 8) {
-                *p++ = (*s0++) + (*s1++); *p++ = (*s0++) + (*s1++);
-                *p++ = (*s0++) + (*s1++); *p++ = (*s0++) + (*s1++);
-                *p++ = (*s0++) + (*s1++); *p++ = (*s0++) + (*s1++);
-                *p++ = (*s0++) + (*s1++); *p++ = (*s0++) + (*s1++);
-                i -= 8;
-            }
-            *p++ = (*s0++) + (*s1++);
-        }
+        for(int i = 0; i < ready_min / 4; i++) *p++ = (*s0++) + (*s1++);
         rdy += ready_min;
     }
     acpu->audioDataUse(acpu->audioDataReady());
@@ -130,6 +121,13 @@ void zxSoundMixer::use(uint32_t size, uint8_t * ext_buf) {
         }
         rdy -= size;
     }
+}
+
+void zxBeeper::ioWrite(uint16_t port, uint8_t v, uint32_t tact) {
+    auto spk = (short)(((v & 16) >> 4) * volSpk);
+    auto mic = (short)(((v & 8)  >> 3) * volMic);
+    auto mono = (uint32_t)(spk + mic);
+    update(tact, mono, mono);
 }
 
 void zxBeeper::updateProps(uint32_t v) {
@@ -194,7 +192,7 @@ void zxAy::flush(uint32_t chiptick) {
 
 void zxAy::write(uint32_t timestamp, uint8_t val) {
     auto activereg = opts[AY_REG];
-    if(activereg > 15) return;
+    if(activereg > 13) return;
     if((1 << activereg) & ((1 << 1) | (1 << 3) | (1 << 5) | (1 << 13))) val &= 0x0F;
     if((1 << activereg) & ((1 << 6) | (1 << 8) | (1 << 9) | (1 << 10))) val &= 0x1F;
     if(activereg != ESHAPE && opts[AY_AFINE + activereg] == val) return;
@@ -332,11 +330,13 @@ void zxYm::write(uint8_t val, uint32_t tick) {
     auto reg = opts[AY_REG];
     if (reg < 16) {
         opts[reg + AY_AFINE] = val;
-        if (countSamplers < AY_SAMPLERS) {
-            samplers[countSamplers].tstates = tick;
-            samplers[countSamplers].reg = reg;
-            samplers[countSamplers].val = val;
-            countSamplers++;
+        if(reg < 14) {
+            if (countSamplers < AY_SAMPLERS) {
+                samplers[countSamplers].tstates = tick;
+                samplers[countSamplers].reg = reg;
+                samplers[countSamplers].val = val;
+                countSamplers++;
+            }
         }
     }
 }
@@ -354,8 +354,8 @@ void* zxYm::audioData() {
     int reg, r;
     int frameTime = (int)(tsmax * 50);
     uint32_t tone_count, noise_count;
-
     memset(buffer, 0, sndBufSize * 2 * sizeof(short));
+    if(!countSamplers) return buffer;
     for(f = 0; f < countSamplers; f++) samplers[f].ofs = (uint16_t)((samplers[f].tstates * frequency) / frameTime);
     for(f = 0, ptr = (short*)buffer; f < sndBufSize; f++) {
         while(changes_left && f >= change_ptr->ofs) {
@@ -471,6 +471,5 @@ void* zxYm::audioData() {
             if(!noisePeriod) break;
         }
     }
-    countSamplers = 0;
     return buffer;
 }

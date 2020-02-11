@@ -26,6 +26,11 @@ union SNDSAMPLE {
 
 class zxSoundDev {
 public:
+    enum {
+        AFINE, ACOARSE, BFINE, BCOARSE, CFINE, CCOARSE, NOISEPER, ENABLE, AVOL,
+        BVOL, CVOL, EFINE, ECOARSE, ESHAPE
+    };
+
     zxSoundDev();
     virtual void frameStart(uint32_t tacts) {
         auto endtick = (uint32_t)((tacts * (uint64_t)sample_rate * TICK_F) / clock_rate);
@@ -55,15 +60,18 @@ private:
     uint32_t s2_l, s2_r;
 };
 
+class zxCovox: public zxSoundDev {
+    zxCovox() : volSpk(12800), volMic(3200) { }
+    //virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override;
+    //virtual void updateProps(uint32_t clock_rate = 0) override;
+protected:
+    int volSpk, volMic;
+};
+
 class zxBeeper: public zxSoundDev {
 public:
     zxBeeper() : volSpk(12800), volMic(3200) { }
-    virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
-        auto spk = (short)(((v & 16) >> 4) * volSpk);
-        auto mic = (short)(((v & 8)  >> 3) * volMic);
-        auto mono = (uint32_t)(spk + mic);
-        update(tact, mono, mono);
-    }
+    virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override;
     virtual void updateProps(uint32_t clock_rate = 0) override;
 protected:
     int volSpk, volMic;
@@ -86,10 +94,6 @@ public:
 
     zxYm() : tsmax(0), sound_stereo_ay(0), frequency(44100) { }
 
-    enum {
-        AFINE, ACOARSE, BFINE, BCOARSE, CFINE, CCOARSE, NOISEPER, ENABLE, AVOL,
-        BVOL, CVOL, EFINE, ECOARSE, ESHAPE
-    };
     virtual void frameStart(uint32_t tacts) override { }
     virtual void frameEnd(uint32_t tacts) override { }
     virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
@@ -98,7 +102,7 @@ public:
     }
     virtual void reset(uint32_t timestamp = 0) override;
     virtual void updateProps(uint32_t clock_rate = 0) override;
-    virtual void audioDataUse(uint32_t size) override { }
+    virtual void audioDataUse(uint32_t size) override { countSamplers = 0; }
     virtual void* audioData() override;
     virtual uint8_t ioRead(uint16_t port) override { if(opts[AY_REG] > 15) return 0xFF; return opts[AY_AFINE + opts[AY_REG]]; }
     virtual uint32_t audioDataReady() override { return sndBufSize * 2 * sizeof(short); }
@@ -134,11 +138,6 @@ class zxAy : public zxSoundDev {
 public:
     zxAy();
     virtual ~zxAy() {}
-    enum {
-        AFINE, ACOARSE, BFINE, BCOARSE, CFINE, CCOARSE, NOISEPER, ENABLE, AVOL,
-        BVOL, CVOL, EFINE, ECOARSE, ESHAPE
-    };
-
     virtual void frameStart(uint32_t tacts) override {
         t = tacts * chip_clock_rate / system_clock_rate;
         zxSoundDev::frameStart(t);

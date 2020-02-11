@@ -5,11 +5,11 @@
 #include "zxCommon.h"
 #include "zxTape.h"
 
-inline bool zxTape::checkBit(uint8_t* src, int pos) {
+bool zxTape::checkBit(uint8_t* src, int pos) {
     return (src[pos >> 3] & numBits[7 - (pos % 8)]) != 0;
 }
 
-inline void zxTape::expandBit(uint8_t* dst, int pos, bool set) {
+void zxTape::expandBit(uint8_t* dst, int pos, bool set) {
     int tmp = pos >> 3;
     dst[tmp] ^= (-set ^ dst[tmp]) & numBits[7 - (pos % 8)];
 }

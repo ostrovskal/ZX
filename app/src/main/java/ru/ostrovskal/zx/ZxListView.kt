@@ -252,11 +252,7 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
             (getChildAt(item) as? Text)?.text = str.substringAfter('\n')
             itemAddr[item] = entry
             if(entry == selItem) {
-                if(mode == ZX_DEBUGGER_MODE_PC && flags test ZX_SEL) {
-                    val posMnemonic = ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE + 1)
-                    onNotifyParent?.invoke(this, ZxWnd.ZxMessages.ACT_DEBUGGER_ASSEMBLER_TEXT.ordinal, 0, str.substring(posMnemonic))
-                }
-                change = selectItem(item, flags)
+                change = selectItem(item, flags, str)
                 if(change != 0) break
             }
             entry += ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE)
@@ -270,7 +266,7 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
         }
     }
 
-    private fun selectItem(idx: Int, flags: Int): Int {
+    private fun selectItem(idx: Int, flags: Int, str: String): Int {
         if(flags test ZX_TRACE) {
             val count = idx - ((countItems / 2) - 1)
             if(count > 0) return count
@@ -279,7 +275,16 @@ open class ZxListView(context: Context, private val turn: Boolean) : CommonRibbo
             background = selector
             selItem = indexToAddr(idx)
         }
-        onNotifyParent?.invoke(this@ZxListView, ZxWnd.ZxMessages.ACT_DEBUGGER_SELECT_ITEM.ordinal, selItem, "")
+        var cmd = ""
+        if(mode == ZX_DEBUGGER_MODE_PC) {
+            val pos = ZxWnd.read8(ZX_PROP_JNI_RETURN_VALUE + 1)
+            cmd = str.substring(pos)
+            // убрать из команды [XXXX]{XXXX}
+            cmd = cmd.substringBefore('[') + cmd.substringAfter(']', "")
+            cmd = cmd.substringBefore('{') + cmd.substringAfter('}', "")
+
+        }
+        onNotifyParent?.invoke(this@ZxListView, ZxWnd.ZxMessages.ACT_DEBUGGER_SELECT_ITEM.ordinal, selItem, cmd)
         return 0
     }
 

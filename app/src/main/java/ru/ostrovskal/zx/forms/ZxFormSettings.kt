@@ -61,7 +61,8 @@ class ZxFormSettings : Form() {
 
         private val settingsJoyTypes= listOf("KEMPSTON", "SINCLAIR I", "SINCLAIR II", "CURSOR", "CUSTOM")
 
-        private val keyButtons      = listOf("N/A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+        private val keyButtons      = listOf(
+            "N/A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
             // 11
             "DEL", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
             // 22

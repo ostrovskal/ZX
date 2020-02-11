@@ -24,8 +24,7 @@ bool zxFormats::openZ80(const char *path) {
     int pages = 3;
 
     auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true, &sz);
-    if(!ptr) return false;
-
+    if(!ptr) { LOG_INFO("File %s not found!", path); return false; }
     int length = sizeof(HEAD1_Z80);
     head1 = (HEAD1_Z80*)ptr;
     auto isCompressed = (head1->STATE1 & 0x20) == 0x20;
@@ -44,23 +43,23 @@ bool zxFormats::openZ80(const char *path) {
                 version = 3;
                 model = (uint8_t)(mode < 4 ? MODEL_48 : MODEL_128);
                 break;
-            default: LOG_DEBUG("Недопустимый формат файла %s!", path); return false;
+            default: LOG_INFO("Недопустимый формат файла %s!", path); return false;
         }
         if(model == MODEL_48) {
             pages = (head2->emulateFlags & 0x80) ? 1 : 3;
         } else if(model == MODEL_128) {
-            pages = 8;
-        } else if(mode == 9) {
-            model = MODEL_PENTAGON;
-            pages = 8;
-        } else if(mode == 10) {
-            model = MODEL_SCORPION;
-            pages = 16;
+            if(mode == 9) {
+                model = MODEL_PENTAGON;
+                pages = 32;
+            } else if(mode == 10) {
+                model = MODEL_SCORPION;
+                pages = 16;
+            } else pages = 8;
         } else {
             LOG_INFO("Неизвестное оборудование %i в (%s)", mode, path);
             return false;
         }
-        LOG_DEBUG("version:%i length:%i model:%i pages:%i mode:%i", version, length, model, pages, mode);
+        LOG_DEBUG("version:%i length:%i model:%i pages:%i mode:%i model:%i", version, length, model, pages, mode, model);
         if(version >= 3) {
             head3 = (HEAD3_Z80*)ptr;
             head2 = &head3->head2;
@@ -86,7 +85,7 @@ bool zxFormats::openZ80(const char *path) {
                         case 1: numPage = 2; break;
                         case 2: numPage = 7; break;
                         case 5: numPage = 5; break;
-                        default: isValidPage = false;
+                        default: isValidPage = false; break;
                     }
                     break;
                 case MODEL_128:
@@ -96,7 +95,7 @@ bool zxFormats::openZ80(const char *path) {
                     break;
             }
             if(!isValidPage) {
-                LOG_DEBUG("Неизвестная страница %i в (%s)!", numPage, path);
+                LOG_DEBUG("Неизвестная страница %i-%i в (%s)!", numPage, i, path);
                 return false;
             }
             auto page = &TMP_BUF[numPage << 14];
@@ -139,7 +138,7 @@ bool zxFormats::openZ80(const char *path) {
     }
     if(head3 && length == 87) ULA->writePort(0xfd, 0x1f, head3->port1FFD);
     // копируем буфер
-    memcpy(ULA->RAMs, TMP_BUF, 256 * 1024);
+    memcpy(ULA->RAMs, TMP_BUF, ZX_TOTAL_RAM);
     return true;
 }
 
@@ -181,6 +180,7 @@ bool zxFormats::saveZ80(const char *path) {
         packPage(&buf, &ram[7 << 14], 5);
     } else {
         auto count = ULA->machine->ramPages;
+        LOG_INFO("saveZ80 pages:%i model:%i", count, head2->hardMode);
         for(int i = 0; i < count; i++) {
             packPage(&buf, &ram[i << 14], (uint8_t)(i + 3));
         }

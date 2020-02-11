@@ -67,8 +67,6 @@ class ZxWnd : Wnd() {
         ACT_UPDATE_MAIN_LAYOUT,
         // длинный клик в списке отладчика
         ACT_DEBUGGER_LONG_CLOCK,
-        // установка текста инструкции
-        ACT_DEBUGGER_ASSEMBLER_TEXT,
         // выделение элемента в списке отладчика
         ACT_DEBUGGER_SELECT_ITEM,
         // нажатие на кнопку MAGIC

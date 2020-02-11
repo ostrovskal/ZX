@@ -87,7 +87,7 @@ class ZxFormDisk : Form() {
                         }
                     }.lps(10, 14, 5, 2)
                     editEx(R.id.edit1, R.string.hintName, style_edit_zx) {
-                        maxLength = 40
+                        maxLength = 50
                         changeTextLintener = { update() }
                     }.lps(0, 2, 10, 3)
                     button(style_debugger_action) {
@@ -100,6 +100,8 @@ class ZxFormDisk : Form() {
                                 ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_OPS_SET_READONLY or (check.toInt shl 7), "")
                                 "disk$numDisk".s = filePath
                                 root.byIdx<Text>(2).text = filePath
+                                isEmpty = false
+                                update()
                             }
                         }
                     }.lps(10, 2, 3, 4)
@@ -137,6 +139,7 @@ class ZxFormDisk : Form() {
                                 }
                             }
                             updateFiles(true)
+                            update()
                         }
                     }.lps(10, 6, 3, 4)
                     button(style_debugger_action) {
@@ -147,6 +150,8 @@ class ZxFormDisk : Form() {
                             ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk, ZX_DISK_OPS_EJECT, "")
                             "disk$numDisk".s = ""
                             root.byIdx<Text>(2).text = context.getString(R.string.diskEmpty)
+                            isEmpty = true
+                            update()
                         }
                     }.lps(13, 6, 3, 4)
                     button(style_debugger_action) {
