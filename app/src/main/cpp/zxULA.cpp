@@ -95,6 +95,7 @@ zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _F
 
     // вычисление таблицы адреса строк экрана
     for(int line = 0; line < 192; line++) atrTab[line] = (((line & 192) << 5) + ((line & 7) << 8) + ((line & 56) << 2));
+    // таблица для мгновенного доступа к атрибутам
     for(int a = 0; a < 256; a++) {
         auto ink	= (uint8_t)((a >> 0) & 7);
         auto paper	= (uint8_t)((a >> 3) & 7);
@@ -123,13 +124,6 @@ zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _F
 
     cpu = new zxCPU();
     gpu = new zxGPU();
-
-    snd = new zxSoundMixer();
-    tape = new zxTape(snd);
-    disk = new zxVG93();
-
-    assembler = new zxAssembler();
-    debugger = new zxDebugger();
 }
 
 zxULA::~zxULA() {
@@ -333,8 +327,42 @@ int zxULA::updateKeys(int key, int action) {
                 uint8_t nmode = MODE_K;
                 auto kmode = opts[ZX_PROP_KEY_MODE];
                 auto omode = opts[ZX_PROP_KEY_CURSOR_MODE];
-                // 23728 - #57|#4F
-                //auto lng = rm8(23728);
+                if(*_MODEL == MODEL_KOMPANION) {
+/*
+                    static uint8_t sys[256];
+                    static char tmp[32768];
+                    char* _tmp = tmp;
+                    int idx = 0;
+                    for(int i = 0 ; i < 255; i++) {
+                        if(i < 120 || i > 122) {
+                            int a = 23552 + i;
+                            int n = rm8((uint16_t)a);
+                            int o = sys[i];
+                            if (n != o) {
+                                ssh_strcpy(&_tmp, ssh_ntos(&a, RADIX_DEC));
+                                *_tmp++ = ' ';
+                                ssh_strcpy(&_tmp, ssh_ntos(&n, RADIX_DEC));
+                                *_tmp++ = ' ';
+                                idx++;
+                            }
+                        }
+                    }
+                    if(idx > 0) {
+                        *_tmp = 0;
+                        LOG_INFO("%s", tmp);
+                        LOG_INFO("", 0);
+                    }
+                    memcpy(sys, realPtr(23552), 255);
+*/
+                    // проверить на текущий язык(по информации из знакогенератора)
+                    auto n = ((rm8(23606) << 8) | rm8(23607));// en - 15424, ru - 14656
+                    auto o = opts[RUS_LAT];
+                    auto lng = (uint8_t)(((n == 14656) << 7) | 127);
+                    if(lng != o) {
+                        opts[ZX_PROP_KEY_CURSOR_MODE] = 255;
+                        opts[RUS_LAT] = lng;
+                    }
+                }
                 auto val0 = rm8(23617), val1 = rm8(23658), val2 = rm8(23611);
                 switch (val0) {
                     case 0:
@@ -406,6 +434,14 @@ void zxULA::changeModel(uint8_t _new, bool reset) {
         delete[] ROMb; ROMb = rom; ROMe = ROMb + totalRom;
         totalRom >>= 14;
         for(int i = 0 ; i < 4; i++) PAGE_ROM[i] = rom +  ((i >= totalRom ? totalRom - 1 : i) << 14);
+        // создаем устройства
+        if(!snd) {
+            snd = new zxSoundMixer();
+            tape = new zxTape(snd);
+            disk = new zxVG93();
+            assembler = new zxAssembler();
+            debugger = new zxDebugger();
+        }
     } else {
         LOG_INFO("Не удалось загрузить ПЗУ для машины - %s!", machines[_new].name);
         delete[] rom;
@@ -684,8 +720,7 @@ int zxULA::diskOperation(int num, int ops, const char* path) {
 
 void zxULA::quickSave() {
     static zxFile file;
-    int a = 0;
-    auto buf = (char*)&TMP_BUF[INDEX_TEMP];
+    int a = 0;auto buf = (char*)&TMP_BUF[INDEX_TEMP];
     while(true) {
         sprintf(buf, "%sSAVERS/%s_%02i.z80", FOLDER_FILES.c_str(), name.c_str(), a);
         if(!file.open(buf, zxFile::open_read)) break;
@@ -733,15 +768,17 @@ void zxULA::trap() {
 void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
     switch(A0A7) {
         case 0xFD:
-            if(*_MODEL >= MODEL_PLUS3 && A8A15 == 0x1F) {
-                write1FFD(val);
-            } else if(A8A15 == 0xFF) {
-                // устанавливаем текущий регистр
+            if(A8A15 == 0xFF) {
+                // устанавливаем текущий AY регистр
                 snd->ioWrite(0, 0xFFFD, val, frameTick);
             } else if(A8A15 == 0xBF) {
-                // записываем значение в текущий регистр
+                // записываем значение в текущий AY регистр
                 snd->ioWrite(0, 0xBFFD, val, frameTick);
             } else {
+                if((*_MODEL == MODEL_PLUS3 || *_MODEL == MODEL_SCORPION) && A8A15 == 0x1F) {
+                    // 0,2,5,12=1; 1,14,15=0
+                    write1FFD(val);
+                } else
 //                LOG_INFO("7FFD A0A7:%i A8A15:%i val:%i", A0A7, A8A15, val);
                 write7FFD(val);
             }

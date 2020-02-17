@@ -92,7 +92,7 @@ public:
         uint8_t reg, val;
     };
 
-    zxYm() : tsmax(0), sound_stereo_ay(0), frequency(44100) { }
+    zxYm() : tsmax(0), sound_stereo_ay(0), frequency(44100) { reset(); }
 
     virtual void frameStart(uint32_t tacts) override { }
     virtual void frameEnd(uint32_t tacts) override { }
@@ -132,6 +132,12 @@ protected:
     uint32_t toneLevels[16];
     // частота звукового процессора
     uint32_t clockAY;
+    //
+    int rng = 1;
+    int noise_toggle = 0;
+    int envFirst = 1, envRev = 0, envCounter = 15;
+
+    void getStereo(int pos, int chan);
 };
 
 class zxAy : public zxSoundDev {

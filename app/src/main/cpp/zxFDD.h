@@ -4,7 +4,7 @@
 
 #pragma once
 
-extern long         Z80FQ;
+extern uint32_t Z80FQ;
 
 #define MAX_TRK     86
 #define MAX_HEAD    2
@@ -38,7 +38,7 @@ public:
             // содержимое - идет сразу после A1,A1,A1,(F8/FB)
             uint8_t* content;
         };
-        TRACK() : len(6400), content(nullptr), caption(nullptr), total_sec(0) { memset(sectors, 0, sizeof(sectors)); }
+        TRACK() : len(6400), content(nullptr), total_sec(0) { memset(sectors, 0, sizeof(sectors)); }
         void write(int pos, uint8_t val) { content[pos] = val; }
         void update();
         // длина дорожки - 6250 байт
@@ -47,8 +47,6 @@ public:
         uint8_t total_sec;
         // содержимое дорожи - 6250 байт
         uint8_t* content;
-        // заголовок дорожки - после содержимого(карта используемых байт)
-        uint8_t* caption;
         // массив секторов
         SECTOR sectors[MAX_SEC];
     };
@@ -77,8 +75,8 @@ public:
     //bool is_boot();
     bool open(const void* data, size_t data_size, int type);
 
-    long ticks() const { return ts; }
-    long engine(long v = -1) { if(v != -1) motor = v; return motor; }
+    uint32_t ticks() const { return ts; }
+    uint32_t engine(int v = -1) { if(v != -1) motor = (uint32_t)v; return motor; }
     uint8_t track(int v = -1) { if(v != -1) trk = (uint8_t)v; return trk; }
 
     zxDisk::TRACK* get_trk() { return disk->track(trk, head); }
@@ -98,7 +96,7 @@ protected:
     uint16_t CRC(uint8_t * src, int size) const;
 
 protected:
-    long     motor, ts;
+    uint32_t motor, ts;
     uint8_t  trk;
     uint8_t  head;
     zxDisk*  disk;
@@ -129,7 +127,7 @@ public:
     // признак наличия бута
     //bool is_boot(int drive) { return fdds[drive].is_boot(); }
     // сброс
-    void reset() { }
+    void reset();
     // извлечь
     void eject(int num) { fdds[num].eject(); }
     // записать в порт
@@ -159,8 +157,8 @@ protected:
     void find_sec();
     // признак готовности
     bool ready();
-    // загрузска трека
-    void load() { fdd->seek(fdd->track(), head); }
+    // загрузка трека
+    void load();
     // получение импульса
     void get_index(int s_next);
     // вычисление КК
@@ -181,25 +179,24 @@ private:
     void cmdWriteTrack();
     void cmdSeek();
     void cmdVerify();
+    void log_to_data(bool is_text, const char* title, int trk, int sec, int head);
+    // текущий дисковод
+    uint8_t nfdd;
     // следующее время/время ожидания сектора
-    int nfdd;
-    long next, end_waiting_am;
-    // начальный КК
-    int8_t start_crc;
-    // головка
-    uint8_t head;
+    uint32_t next, end_waiting_am;
     // напраление
     int8_t direction;
-    // позиция при чтении/записи
-    int16_t rwptr;
+    // начальный адрес вычисления КК
+    uint8_t* start_crc;
+    // адрес чтения/записи
+    uint8_t* _rwptr;
+    uint8_t* rwptr;
     // длина буфера чтения/записи
-    int16_t rwlen;
+    uint16_t rwlen;
     // текущее состояние
     uint8_t	state;
     // состояние порта 0xFF
     uint8_t	rqs;
-    // системный регистр
-    uint8_t	system;
     // текущий КК
     uint16_t crc;
     // текущий дисковод
