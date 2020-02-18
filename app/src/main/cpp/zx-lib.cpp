@@ -104,7 +104,6 @@ extern "C" {
             }
             AAssetDir_close(dir);
             opts[ZX_PROP_FIRST_LAUNCH] = 0;
-            copyAssetsFile(amgr, "tapLoad128.zx", "tapLoad128.zx");
             copyAssetsFile(amgr, "tapLoad48.zx", "tapLoad48.zx");
             copyAssetsFile(amgr, "trdosLoad128.zx", "trdosLoad128.zx");
             copyAssetsFile(amgr, "trdosLoad48.zx", "trdosLoad48.zx");
@@ -207,6 +206,7 @@ extern "C" {
             case ZX_CMD_DISK_OPS:  ret = ULA->diskOperation(arg1, arg2, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_QUICK_SAVE:ULA->quickSave(); break;
             case ZX_CMD_VALUE_REG: ret = ULA->getAddressCpuReg(env->GetStringUTFChars(arg3, nullptr)); break;
+            case ZX_CMD_TAPE_RESET:ULA->tape->reset(); break;
         }
         return ret;
     }

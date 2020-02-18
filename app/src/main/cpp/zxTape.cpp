@@ -27,18 +27,14 @@ void zxTape::addBlock(uint8_t *data, uint16_t size) {
 }
 
 void zxTape::reset() {
-    for(int i = 0 ; i < countBlocks; i++) {
-        SAFE_DELETE(blocks[i].data);
-    }
-    countBlocks = currentBlock = 0;
+    currentBlock = 0;
     posImpulse = lenImpulse = 0;
-
     SAFE_A_DELETE(bufImpulse);
     sizeBufImpulse = 0;
 }
 
 uint8_t* zxTape::load(uint8_t* ptr, bool unpacked) {
-    reset();
+    _reset();
 
     while(true) {
         uint16_t size = *(uint16_t*)ptr; ptr += 2;
@@ -51,12 +47,12 @@ uint8_t* zxTape::load(uint8_t* ptr, bool unpacked) {
                 return nullptr;
             data = TMP_BUF;
         }
-/*
-        if(data[1] == 0) {
-            data[14] = 0;
-            data[15] = 128;
+        if(!opts[ZX_PROP_BASIC_AUTOSTART]) {
+            if(data[1] == 0) {
+                data[14] = 0;
+                data[15] = 128;
+            }
         }
-*/
         addBlock(data, size);
         ptr += len;
     }
@@ -96,13 +92,17 @@ uint8_t *zxTape::restoreState(uint8_t *ptr) {
         return ptr;
     }
     ptr += 4;
-    return load(ptr, true);
+    auto current = *ptr++;
+    auto ret = load(ptr, true);
+    currentBlock = current;
+    return ret;
 }
 
 uint8_t *zxTape::saveState(uint8_t *ptr) {
     // сигнатура
     *ptr++ = 'S'; *ptr++ = 'E'; *ptr++ = 'R'; *ptr++ = 'G';
-    return save(currentBlock, ptr, true);
+    *ptr++ = (uint8_t)currentBlock;
+    return save(0, ptr, true);
 }
 
 void zxTape::writePort(uint8_t value) {
@@ -246,12 +246,6 @@ void zxTape::control(int ticks) {
     }
 }
 
-bool zxTape::nextBlock() {
-    currentBlock++;
-    if(currentBlock >= countBlocks) reset();
-    return currentBlock < countBlocks;
-}
-
 /*
 Формат стандартного заголовочного блока Бейсика такой:
 1 байт  - флаговый, для блока заголовка всегда равен 0 (для блока данных за ним равен 255)
@@ -278,7 +272,7 @@ bool zxTape::nextBlock() {
 const char* zxTape::getBlockData(int index, uint16_t *data) {
     auto name = (char*)&TMP_BUF[INDEX_TEMP];
     memset(name, 32, 10);
-    memset(data, 255, 7 * 2);
+    memset(data, 255, 10 * 2);
 
     if(index < countBlocks && index >= 0) {
         auto addr = blocks[index].data;
@@ -298,11 +292,20 @@ const char* zxTape::getBlockData(int index, uint16_t *data) {
                 name[i] = 0;
             }
         }
+        data[7] = (uint16_t)(index < currentBlock);
     }
     return name;
 }
 
 uint8_t zxTape::readPort() {
     return 0;
+}
+
+void zxTape::_reset() {
+    for(int i = 0 ; i < countBlocks; i++) {
+        SAFE_DELETE(blocks[i].data);
+    }
+    countBlocks = 0;
+    reset();
 }
 

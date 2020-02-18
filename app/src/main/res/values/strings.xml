@@ -94,6 +94,8 @@
     <string name="settingsSndVolAY">Volume AY</string>
     <string name="settingsSndVolBP">Volume BP</string>
     <string name="settingsSndFreq">Frequency</string>
+    <string name="settingsSoundChip">Chip</string>
+    <string name="settingsSoundChannel">Channel</string>
 
     <string name="settingsTapeCaption">CAPTION</string>
     <string name="settingsTapeLine">LINE</string>
@@ -134,7 +136,6 @@
     <string name="diskEmpty">Empty</string>
     <string name="headDisk">Disk browse</string>
     <string name="checkNet" translatable="false">Net</string>
-    <string name="settingsSoundChip">Chip</string>
-    <string name="settingsSoundChannel">Channel</string>
+    <string name="checkAutoStart">Basic autostart</string>
 
 </resources>

@@ -288,7 +288,7 @@ class ZxFormSettings : Form() {
     private val tapePage: TabLayout.Content.() -> View = {
         countTapeBlocks = ZxWnd.zxCmd(ZX_CMD_TAPE_COUNT, 0, 0, "")
         cellLayout(10, 10) {
-            ribbon(R.id.ribbonMain, false, style_debugger_ribbon) {
+            val r = ribbon(R.id.ribbonMain, false, style_debugger_ribbon) {
                 adapter = TapeAdapter(context, TapeItem())
                 padding = 4.dp
                 backgroundSet(style_backgrnd_io)
@@ -297,7 +297,15 @@ class ZxFormSettings : Form() {
                     selection = p
                     //clickRibbon()
                 }
-            }.lps(0, 0, 10, 10)
+            }.lps(0, 0, 10, 8)
+            check(R.id.button7, R.string.checkAutoStart) {
+                isChecked = ZxWnd.props[ZX_PROP_BASIC_AUTOSTART].toBoolean
+                setOnClickListener { ZxWnd.props[ZX_PROP_BASIC_AUTOSTART] = isChecked.toByte }
+            }.lps(0, 8, 6, 2)
+            button {
+                iconResource = R.integer.I_RESET
+                setOnClickListener { ZxWnd.zxCmd(ZX_CMD_TAPE_RESET, 0, 0, ""); r.requestLayout() }
+            }.lps(7, 8, 2, 2)
         }
     }
 
@@ -569,6 +577,7 @@ class ZxFormSettings : Form() {
                         else-> { sflag = "($flag)"; R.string.settingsTapeBlock }
                     })
                     text = "$caption$sflag"
+                    textColor = if(block[7].toInt() != 0) Color.GRAY else Color.YELLOW
                 }
                 byIdx<Text>(1).text = (block[0].toInt() and 0xffff).toString()
                 byIdx<Text>(2).text = block[1].toString(16).toUpperCase(Locale.ROOT)

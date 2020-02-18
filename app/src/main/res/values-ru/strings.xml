@@ -94,5 +94,6 @@
     <string name="headDisk">Disk browse</string>
     <string name="settingsSoundChip">Chip</string>
     <string name="settingsSoundChannel">Channel</string>
+    <string name="checkAutoStart">Автозапуск бейсика</string>
 
 </resources>

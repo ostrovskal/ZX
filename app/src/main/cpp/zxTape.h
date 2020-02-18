@@ -28,7 +28,9 @@ public:
         for(int i = 0 ; i < 128; i++) blocks[i].data = nullptr;
     }
 
-    ~zxTape() { reset(); }
+    void _reset();
+
+    ~zxTape() { _reset(); }
 
     // управление импульсами
     void control(int ticks);
@@ -86,7 +88,7 @@ protected:
     void updateImpulseBuffer(bool force);
 
     // перейти на следующий блок
-    bool nextBlock();
+    bool nextBlock() { return ++currentBlock < countBlocks; }
 
     // добавление блока
     void addBlock(uint8_t *data, uint16_t size);

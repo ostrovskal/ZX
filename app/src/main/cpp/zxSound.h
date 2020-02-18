@@ -77,12 +77,12 @@ protected:
     int volSpk, volMic;
 };
 
-#define AY_SAMPLERS     10000
+#define AY_SAMPLERS     8000
 #define AY_ENV_CONT	    8
 #define AY_ENV_ATTACK	4
 #define AY_ENV_ALT	    2
 #define AY_ENV_HOLD	    1
-#define STEREO_BUF_SIZE 2048
+#define STEREO_BUF_SIZE 1024
 
 class zxYm: public zxSoundDev {
 public:
@@ -97,7 +97,7 @@ public:
     virtual void frameStart(uint32_t tacts) override { }
     virtual void frameEnd(uint32_t tacts) override { }
     virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
-        if((port & 0xC0FF) == 0xC0FD) opts[AY_REG] = v & 0x0F;
+        if((port & 0xC0FF) == 0xC0FD) opts[AY_REG] = (uint8_t)(v & 0x0F);
         if((port & 0xC000) == 0x8000) write(v, tact);
     }
     virtual void reset(uint32_t timestamp = 0) override;
@@ -191,7 +191,7 @@ public:
     void update(uint8_t * ext_buf);
     void use(uint32_t size, uint8_t * ext_buf = nullptr);
     void updateProps();
-    void reset() { ay.reset(); bp.reset(); }
+    void reset() { acpu->reset(); bp.reset(); }
     void ioWrite(int dev, uint16_t port, uint8_t v, uint32_t tact) {
         if(isEnable) {
             switch (dev) {

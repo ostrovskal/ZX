@@ -76,8 +76,8 @@
         <item>debugger_code,true</item>
         <item>debugger_value,true</item>
         <item>debugging,false</item>
+        <item>autostart,true</item>
 
-        <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>
         <item>unusedBool1,true</item>

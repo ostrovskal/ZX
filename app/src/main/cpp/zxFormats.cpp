@@ -136,7 +136,7 @@ bool zxFormats::openZ80(const char *path) {
         memcpy(&opts[AY_AFINE], head2->sndRegs, 16);
         ULA->writePort(0xfd, 0xff, head2->sndChipRegNumber);
     }
-    //if(head3 && length == 87) ULA->writePort(0xfd, 0x1f, head3->port1FFD);
+    if(head3 && length == 87) ULA->writePort(0xfd, 0x1f, head3->port1FFD);
     // копируем буфер
     memcpy(ULA->RAMs, TMP_BUF, ZX_TOTAL_RAM);
     return true;

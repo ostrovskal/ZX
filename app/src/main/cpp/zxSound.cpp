@@ -184,8 +184,8 @@ void zxAy::flush(uint32_t chiptick) {
 void zxAy::write(uint32_t timestamp, uint8_t val) {
     auto activereg = opts[AY_REG];
     if(activereg > 15) return;
-    if((1 << activereg) & 0b0010000000101010) val &= 0x0F;
-    if((1 << activereg) & 0b0000011101000000) val &= 0x1F;
+    //if((1 << activereg) & 0b0010000000101010) val &= 0x0F;
+    //if((1 << activereg) & 0b0000011101000000) val &= 0x1F;
     if(activereg != ESHAPE && opts[AY_AFINE + activereg] == val) return;
     opts[AY_AFINE + activereg] = val;
     if(timestamp) flush((timestamp * mult_const) >> MULT_C_1);
@@ -273,7 +273,7 @@ void zxYm::updateProps(uint32_t) {
     reset();
 
     auto turbo      = opts[ZX_PROP_TURBO_MODE] ? 2 : 1;
-    tsmax           = zxULA::machine->cpuClock * turbo / 50;
+    tsmax           = zxULA::machine->cpuClock * turbo;
     clockAY         = zxULA::machine->ayClock * turbo;
 
     auto modeAy     = opts[ZX_PROP_SND_CHANNEL_AY];
@@ -297,7 +297,7 @@ void zxYm::updateProps(uint32_t) {
     sndBufSize  = frequency / 50;
     memset(rstereobuf_l, 0, sizeof(rstereobuf_l));
     memset(rstereobuf_r, 0, sizeof(rstereobuf_r));
-    int pos = 6 * frequency / 8000;
+    int pos = 3 * frequency / 8000;
     rstereopos = 0; rchan1pos = -pos;
     if(sound_stereo_ay == 1) {
         rchan2pos = 0; rchan3pos = pos;
@@ -308,9 +308,6 @@ void zxYm::updateProps(uint32_t) {
 
 void zxYm::reset(uint32_t timestamp) {
     int f;
-
-    //memset(buffer, 0, sndBufSize * 2 * sizeof(short));
-    countSamplers = 0;
 
     for(f = 0; f < 16; f++) ioWrite((uint8_t)f, 0, timestamp);
     for(f = 0; f < 3; f++) toneHigh[f] = 0;
@@ -324,7 +321,7 @@ void zxYm::write(uint8_t val, uint32_t tick) {
         opts[reg + AY_AFINE] = val;
         if(reg < 14) {
             if (countSamplers < AY_SAMPLERS) {
-                samplers[countSamplers].tstates = tick;
+                samplers[countSamplers].tstates = *zxULA::_TICK;
                 samplers[countSamplers].reg = reg;
                 samplers[countSamplers].val = val;
                 countSamplers++;
@@ -341,14 +338,13 @@ void* zxYm::audioData() {
     int mixer, envshape;
     int f, g, level, count;
     signed short *ptr;
-    struct AY_SAMPLER *change_ptr = samplers;
+    auto change_ptr = &samplers[0];
     int changes_left = countSamplers;
     int reg, r;
-    int frameTime = (int)(tsmax * 50);
     uint32_t tone_count, noise_count;
     memset(buffer, 0, sndBufSize * 2 * sizeof(short));
     if(!countSamplers) return buffer;
-    for(f = 0; f < countSamplers; f++) samplers[f].ofs = (uint16_t)((samplers[f].tstates * frequency) / frameTime);
+    for(f = 0; f < countSamplers; f++) samplers[f].ofs = (uint16_t)((samplers[f].tstates * frequency) / tsmax);
     for(f = 0, ptr = (short*)buffer; f < sndBufSize; f++) {
         while(changes_left && f >= change_ptr->ofs) {
             ayRegs[reg = change_ptr->reg] = change_ptr->val;
@@ -414,7 +410,7 @@ void* zxYm::audioData() {
         mixer = ayRegs[ENABLE];
         toneSubCycles += tickAY;
         tone_count = toneSubCycles >> 19;
-        toneSubCycles &= (8 << 16) - 1;
+        toneSubCycles &= 524287;//(8 << 16) - 1;
         int channelSum = 0;
         for(int chan = 0; chan < 3; chan++) {
             auto channel = toneLevel[chan];

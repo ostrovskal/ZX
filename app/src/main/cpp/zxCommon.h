@@ -65,7 +65,7 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 
 #define LOG_INFO(m, ...)                info(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
 
-#define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
+//#define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
 
 #define LOG_NAME                        "ZX"
 
@@ -127,6 +127,7 @@ constexpr int ZX_PROP_SND_BP          = 134; // Признак запуска б
 constexpr int ZX_PROP_SND_AY          = 135; // Признак запуска AY
 constexpr int ZX_PROP_EXECUTE         = 136; // Признак выполнения программы
 constexpr int ZX_PROP_SHOW_HEX        = 137; // Признак 16-тиричного вывода
+constexpr int ZX_PROP_BASIC_AUTOSTART = 143; // Признак автостарта бейсик программы при загрузке с ленты
 
 // 2. Байтовые значения
 constexpr int ZX_PROP_BORDER_SIZE     = 150; // Размер границы
@@ -149,6 +150,7 @@ constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 // Модели памяти при загрузке *.Z80
 constexpr int MODEL_KOMPANION         = 0; // Компаньон
 constexpr int MODEL_48                = 1; // Синклер 48К
+//constexpr int MODEL_2006              = 2; // Синклер 48К 2006
 constexpr int MODEL_128               = 3; // Синклер 128К
 //constexpr int MODEL_PLUS2             = 4; // Синклер +2
 constexpr int MODEL_PLUS3             = 5; // Синклер +3
@@ -201,6 +203,7 @@ constexpr int ZX_CMD_MAGIC              = 13;// Нажатие на кнопку
 constexpr int ZX_CMD_DISK_OPS           = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
 constexpr int ZX_CMD_QUICK_SAVE         = 15; // Быстрое сохранение
 constexpr int ZX_CMD_VALUE_REG          = 16; // Получить адрес из регистра/значения
+constexpr int ZX_CMD_TAPE_RESET         = 17; // Сбросить ленту
 
 constexpr int ZX_DISK_OPS_GET_READONLY  = 0; //
 constexpr int ZX_DISK_OPS_EJECT         = 1; //
@@ -209,7 +212,6 @@ constexpr int ZX_DISK_OPS_SAVE          = 3; //
 constexpr int ZX_DISK_OPS_SET_READONLY  = 4; //
 constexpr int ZX_DISK_OPS_TRDOS         = 5; //
 constexpr int ZX_DISK_OPS_RSECTOR       = 6; //
-constexpr int ZX_DISK_COUNT_FILES       = 7; //
 
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //

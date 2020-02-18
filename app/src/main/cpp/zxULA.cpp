@@ -162,8 +162,8 @@ bool zxULA::load(const char *path, int type) {
             break;
         case ZX_CMD_IO_TAPE:
             ret = zxFormats::openTAP(path);
-            if(ret && opts[ZX_PROP_TRAP_TAPE]) {
-                ret = zxFormats::openZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
+            if(ret && opts[ZX_PROP_TRAP_TAPE] && (*_7FFD & 32)) {
+                ret = zxFormats::openZ80("tapLoad48.zx");
             }
             break;
         case ZX_CMD_IO_STATE:
@@ -455,8 +455,7 @@ void zxULA::changeModel(uint8_t _new, bool reset) {
 
 void zxULA::signalRESET(bool reset) {
     // сброс устройств
-    if(reset) tape->reset();
-    //if(reset) disk->reset();
+    tape->reset();
     snd->reset();
     // очищаем ОЗУ
     ssh_memzero(RAMs, ZX_TOTAL_RAM);
@@ -473,7 +472,8 @@ void zxULA::signalRESET(bool reset) {
     // инициализаруем переменные
     *cpu->_SP = 65534; *_FE = 0b11100111; *_VID = 5; *_RAM = 0; *_ROM = machine->startRom;
     memPAGES[1] = &RAMs[5 << 14]; memPAGES[2] = &RAMs[2 << 14];
-    // сброс состояния с сохранением статуса отладчика
+    if(*_MODEL < MODEL_128) *_7FFD = 32;
+        // сброс состояния с сохранением статуса отладчика
     *_STATE &= ZX_DEBUG;
     // установка страниц
     setPages();
@@ -715,7 +715,14 @@ int zxULA::diskOperation(int num, int ops, const char* path) {
         case ZX_DISK_OPS_OPEN:          ret = (int)disk->open(path, num, parseExtension(path)); break;
         case ZX_DISK_OPS_SAVE:          ret = disk->save(path, num, parseExtension(path)); break;
         case ZX_DISK_OPS_SET_READONLY:  ret = disk->is_readonly(num & 3, (num & 128)); break;
-        case ZX_DISK_OPS_TRDOS:         ret = zxFormats::openZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx"); break;
+        case ZX_DISK_OPS_TRDOS: {
+            const char* name(nullptr);
+            if (*_7FFD & 32) name = "trdosLoad48.zx";
+            else if (*_MODEL < MODEL_PENTAGON) name = "trdosLoad128.zx";
+            else break;
+            ret = zxFormats::openZ80(name);
+            break;
+        }
         case ZX_DISK_OPS_RSECTOR:       ret = disk->read_sector(num & 3, (num >> 3) + 1); break;
     }
     return ret;
@@ -739,7 +746,7 @@ void zxULA::trap() {
         // активность TR DOS
         if (!checkSTATE(ZX_TRDOS)) {
             if (pc >= 15616 && pc <= 15871) {
-//                if(PC == 15616) zxFormats::saveZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx");
+                //if(PC == 15616) zxFormats::saveZ80(*_MODEL >= MODEL_128 ? "trdosLoad128.zx" : "trdosLoad48.zx");
                 if(*_ROM == 1) {
                     *_STATE |= ZX_TRDOS;
                     setPages();

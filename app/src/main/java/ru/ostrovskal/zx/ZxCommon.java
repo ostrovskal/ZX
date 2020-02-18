@@ -154,6 +154,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_SHOW_CODE       = 140; // Признак режима кода инструкции
     public static final int ZX_PROP_SHOW_CODE_VALUE = 141; // Признак режима содержимого кода
     public static final int ZX_PROP_ACTIVE_DEBUGGING= 142; // Признак активной отладки
+    public static final int ZX_PROP_BASIC_AUTOSTART = 143; // Признак автостарта бейсик программы при загрузке с ленты
 
     // 2. Байтовые значения
     public static final int ZX_PROP_BORDER_SIZE     = 150; // Размер границы
@@ -199,6 +200,7 @@ public final class ZxCommon {
     public static final int ZX_CMD_DISK_OPS         = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
     public static final int ZX_CMD_QUICK_SAVE       = 15; // Быстрое сохранение
     public static final int ZX_CMD_VALUE_REG        = 16; // Получить адрес из регистра/значения
+    public static final int ZX_CMD_TAPE_RESET       = 17; // Сбросить ленту
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
