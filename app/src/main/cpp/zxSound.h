@@ -77,12 +77,12 @@ protected:
     int volSpk, volMic;
 };
 
-#define AY_SAMPLERS     8000
+#define AY_SAMPLERS     10000
 #define AY_ENV_CONT	    8
 #define AY_ENV_ATTACK	4
 #define AY_ENV_ALT	    2
 #define AY_ENV_HOLD	    1
-#define STEREO_BUF_SIZE 1024
+#define STEREO_BUF_SIZE 2048
 
 class zxYm: public zxSoundDev {
 public:
@@ -97,14 +97,19 @@ public:
     virtual void frameStart(uint32_t tacts) override { }
     virtual void frameEnd(uint32_t tacts) override { }
     virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
-        if(port == 0xFFFD) { opts[AY_REG] = v; }
-        else if(port == 0xBFFD) write(v, tact);
+        if((port & 0xC0FF) == 0xC0FD) opts[AY_REG] = v & 0x0F;
+        if((port & 0xC000) == 0x8000) write(v, tact);
     }
     virtual void reset(uint32_t timestamp = 0) override;
     virtual void updateProps(uint32_t clock_rate = 0) override;
     virtual void audioDataUse(uint32_t size) override { countSamplers = 0; }
     virtual void* audioData() override;
-    virtual uint8_t ioRead(uint16_t port) override { if(opts[AY_REG] > 15) return 0xFF; return opts[AY_AFINE + opts[AY_REG]]; }
+    virtual uint8_t ioRead(uint16_t port) override {
+        if((port & 0xC0FF) == 0xC0FD) {
+            if(opts[AY_REG] < 16) return opts[AY_AFINE + opts[AY_REG]];
+        }
+        return 0xFF;
+    }
     virtual uint32_t audioDataReady() override { return sndBufSize * 2 * sizeof(short); }
 protected:
     void write(uint8_t val, uint32_t tact);
@@ -132,12 +137,6 @@ protected:
     uint32_t toneLevels[16];
     // частота звукового процессора
     uint32_t clockAY;
-    //
-    int rng = 1;
-    int noise_toggle = 0;
-    int envFirst = 1, envRev = 0, envCounter = 15;
-
-    void getStereo(int pos, int chan);
 };
 
 class zxAy : public zxSoundDev {
@@ -156,15 +155,19 @@ public:
         passed_clk_ticks += tacts; passed_chip_ticks += t;
     }
     virtual void ioWrite(uint16_t port, uint8_t v, uint32_t tact) override {
-        if(port == 0xFFFD) select(v);
-        else if(port == 0xBFFD) write(tact, v);
+        if((port & 0xC0FF) == 0xC0FD) select(v);
+        if((port & 0xC000) == 0x8000) write(tact, v);
     }
-    virtual uint8_t ioRead(uint16_t port) override { if(opts[AY_REG] > 15) return 0xFF; return opts[AY_AFINE + opts[AY_REG]]; }
+    virtual uint8_t ioRead(uint16_t port) override {
+        if((port & 0xC0FF) == 0xC0FD) {
+            if(opts[AY_REG] < 16) return opts[AY_AFINE + opts[AY_REG]];
+        }
+        return 0xFF;
+    }
     virtual void updateProps(uint32_t clock_rate = 0) override;
     virtual void reset(uint32_t timestamp = 0) override;
-    void setChip(int type) { chiptype = type; }
 protected:
-    void select(uint8_t v) { if(chiptype == 0) v &= 0x0F; opts[AY_REG] = v; }
+    void select(uint8_t v) { /*if(chiptype == 0) v &= 0x0F;*/ opts[AY_REG] = v & 0x0F; }
     void write(uint32_t timestamp, uint8_t val);
 private:
     void flush(uint32_t chiptick);

@@ -51,8 +51,7 @@ class ZxView(context: Context) : GLSurfaceView(context) {
             val channels    = AudioFormat.CHANNEL_CONFIGURATION_STEREO
             val format      = AudioFormat.ENCODING_PCM_16BIT
             val bufSize     = AudioTrack.getMinBufferSize(freq, channels, format)
-            track           = AudioTrack(AudioManager.STREAM_MUSIC, freq, channels, format,
-                bufSize + freq * 2 * 2 * 5 / 50, AudioTrack.MODE_STREAM).apply { play() }
+            track           = AudioTrack(AudioManager.STREAM_MUSIC, freq, channels, format, bufSize, AudioTrack.MODE_STREAM).apply { play() }
         }
 
         init { initialize()  }

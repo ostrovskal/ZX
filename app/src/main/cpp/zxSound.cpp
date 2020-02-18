@@ -36,7 +36,7 @@ constexpr uint32_t filter_sum_full_u = (uint32_t)(filter_sum_full * 0x10000);
 constexpr uint32_t filter_sum_half_u = (uint32_t)(filter_sum_half * 0x10000);
 
 zxSoundDev::zxSoundDev() : mix_l(0), mix_r(0), s1_l(0), s1_r(0), s2_l(0), s2_r(0) {
-    updateProps(ULA->machine->cpuClock);
+    updateProps(zxULA::machine->cpuClock);
 }
 
 void zxSoundDev::updateProps(uint32_t _clock_rate) {
@@ -116,7 +116,7 @@ void zxSoundMixer::use(uint32_t size, uint8_t * ext_buf) {
     }
 }
 
-void zxBeeper::ioWrite(uint16_t port, uint8_t v, uint32_t tact) {
+void zxBeeper::ioWrite(uint16_t, uint8_t v, uint32_t tact) {
     auto spk = (short)(((v & 16) >> 4) * volSpk);
     auto mic = (short)(((v & 8)  >> 3) * volMic);
     auto mono = (uint32_t)(spk + mic);
@@ -124,7 +124,7 @@ void zxBeeper::ioWrite(uint16_t port, uint8_t v, uint32_t tact) {
 }
 
 void zxBeeper::updateProps(uint32_t v) {
-    clock_rate = ULA->machine->cpuClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
+    clock_rate = zxULA::machine->cpuClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
     volSpk = (int)((2.5f * v) * 512);
     volMic = volSpk >> 2;
 }
@@ -149,7 +149,6 @@ zxAy::zxAy() : t(0), ta(0), tb(0), tc(0), tn(0), te(0), env(0), denv(0),
                 ea(0), eb(0), ec(0), va(0), vb(0), vc(0),
                 fa(0), fb(0), fc(0), fn(0), fe(0) {
     opts[AY_REG] = 0;
-    setChip(0);
     updateProps();
     reset();
 }
@@ -187,7 +186,7 @@ void zxAy::write(uint32_t timestamp, uint8_t val) {
     if(activereg > 15) return;
     if((1 << activereg) & 0b0010000000101010) val &= 0x0F;
     if((1 << activereg) & 0b0000011101000000) val &= 0x1F;
-//    if(activereg != ESHAPE && opts[AY_AFINE + activereg] == val) return;
+    if(activereg != ESHAPE && opts[AY_AFINE + activereg] == val) return;
     opts[AY_AFINE + activereg] = val;
     if(timestamp) flush((timestamp * mult_const) >> MULT_C_1);
     switch(activereg) {
@@ -221,8 +220,8 @@ void zxAy::write(uint32_t timestamp, uint8_t val) {
 }
 
 void zxAy::updateProps(uint32_t clock_rate) {
-    clock_rate     = ULA->machine->cpuClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
-    auto clockAY   = ULA->machine->ayClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
+    clock_rate     = zxULA::machine->cpuClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
+    auto clockAY   = zxULA::machine->ayClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
     auto chip      = opts[ZX_PROP_SND_CHIP_AY];
     auto chan      = opts[ZX_PROP_SND_CHANNEL_AY];
     auto vol       = (int)opts[ZX_PROP_SND_VOLUME_AY];
@@ -256,6 +255,15 @@ void zxAy::applyRegs(uint32_t timestamp) {
     }
 }
 
+#define CLOCK_RESET(clock)  tickAY = (int)(65536. * clock / frequency)
+#define GEN_STEREO(pos, val)                                        \
+    if((pos) < 0) {                                                 \
+        rstereobuf_l[rstereopos] += (val);                          \
+        rstereobuf_r[(rstereopos - pos) % STEREO_BUF_SIZE] += (val);\
+    } else {								                        \
+        rstereobuf_l[(rstereopos + pos) % STEREO_BUF_SIZE] += (val);\
+        rstereobuf_r[rstereopos] += (val); }
+
 void zxYm::updateProps(uint32_t) {
     static int levels[16] = {
             0x0000, 0x0385, 0x053D, 0x0770, 0x0AD7, 0x0FD5, 0x15B0, 0x230C,
@@ -265,8 +273,8 @@ void zxYm::updateProps(uint32_t) {
     reset();
 
     auto turbo      = opts[ZX_PROP_TURBO_MODE] ? 2 : 1;
-    tsmax           = ULA->machine->cpuClock * turbo / 50;
-    clockAY         = ULA->machine->ayClock * turbo;
+    tsmax           = zxULA::machine->cpuClock * turbo / 50;
+    clockAY         = zxULA::machine->ayClock * turbo;
 
     auto modeAy     = opts[ZX_PROP_SND_CHANNEL_AY];
     auto vAy        = opts[ZX_PROP_SND_VOLUME_AY] * 256;
@@ -275,7 +283,7 @@ void zxYm::updateProps(uint32_t) {
     frequency = freq;
     sound_stereo_ay = modeAy;
     for (int f = 0; f < 16; f++) toneLevels[f] = (uint32_t) ((levels[f] * vAy + 0x8000) / 0xffff);
-    tickAY = (uint32_t)(65536. * clockAY / frequency);
+    CLOCK_RESET(clockAY);
 
     noiseTick = noisePeriod = 0;
     envIntTick = envTick = envPeriod = 0;
@@ -301,14 +309,13 @@ void zxYm::updateProps(uint32_t) {
 void zxYm::reset(uint32_t timestamp) {
     int f;
 
-    memset(buffer, 0, sndBufSize * 2 * sizeof(short));
+    //memset(buffer, 0, sndBufSize * 2 * sizeof(short));
     countSamplers = 0;
-    rng = 1; noise_toggle = 0; envFirst = 1; envRev = 0; envCounter = 15;
 
     for(f = 0; f < 16; f++) ioWrite((uint8_t)f, 0, timestamp);
     for(f = 0; f < 3; f++) toneHigh[f] = 0;
     toneSubCycles = envSubCycles = 0;
-    tickAY = (uint32_t)(65536. * clockAY / frequency);
+    CLOCK_RESET(clockAY);
 }
 
 void zxYm::write(uint8_t val, uint32_t tick) {
@@ -327,6 +334,9 @@ void zxYm::write(uint8_t val, uint32_t tick) {
 }
 
 void* zxYm::audioData() {
+    static int rng = 1;
+    static int noise_toggle = 0;
+    static int envFirst = 1, envRev = 0, envCounter = 15;
     int toneLevel[3], chans[3];
     int mixer, envshape;
     int f, g, level, count;
@@ -435,9 +445,9 @@ void* zxYm::audioData() {
             (*ptr++) += channelSum;
             (*ptr++) += channelSum;
         } else {
-            getStereo(rchan1pos, chans[0]);
-            getStereo(rchan2pos, chans[1]);
-            getStereo(rchan3pos, chans[2]);
+            GEN_STEREO(rchan1pos, chans[0]);
+            GEN_STEREO(rchan2pos, chans[1]);
+            GEN_STEREO(rchan3pos, chans[2]);
             (*ptr++) += rstereobuf_l[rstereopos];
             (*ptr++) += rstereobuf_r[rstereopos];
             rstereobuf_l[rstereopos] = rstereobuf_r[rstereopos] = 0;
@@ -454,14 +464,4 @@ void* zxYm::audioData() {
         }
     }
     return buffer;
-}
-
-void zxYm::getStereo(int pos, int chan) {
-    if(pos < 0) {
-        rstereobuf_l[rstereopos] += chan;
-        rstereobuf_r[(rstereopos - pos) % STEREO_BUF_SIZE] += chan;
-    } else {
-        rstereobuf_l[(rstereopos + pos) % STEREO_BUF_SIZE] += chan;
-        rstereobuf_r[rstereopos] += chan;
-    }
 }

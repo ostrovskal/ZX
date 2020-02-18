@@ -81,9 +81,9 @@ bool zxFormats::openZ80(const char *path) {
                 case MODEL_48:
                     isValidPage = true;
                     switch(numPage) {
-                        // 4->2 5->7 8->5
+                        // 4->2 5->0 8->5
                         case 1: numPage = 2; break;
-                        case 2: numPage = 7; break;
+                        case 2: numPage = 0; break;
                         case 5: numPage = 5; break;
                         default: isValidPage = false; break;
                     }
@@ -111,9 +111,9 @@ bool zxFormats::openZ80(const char *path) {
             LOG_DEBUG("Ошибка при распаковке %s!", path);
             return false;
         }
-        // перераспределяем буфер 0->5, 1->2, 2->7
+        // перераспределяем буфер 0->5, 1->2, 2->0
         memcpy(&TMP_BUF[5 << 14], &TMP_BUF[0 << 14], 16384);
-        memcpy(&TMP_BUF[7 << 14], &TMP_BUF[2 << 14], 16384);
+        memcpy(&TMP_BUF[0 << 14], &TMP_BUF[2 << 14], 16384);
         memcpy(&TMP_BUF[2 << 14], &TMP_BUF[1 << 14], 16384);
     }
     // меняем модель памяти и иинициализируем регистры
@@ -136,7 +136,7 @@ bool zxFormats::openZ80(const char *path) {
         memcpy(&opts[AY_AFINE], head2->sndRegs, 16);
         ULA->writePort(0xfd, 0xff, head2->sndChipRegNumber);
     }
-    if(head3 && length == 87) ULA->writePort(0xfd, 0x1f, head3->port1FFD);
+    //if(head3 && length == 87) ULA->writePort(0xfd, 0x1f, head3->port1FFD);
     // копируем буфер
     memcpy(ULA->RAMs, TMP_BUF, ZX_TOTAL_RAM);
     return true;
@@ -179,7 +179,7 @@ bool zxFormats::saveZ80(const char *path) {
         packPage(&buf, &ram[2 << 14], 4);
         packPage(&buf, &ram[7 << 14], 5);
     } else {
-        auto count = ULA->machine->ramPages;
+        auto count = zxULA::machine->ramPages;
         LOG_INFO("saveZ80 pages:%i model:%i", count, head2->hardMode);
         for(int i = 0; i < count; i++) {
             packPage(&buf, &ram[i << 14], (uint8_t)(i + 3));

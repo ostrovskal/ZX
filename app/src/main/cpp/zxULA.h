@@ -132,7 +132,7 @@ public:
     static uint8_t* _STATE;
 
     // счетчик тактов
-    static long _TICK;
+    static uint32_t* _TICK;
 
     // счетчик тактов в кадре
     static uint32_t frameTick;
@@ -141,7 +141,7 @@ public:
     static uint16_t* _CALL;
 
     // текущая машина
-    ZX_MACHINE* machine;
+    static ZX_MACHINE* machine;
 
     // страницы ПЗУ
     uint8_t* PAGE_ROM[4];

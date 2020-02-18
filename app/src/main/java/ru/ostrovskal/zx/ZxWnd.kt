@@ -207,10 +207,6 @@ class ZxWnd : Wnd() {
             runBlocking {
                 withContext(Dispatchers.IO) {
                     zxProps(props, folderFiles, folderCache)
-                    // настройки
-                    settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
-                    // восстановление предыдущего сеанса
-                    zxInit(assets, nameAutoSave, errors)
                     // восстанавливаем файлы образов дискет
                     repeat(4) { dsk ->
                         val path = "disk$dsk".s
@@ -219,6 +215,10 @@ class ZxWnd : Wnd() {
                                 "disk$dsk".s = ""
                         }
                     }
+                    // настройки
+                    settings.forEachIndexed { i, key -> if (i < ZX_PROPS_INIT_COUNT) zxGetProp(key.substringBeforeLast(',').s, i) }
+                    // восстановление предыдущего сеанса
+                    zxInit(assets, nameAutoSave, errors)
                 }
             }
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)

@@ -62,7 +62,6 @@ enum CPU_REGS {
     RI, RR, IFF1, IFF2, IM,
     PORT_FE, PORT_1FFD, PORT_7FFD,
     RAM, ROM, VID,
-
     // 35
     AY_REG,
     AY_AFINE, AY_ACOARSE, AY_BFINE, AY_BCOARSE, AY_CFINE, AY_CCOARSE, AY_NOISEPER, AY_ENABLE, AY_AVOL,
@@ -70,15 +69,17 @@ enum CPU_REGS {
     // 53
     TRDOS_HEAD, TRDOS_TRK, TRDOS_SEC, TRDOS_DAT, TRDOS_STS, TRDOS_CMD, TRDOS_SYS,
     // 60
+    TICK0, TICK1, TICK2, TICK3,
+    // 64
     MOUSE_K, MOUSE_X, MOUSE_Y,
     RTMP,
-    // 64
+    // 68
     STATE,
     CALL0, CALL1,
-    // 67
+    // 71
     RUS_LAT,
     MODEL,
-    // 69
+    // 73
     COUNT_REGS
 };
 

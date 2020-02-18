@@ -17,19 +17,20 @@ static uint8_t mem1FFD[] = { 0, 1, 2, 3,  4, 5, 6, 7,  4, 5, 6, 3,  4, 7, 6, 3, 
 static int atrTab[192];
 static uint8_t colTab[512];
 
-
-// текущий счетчик инструкций
-long     zxULA::_TICK(0);
 uint32_t zxULA::frameTick(0);
-
-uint16_t* zxULA::_CALL(nullptr);
 uint16_t zxULA::PC(0);
 
 // страницы памяти
 uint8_t* zxULA::memPAGES[4];
 
+// возврат из процедуры
+uint16_t* zxULA::_CALL(nullptr);
+// текущий счетчик инструкций
+uint32_t* zxULA::_TICK(nullptr);
 // STATE
 uint8_t* zxULA::_STATE(nullptr);
+//
+ZX_MACHINE* zxULA::machine(nullptr);
 
 // 0 KOMPANION, 1 48, 2 2006, 3 128_0, 4 128_1, 5 pentagon_0, 6 pentagon_1, 7 scorp_0, 8 scorp_1, 9 scorp_2, 10 scorp_3,
 // 11 plus2_0, 12 plus2_1, 13 plus3_0, 14 plus3_1, 15 plus3_2, 16 plus3_3, 17 trdos_0, 18 trdos128_0
@@ -88,7 +89,7 @@ static uint8_t semiRows[] = {
 };
 
 zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _FF(255), colorBorder(7),
-                 blink(0), sizeBorder(0), machine(nullptr), ROMb(nullptr), ROMtr(nullptr),
+                 blink(0), sizeBorder(0), ROMb(nullptr), ROMtr(nullptr),
                  cpu(nullptr), snd(nullptr), tape(nullptr), disk(nullptr), gpu(nullptr) {
     RAMs = new uint8_t[ZX_TOTAL_RAM];
     ROMtr = new uint8_t[1 << 14];
@@ -117,13 +118,24 @@ zxULA::zxULA() : pauseBetweenTapeBlocks(0), joyOldButtons(0), deltaTSTATE(0), _F
     _7FFD    		= &opts[PORT_7FFD];
     _FE             = &opts[PORT_FE];
 
-    zxULA::_RAM     = &opts[RAM];
-    zxULA::_VID     = &opts[VID];
-    zxULA::_ROM     = &opts[ROM];
-    zxULA::_CALL    = (uint16_t*)&opts[CALL0];
+    _RAM            = &opts[RAM];
+    _VID            = &opts[VID];
+    _ROM            = &opts[ROM];
+    _CALL           = (uint16_t*)&opts[CALL0];
+    _TICK     		= (uint32_t*)&opts[TICK0];
 
     cpu = new zxCPU();
     gpu = new zxGPU();
+
+    // машина по умолчанию(до загрузки состояния)
+    machine = &machines[MODEL_48];
+
+    // создаем устройства
+    snd = new zxSoundMixer();
+    tape = new zxTape(snd);
+    disk = new zxVG93();
+    assembler = new zxAssembler();
+    debugger = new zxDebugger();
 }
 
 zxULA::~zxULA() {
@@ -434,14 +446,6 @@ void zxULA::changeModel(uint8_t _new, bool reset) {
         delete[] ROMb; ROMb = rom; ROMe = ROMb + totalRom;
         totalRom >>= 14;
         for(int i = 0 ; i < 4; i++) PAGE_ROM[i] = rom +  ((i >= totalRom ? totalRom - 1 : i) << 14);
-        // создаем устройства
-        if(!snd) {
-            snd = new zxSoundMixer();
-            tape = new zxTape(snd);
-            disk = new zxVG93();
-            assembler = new zxAssembler();
-            debugger = new zxDebugger();
-        }
     } else {
         LOG_INFO("Не удалось загрузить ПЗУ для машины - %s!", machines[_new].name);
         delete[] rom;
@@ -452,7 +456,7 @@ void zxULA::changeModel(uint8_t _new, bool reset) {
 void zxULA::signalRESET(bool reset) {
     // сброс устройств
     if(reset) tape->reset();
-    if(reset) disk->reset();
+    //if(reset) disk->reset();
     snd->reset();
     // очищаем ОЗУ
     ssh_memzero(RAMs, ZX_TOTAL_RAM);
@@ -467,8 +471,7 @@ void zxULA::signalRESET(bool reset) {
     opts[ZX_PROP_JOY_ACTION_VALUE] = 0; opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
     joyOldButtons = 0;
     // инициализаруем переменные
-    *cpu->_SP = 65534; *_FE = 0b11100111; *_VID = 5; *_RAM = 7; *_ROM = machine->startRom;
-    //*_7FFD = *_RAM | (*_ROM << 4);
+    *cpu->_SP = 65534; *_FE = 0b11100111; *_VID = 5; *_RAM = 0; *_ROM = machine->startRom;
     memPAGES[1] = &RAMs[5 << 14]; memPAGES[2] = &RAMs[2 << 14];
     // сброс состояния с сохранением статуса отладчика
     *_STATE &= ZX_DEBUG;
@@ -506,7 +509,7 @@ void zxULA::stepDebug() {
     modifySTATE(0, ZX_DEBUG | ZX_HALT);
     // перехват системных процедур
     auto ticks = cpu->step();
-    _TICK += ticks;
+    *_TICK += ticks;
     frameTick += ticks;
     trap();
     modifySTATE(ZX_DEBUG, 0);
@@ -539,13 +542,13 @@ void zxULA::updateCPU(int todo, bool interrupt) {
     if (interrupt) {
         ticks = step(true);
         todo -= ticks;
-        _TICK += ticks;
+        *_TICK += ticks;
         frameTick += ticks;
     }
     while(todo > 0) {
         ticks = step(false);
         todo -= ticks;
-        _TICK += ticks;
+        *_TICK += ticks;
         frameTick += ticks;
     }
     deltaTSTATE = todo;
@@ -565,7 +568,7 @@ void zxULA::updateFrame() {
     auto dest = gpu->frameBuffer;
     if(!dest) return;
 
-    frameTick = (uint32_t)(_TICK % machine->tsTotal);
+    frameTick = *_TICK % machine->tsTotal;
     snd->frameStart(frameTick);
 
     auto isBlink = (blink & 16) >> 4;
@@ -765,23 +768,24 @@ void zxULA::trap() {
     }
 }
 
+static bool isAyport(uint16_t port) {
+    if(port&2) return false;
+    if((port & 0xC0FF) == 0xC0FD) return true;
+    return (port & 0xC000) == 0x8000;
+}
+
 void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
+    uint16_t p = (A8A15 << 8) | A0A7;
+    if(isAyport(p)) {
+        snd->ioWrite(0, p, val, frameTick);
+        return;
+    }
     switch(A0A7) {
         case 0xFD:
-            if(A8A15 == 0xFF) {
-                // устанавливаем текущий AY регистр
-                snd->ioWrite(0, 0xFFFD, val, frameTick);
-            } else if(A8A15 == 0xBF) {
-                // записываем значение в текущий AY регистр
-                snd->ioWrite(0, 0xBFFD, val, frameTick);
-            } else {
-                if((*_MODEL == MODEL_PLUS3 || *_MODEL == MODEL_SCORPION) && A8A15 == 0x1F) {
-                    // 0,2,5,12=1; 1,14,15=0
-                    write1FFD(val);
-                } else
-//                LOG_INFO("7FFD A0A7:%i A8A15:%i val:%i", A0A7, A8A15, val);
-                write7FFD(val);
-            }
+            if((*_MODEL == MODEL_PLUS3 || *_MODEL == MODEL_SCORPION) && A8A15 == 0x1F) {
+                // 0,2,5,12=1; 1,14,15=0
+                write1FFD(val);
+            } else write7FFD(val);
             break;
         case 0xFE:
             // 0, 1, 2 - бордер, 3 MIC - при записи, 4 - бипер
@@ -798,10 +802,10 @@ void zxULA::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
             }
             break;
         default:
-            LOG_DEBUG("WRITE UNKNOWN PORT (%02X%02X(%i) - PC: %i", A8A15, A0A7, val, PC);
+//            LOG_DEBUG("WRITE UNKNOWN PORT (%02X%02X(%i) - PC: %i", A8A15, A0A7, val, PC);
             break;
    }
-    if(checkSTATE(ZX_DEBUG)) { if(checkBPs((uint16_t)(A0A7 | (A8A15 << 8)), ZX_BP_WPORT)) return; }
+    if(checkSTATE(ZX_DEBUG)) { if(checkBPs(p, ZX_BP_WPORT)) return; }
 }
 
 void zxULA::write1FFD(uint8_t val) {
@@ -888,11 +892,16 @@ void zxULA::write7FFD(uint8_t val) {
                 *_ROM = (uint8_t) ((val & 16) >> 4);
                 break;
         }
+        if(val & 32) {
+            LOG_INFO("block 7ffd %i PC:%i", val, PC);
+        }
         setPages();
     }
 }
 
 uint8_t zxULA::readPort(uint8_t A0A7, uint8_t A8A15) {
+    uint16_t p = (A8A15 << 8) | A0A7;
+    if(isAyport(p)) return snd->ioRead(0, p);
     uint8_t ret = _FF;
     switch(A0A7) {
         case 0x1F:
@@ -926,9 +935,6 @@ uint8_t zxULA::readPort(uint8_t A0A7, uint8_t A8A15) {
                     opts[RUS_LAT] |= 127;
                 }
             }
-            break;
-        case 0xFD:
-            if(A8A15 == 0xFF) ret = snd->ioRead(0, 0xFFFD);
             break;
         case 0xFE:
             // 0,1,2,3,4 - клавиши полуряда, 6 - EAR, 5,7 - не используется

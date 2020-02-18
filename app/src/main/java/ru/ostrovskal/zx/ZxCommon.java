@@ -65,13 +65,13 @@ public final class ZxCommon {
     public final static int ZX_CPU_SP               = 20;
     public final static int ZX_CPU_PC               = 22;
     public final static int ZX_CPU_RI               = 24;
-    public final static int ZX_CPU_RR               = 25;
+    public final static int ZX_CPU_RAM              = 32;
     public final static int ZX_CPU_ROM              = 33;
-    public final static int ZX_CPU_MK               = 60;
-    public final static int ZX_CPU_MX               = 61;
-    public final static int ZX_CPU_MY               = 62;
-    public final static int ZX_CPU_STATE            = 64;
-    public final static int ZX_CPU_RL               = 67;
+    public final static int ZX_CPU_MK               = 64;
+    public final static int ZX_CPU_MX               = 65;
+    public final static int ZX_CPU_MY               = 66;
+    public final static int ZX_CPU_STATE            = 68;
+    public final static int ZX_CPU_RL               = 71;
 
     public final static int MENU_IO                 = 1001;
     public final static int MENU_SETTINGS           = 1002;
@@ -130,11 +130,11 @@ public final class ZxCommon {
     // Разделяемые свойства
 
     // 0. Байтовые значения, вычисляемые во время работы программы
-    public static final int ZX_PROP_JOY_TYPE        = 70; // Текущий тип джойстика
-    public static final int ZX_PROP_JOY_KEYS        = 71; // Привазанные к джойстику коды кнопок клавиатуры (8) 69 - 76
-    public static final int ZX_PROP_JOY_CROSS_VALUE = 79; // Нажатые кнопки джойстика-крестовины
-    public static final int ZX_PROP_JOY_ACTION_VALUE= 80; // Нажатые кнопки джойстика-управления
-    public static final int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
+    public static final int ZX_PROP_JOY_TYPE        = 90;  // Текущий тип джойстика
+    public static final int ZX_PROP_JOY_KEYS        = 91;  // Привазанные к джойстику коды кнопок клавиатуры (8) 69 - 76
+    public static final int ZX_PROP_JOY_CROSS_VALUE = 99;  // Нажатые кнопки джойстика-крестовины
+    public static final int ZX_PROP_JOY_ACTION_VALUE= 100; // Нажатые кнопки джойстика-управления
+    public static final int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передаваемое из JNI
     public static final int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
     public static final int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
 

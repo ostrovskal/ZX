@@ -103,16 +103,16 @@ enum ZX_STATE {
 
 // Разделяемые свойства
 // 0. Байтовые значения, вычисляемые во время работы программы
-//constexpr int ZX_PROP_JOY_TYPE        = 70; // Текущий тип джойстика
-constexpr int ZX_PROP_JOY_KEYS        = 71; // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
-constexpr int ZX_PROP_JOY_CROSS_VALUE = 79; // Нажатые кнопки джойстика-крестовины
-constexpr int ZX_PROP_JOY_ACTION_VALUE= 80; // Нажатые кнопки джойстика-управления
-constexpr int ZX_PROP_KEY_CURSOR_MODE = 81; // Режим курсора (E, G, L, K т.п.)
-constexpr int ZX_PROP_KEY_MODE        = 82; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
-constexpr int ZX_PROP_VALUES_SEMI_ROW = 83; // Значения в полурядах клавиатуры (8) 93 - 100
-constexpr int ZX_PROP_VALUES_KEMPSTON = 91; // Значение для кемпстон-джойстика
-constexpr int ZX_PROP_JNI_RETURN_VALUE= 92; // Значение передаваемое из JNI
-constexpr int ZX_PROP_PORT_FEFC       = 96; // Значение передаваемое в порт компаньона
+//constexpr int ZX_PROP_JOY_TYPE        = 90;// Текущий тип джойстика
+constexpr int ZX_PROP_JOY_KEYS        = 91;  // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
+constexpr int ZX_PROP_JOY_CROSS_VALUE = 99;  // Нажатые кнопки джойстика-крестовины
+constexpr int ZX_PROP_JOY_ACTION_VALUE= 100; // Нажатые кнопки джойстика-управления
+constexpr int ZX_PROP_KEY_CURSOR_MODE = 101; // Режим курсора (E, G, L, K т.п.)
+constexpr int ZX_PROP_KEY_MODE        = 102; // Режим клавиатуры (CAPS LOCK, SYMBOL SHIFT)
+constexpr int ZX_PROP_VALUES_SEMI_ROW = 103; // Значения в полурядах клавиатуры (8) 93 - 100
+constexpr int ZX_PROP_VALUES_KEMPSTON = 111; // Значение для кемпстон-джойстика
+constexpr int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передаваемое из JNI
+constexpr int ZX_PROP_PORT_FEFC       = 116; // Значение передаваемое в порт компаньона
 constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 constexpr int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
 

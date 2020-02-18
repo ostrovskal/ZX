@@ -105,41 +105,105 @@
 uint32_t Z80FQ;
 
 uint8_t* zxVG93::restoreState(uint8_t* ptr) {
+    time    = *ULA->_TICK;
+    ops     = *ptr++;
+    nfdd    = *ptr++;
+    fdd     = &fdds[nfdd];
+    fdds[0].track(*ptr++); fdds[1].track(*ptr++);
+    fdds[2].track(*ptr++); fdds[3].track(*ptr++);
+    fdds[0].head = *ptr++; fdds[1].head = *ptr++;
+    fdds[2].head = *ptr++; fdds[3].head = *ptr++;
+    load();
+    found_sec = (*ptr++ ? fdd->get_sec(fdd->track(), fdd->head, opts[TRDOS_SEC]) : nullptr);
+    rwlen   = *(uint16_t*)(ptr +  0);
+    crc     = *(uint16_t*)(ptr +  2);
+    switch(ops) {
+        case C_RTRK:
+        case C_WTRK: _rwptr = fdd->get_trk()->content; break;
+        case C_RSEC:
+        case C_WSEC: _rwptr = found_sec->content; break;
+        case C_RADR: _rwptr = found_sec->caption; break;
+        default:     _rwptr = nullptr; break;
+    }
+    rwptr = (ops != 0 ? _rwptr + *(uint16_t*)(ptr + 4) : nullptr);
+    start_crc = *(uint16_t*)(ptr + 6) ? rwptr + *(uint16_t*)(ptr + 8) : nullptr;
+    next      = *(uint16_t*)(ptr + 10) | (*(uint16_t*)(ptr + 12) << 16);
+    wait_drq  = *(uint16_t*)(ptr + 14) | (*(uint16_t*)(ptr + 16) << 16);
+    direction = *(int8_t*)(ptr + 18);
+    state     = *(ptr + 19);
+    rqs       = *(ptr + 20);
+    ptr       += 21;
+    for(int i = 0 ; i < 4; i++) {
+        uint32_t tmp = *(uint16_t*)(ptr + 0) | (*(uint16_t*)(ptr + 2) << 16);
+        ptr += 4;
+        fdds[i].engine(tmp);
+    }
+/*
+    LOG_INFO("sec:%i time:%i ops:%i nfdd:%i trk(%i %i %i %i) head(%i %i %i %i) rwlen:%i crc:%i rwptr:%i is_start_crc:%i start_crc:%i next:%X "
+             "wait:%X dir:%i state:%i rqs:%i engine(%i %i %i %i)",
+             opts[TRDOS_SEC],
+             time, ops, nfdd,
+             fdds[0].track(), fdds[1].track(), fdds[2].track(), fdds[3].track(),
+             fdds[0].head, fdds[1].head, fdds[2].head, fdds[3].head,
+             rwlen, crc,
+             rwptr - _rwptr, start_crc != nullptr, start_crc - rwptr,
+             next, wait_drq,
+             direction, state, rqs,
+             fdds[0].engine(), fdds[1].engine(), fdds[2].engine(), fdds[3].engine());
+    if(found_sec) {
+        LOG_INFO("found_sec trk:%i sec:%i head:%i", found_sec->trk(), found_sec->sec(), found_sec->head());
+    } else {
+        LOG_INFO("found_sec is nullptr", 0);
+    }
+*/
     return ptr;
 }
 
 uint8_t* zxVG93::saveState(uint8_t* ptr) {
-    /*
-    // начальная КК
-    int8_t start_crc;
-    // головка
-    uint8_t head;
-    // напраление
-    int8_t direction;
-    // позиция при чтении/записи
-    int16_t rwptr;
-    // длина буфера чтения/записи
-    int16_t rwlen;
-    // следующее время
-    uint32_t next;
-    // текущее состояние
-    uint8_t	state;
-    // состояние порта 0xFF
-    uint8_t	rqs;
-    // системный регистр
-    uint8_t	system;
-    // текущий КК
-    uint16_t crc;
-     *
-     */
-
-    /*
-    uint32_t motor;
-    uint8_t  trk;
-    uint8_t  head;
-    u_long   ts;
-     *
-     */
+    time = *ULA->_TICK;
+/*
+    LOG_INFO("sec:%i time:%i ops:%i nfdd:%i trk(%i %i %i %i) head(%i %i %i %i) rwlen:%i crc:%i rwptr:%i is_start_crc:%i start_crc:%i next:%X "
+             "wait:%X dir:%i state:%i rqs:%i engine(%i %i %i %i)",
+             opts[TRDOS_SEC],
+             time, ops, nfdd,
+             fdds[0].track(), fdds[1].track(), fdds[2].track(), fdds[3].track(),
+             fdds[0].head, fdds[1].head, fdds[2].head, fdds[3].head,
+             rwlen, crc,
+             rwptr - _rwptr, start_crc != nullptr, start_crc - rwptr,
+             next, wait_drq,
+             direction, state, rqs,
+             fdds[0].engine(), fdds[1].engine(), fdds[2].engine(), fdds[3].engine());
+    if(found_sec) {
+        LOG_INFO("found_sec %i %i %i", found_sec->trk(), found_sec->sec(), found_sec->head());
+    } else {
+        LOG_INFO("found_sec is nullptr", 0);
+    }
+*/
+    *ptr++ = ops; *ptr++ = nfdd;
+    *ptr++ = fdds[0].track(); *ptr++ = fdds[1].track();
+    *ptr++ = fdds[2].track(); *ptr++ = fdds[3].track();
+    *ptr++ = fdds[0].head; *ptr++ = fdds[1].head;
+    *ptr++ = fdds[2].head; *ptr++ = fdds[3].head;
+    *ptr++ = (uint8_t)(found_sec != nullptr);
+    *(uint16_t*)(ptr +  0) = rwlen;
+    *(uint16_t*)(ptr +  2) = crc;
+    *(uint16_t*)(ptr +  4) = (uint16_t)(ops ? rwptr - _rwptr : 0);      // rwptr
+    auto tmp = (uint32_t)(start_crc != nullptr);
+    *(uint16_t*)(ptr +  6) = (uint16_t)(tmp);
+    *(uint16_t*)(ptr +  8) = (uint16_t)(tmp ? start_crc - rwptr : 0);   // start_crc
+    *(uint16_t*)(ptr + 10) = (uint16_t)(next & 0xFFFF);
+    *(uint16_t*)(ptr + 12) = (uint16_t)(next >> 16);                    // next
+    *(uint16_t*)(ptr + 14) = (uint16_t)(wait_drq & 0xFFFF);
+    *(uint16_t*)(ptr + 16) = (uint16_t)(wait_drq >> 16);                // wait
+    ptr += 18;
+    *ptr++ = (uint8_t)direction;
+    *ptr++ = state; *ptr++ = rqs;
+    for(int i = 0 ; i < 4; i++) {
+        tmp = fdds[i].engine();
+        *(uint16_t*)(ptr + 0) = (uint16_t)(tmp & 0xFFFF);
+        *(uint16_t*)(ptr + 2) = (uint16_t)(tmp >> 16);
+        ptr += 4;
+    }
     return ptr;
 }
 
@@ -148,7 +212,7 @@ int zxVG93::save(const char *path, int num, int type) {
 }
 
 void zxVG93::updateProps() {
-    Z80FQ = ULA->machine->cpuClock;
+    Z80FQ = zxULA::machine->cpuClock;
 }
 
 //static const char* boot_sign = "boot    B";
@@ -474,7 +538,7 @@ bool zxFDD::read_fdi(const void *data, size_t data_size) {
 //                                                  VG93                                                                 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-zxVG93::zxVG93() : next(0), direction(0), rqs(R_NONE), state(S_IDLE), nfdd(0), end_waiting_am(0),
+zxVG93::zxVG93() : next(0), direction(0), rqs(R_NONE), state(S_IDLE), nfdd(0), wait_drq(0), ops(0),
                    found_sec(nullptr), rwptr(nullptr), rwlen(0), crc(0), start_crc(nullptr) {
     reset();
 }
@@ -507,7 +571,7 @@ uint16_t zxVG93::CRC(uint8_t* src, int size) const {
 }
 
 void zxVG93::exec() {
-    auto time = ULA->_TICK;
+    time = *ULA->_TICK;
     // Неактивные диски игнорируют бит HLT
     if(time > fdd->engine() && (opts[TRDOS_SYS] & CB_SYS_HLT)) fdd->engine(0);
     fdd->is_disk() ? opts[TRDOS_STS] &= ~ST_NOTRDY : opts[TRDOS_STS] |= ST_NOTRDY;
@@ -524,7 +588,7 @@ void zxVG93::exec() {
             // шина свободна. команда завершена
             case S_IDLE: opts[TRDOS_STS] &= ~ST_BUSY; rqs = R_INTRQ; return;
             // задержка при выполении команды
-            case S_WAIT: if(time < next) return; _ST_NEXT; break;
+            case S_WAIT: if(time < next) return; state = _ST_NEXT; break;
             // подготовка к чтению/записи
             case S_PREPARE_CMD: cmdPrepareRW(); break;
             // подготовка операции чтения/записи
@@ -532,7 +596,7 @@ void zxVG93::exec() {
             // операция чтения(сектора, адреса, дорожки)
             case S_READ: cmdRead(); break;
             // нашли сектор - запускаем операцию
-            case S_FIND_SEC: cmdFindSec(); break;
+            case S_FIND_SEC: cmdPrepareSec(); break;
             // запись сектора
             case S_WRSEC: cmdWriteSector(); break;
             // запись дорожки
@@ -560,27 +624,23 @@ void zxVG93::read_byte(){
 }
 
 bool zxVG93::ready() {
-    // Fdc слишком быстр в режиме без задержки, подождите, пока CPU обработает DRQ, но не больше 'end_waiting_am'
+    // Fdc слишком быстр в режиме без задержки, подождите, пока CPU обработает DRQ, но не больше 'wait_drq'
     if(!(rqs & R_DRQ)) return true;
-    if(next > end_waiting_am) return true;
-    next += fdd->ticks();
-    _ST_SET(S_WAIT, _ST_NEXT);
-    LOG_INFO("no ready", 0);
+    if(next > wait_drq) return true;
+    next = time + fdd->ticks();
+    _ST_SET(S_WAIT, state);
     return false;
 }
 
 void zxVG93::cmdRead() {
     if(!ready()) return;
     if(rwlen) {
-        if(rqs & R_DRQ) {
-            opts[TRDOS_STS] |= ST_LOST;
-            LOG_INFO("READ LOST", 0);
-        }
+        if(rqs & R_DRQ) opts[TRDOS_STS] |= ST_LOST;
         read_byte();
     } else {
         LOG_DEBUG("S_READ FINISH", 0);
+        ops = 0;
 //        log_to_data(false, "read_sector", found_sec->trk(), found_sec->sec(), found_sec->head());
-        rwptr = nullptr;
         if((opts[TRDOS_CMD] & 0xe0) == C_RSEC) {
             // если чтение сектора - проверяем на CRC
             if (crc != found_sec->crcData()) {
@@ -621,7 +681,7 @@ void zxVG93::cmdWrite() {
         // завершение операции
         LOG_DEBUG("S_WRITE FINISH", 0);
 //        log_to_data(false, "write_sector", found_sec->trk(), found_sec->sec(), found_sec->head());
-        rwptr = nullptr;
+        found_sec = nullptr; ops = 0;
         // проверка на множественные сектора
         if(opts[TRDOS_CMD] & CB_MULTIPLE) { opts[TRDOS_SEC]++; state = S_CMD_RW; } else state = S_IDLE;
     }
@@ -662,7 +722,7 @@ void zxVG93::cmdWriteSector() {
         opts[TRDOS_STS] |= ST_LOST;
         state = S_IDLE;
     } else {
-        _rwptr = rwptr = found_sec->content;
+        _rwptr = rwptr = found_sec->content; ops = C_WSEC;
         auto dat = (uint8_t) ((opts[TRDOS_CMD] & CB_WRITE_DEL) ? 0xF8 : 0xFB);
         rwptr[-1] = dat; rwlen = found_sec->len();
         crc = CRC(dat); state = S_WRITE;
@@ -690,8 +750,8 @@ void zxVG93::cmdWriteTrack() {
         state = S_IDLE;
     } else {
         start_crc = nullptr;
-        get_index(S_WR_TRACK_DATA);
-        end_waiting_am = next + 5 * Z80FQ / FDD_RPS;
+        get_index(S_WR_TRACK_DATA); ops = C_WTRK;
+        wait_drq = next + 5 * Z80FQ / FDD_RPS;
         LOG_DEBUG("S_WRITE_TRACK idx:%i len:%i trk:%i sec:%i head:%i",
                 rwptr - fdd->get_trk()->content, rwlen, opts[TRDOS_TRK], opts[TRDOS_SEC], opts[TRDOS_HEAD]);
     }
@@ -706,7 +766,7 @@ void zxVG93::cmdReadWrite() {
         state = S_IDLE;
     } else if((cmd & 0xc0) == 0x80 || (cmd & 0xf8) == C_RADR) {
         // операции чтения/записи секторов или чтения адреса - поиск сектора
-        end_waiting_am = next + 5 * Z80FQ / FDD_RPS;
+        wait_drq = next + 5 * Z80FQ / FDD_RPS;
         find_sec();
     } else if((cmd & 0xf8) == C_WTRK) {
         // запись дорожки(форматирование)
@@ -716,9 +776,7 @@ void zxVG93::cmdReadWrite() {
     } else if((cmd & 0xf8) == C_RTRK) {
         // чтение дорожки
         LOG_DEBUG("S_RW_CMD - C_RTRK", 0);
-        auto t = fdd->get_trk();
-        _rwptr = rwptr = t->content; rwlen = t->len;
-        get_index(S_READ);
+        get_index(S_READ); ops = C_RTRK;
     } else {
         state = S_IDLE;
     }
@@ -741,13 +799,13 @@ void zxVG93::cmdType1() {
     next += Z80FQ / 1000;
 }
 
-void zxVG93::cmdFindSec() {
+void zxVG93::cmdPrepareSec() {
     load();
     auto cmd = opts[TRDOS_CMD];
     if ((cmd & 0xf0) == C_RADR) {
         // чтение адресного маркера
         //opts[TRDOS_SEC] = opts[TRDOS_TRK];
-        _rwptr = rwptr = found_sec->caption; rwlen = 6;
+        _rwptr = rwptr = found_sec->caption; rwlen = 6; ops = C_RADR;
         auto marker = rwptr[-1];
         LOG_DEBUG("S_RARD idx:%i len:%i trk:%i sec:%i head:%i marker:%X",
                 rwptr - fdd->get_trk()->content, rwlen, found_sec->trk(), found_sec->sec(), found_sec->head(), marker);
@@ -759,7 +817,7 @@ void zxVG93::cmdFindSec() {
         _ST_SET(S_WAIT, S_WRSEC);
     } else {
         // чтение сектора
-        _rwptr = rwptr = found_sec->content; rwlen = found_sec->len();
+        _rwptr = rwptr = found_sec->content; rwlen = found_sec->len(); ops = C_RSEC;
         auto marker = rwptr[-1];
         if(marker == 0xF8) opts[TRDOS_STS] |= ST_RECORDT; else opts[TRDOS_STS] &= ~ST_RECORDT;
         LOG_DEBUG("S_RSEC idx:%i len:%i trk:%i sec:%i head:%i marker:%X",
@@ -805,13 +863,9 @@ void zxVG93::cmdSeek() {
 }
 
 void zxVG93::cmdVerify() {
-    if(!(opts[TRDOS_CMD] & CB_SEEK_VERIFY)) {
-        state = S_IDLE;
-    } else {
-        load();
-        end_waiting_am = next + 5 * Z80FQ / FDD_RPS;
-        find_sec();
-    }
+    // для проверки существования сектора или правильности КК
+    if(opts[TRDOS_CMD] & CB_SEEK_VERIFY) find_sec();
+    state = S_IDLE;
 }
 
 void zxVG93::find_sec() {
@@ -819,7 +873,6 @@ void zxVG93::find_sec() {
     found_sec = nullptr;
     auto wait = 10 * Z80FQ / FDD_RPS;
     opts[TRDOS_STS] &= ~ST_CRCERR;
-    LOG_INFO("find sector %i", opts[TRDOS_SEC]);
     if(fdd->engine() && fdd->is_disk()) {
         auto t = fdd->get_trk();
         for (int i = 0; i < t->total_sec; ++i) {
@@ -835,7 +888,6 @@ void zxVG93::find_sec() {
         if(CRC(found_sec->caption - 1, 5) == found_sec->crcId()) {
             next += wait;
             _ST_SET(S_WAIT, S_FIND_SEC);
-            LOG_INFO("find sector ok", 0);
             return;
         }
         opts[TRDOS_STS] |= ST_CRCERR;
@@ -874,7 +926,7 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v) {
         }
         if(opts[TRDOS_STS] & ST_BUSY) return;
         opts[TRDOS_CMD] = v;
-        next = (uint32_t)ULA->_TICK;
+        next = *ULA->_TICK;
         opts[TRDOS_STS] |= ST_BUSY; rqs = R_NONE;
         // команды чтения/записи
         if(opts[TRDOS_CMD] & 0x80) {
@@ -889,10 +941,8 @@ void zxVG93::vg93_write(uint8_t port, uint8_t v) {
         }
     } else if(port == 0x3F) {
         opts[TRDOS_TRK] = v;
-        LOG_INFO("set track %i", v);
     } else if(port == 0x5F) {
         opts[TRDOS_SEC] = v;
-        LOG_INFO("set sector %i", v);
     } else if(port == 0x7F) {
         opts[TRDOS_DAT] = v;
         rqs &= ~R_DRQ;

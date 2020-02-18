@@ -116,7 +116,7 @@
     <string name="flagC" translatable="false">C</string>
     <string name="rom" translatable="false">ROM</string>
     <string name="ri" translatable="false">I</string>
-    <string name="rr" translatable="false">R</string>
+    <string name="ram" translatable="false">RAM</string>
     <string name="raf" translatable="false">AF</string>
     <string name="rhl" translatable="false">HL</string>
     <string name="rde" translatable="false">DE</string>

@@ -18,7 +18,7 @@ inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
 inline uint16_t wordBE(const uint8_t* ptr)	{ return ptr[0] << 8 | ptr[1]; }
 
 #define _ST_SET(current, next)      state = ((current) | ((next) << 4))
-#define _ST_NEXT                    state = ((state & 240) >> 4)
+#define _ST_NEXT                    (uint8_t)((state & 240) >> 4)
 
 class zxDisk {
 public:
@@ -83,7 +83,8 @@ public:
     zxDisk::TRACK::SECTOR* get_sec(int sec) { return &get_trk()->sectors[sec]; }
     zxDisk::TRACK::SECTOR* get_sec(int trk, int head, int sec);
 
-    bool protect;
+    bool    protect;
+    uint8_t head;
 protected:
     bool write_sec(int trk, int head, int sec, const uint8_t * data);
     void write_blk(int& pos, uint8_t val, int count) { for(int i = 0; i < count; ++i) get_trk()->write(pos++, val); }
@@ -98,7 +99,6 @@ protected:
 protected:
     uint32_t motor, ts;
     uint8_t  trk;
-    uint8_t  head;
     zxDisk*  disk;
 };
 
@@ -173,17 +173,19 @@ private:
     void cmdStep();
     void cmdWrite();
     void cmdPrepareRW();
-    void cmdFindSec();
+    void cmdPrepareSec();
     void cmdRead();
     void cmdWriteSector();
     void cmdWriteTrack();
     void cmdSeek();
     void cmdVerify();
     void log_to_data(bool is_text, const char* title, int trk, int sec, int head);
+    // текущая операция чтения/записи
+    uint8_t ops;
     // текущий дисковод
     uint8_t nfdd;
     // следующее время/время ожидания сектора
-    uint32_t next, end_waiting_am;
+    uint32_t time, next, wait_drq;
     // напраление
     int8_t direction;
     // начальный адрес вычисления КК
