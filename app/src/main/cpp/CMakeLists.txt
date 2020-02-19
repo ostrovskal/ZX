@@ -11,7 +11,7 @@ add_library( # Sets the name of the library.
         # Provides a relative path to your source file(s).
         zx-lib.cpp
         zxCommon.cpp
-        zxULA.cpp
+        zxSpeccy.cpp
         zxCPU.cpp
         zxFile.cpp
         zxDA.cpp
@@ -22,7 +22,12 @@ add_library( # Sets the name of the library.
         zxGPU.cpp
         zxSound.cpp
         zxFDD.cpp
+        zxDevs.cpp
         zxFormats.cpp
+        zxKeybJoy.cpp
+        zxUla.cpp
+        zxMemory.cpp
+        zxMagnitophon.cpp
         zxSound.cpp)
 
 find_library( # Sets the name of the path variable.

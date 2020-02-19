@@ -12,6 +12,7 @@
 #include "zxGPU.h"
 #include "zxFDD.h"
 #include "zxSound.h"
+#include "zxDevs.h"
 
 struct ZX_MACHINE {
     struct ZX_TSTATE { int up, lp, rp, dp; };
@@ -56,17 +57,11 @@ struct BREAK_POINT {
     uint8_t flg;
 };
 
-class zxULA {
+class zxSpeccy {
     friend class zxFormats;
 public:
-    zxULA();
-    ~zxULA();
-
-    // Обновление кадра
-    void updateFrame();
-
-    // обновление процессора
-    void updateCPU(int todo, bool interrupt);
+    zxSpeccy();
+    ~zxSpeccy();
 
     // запись в порт
     void writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val);
@@ -77,32 +72,29 @@ public:
     // запись
     bool save(const char* path, int type);
 
-    // обновление свойств
-    void updateProps(int filter);
+    // обновление устройств
+    void update(int filter);
 
     // сброс
-    void signalRESET(bool resetTape);
-
-    // обновление клавиатуры/джойстика
-    int updateKeys(int key, int action);
+    void reset();
 
     // смена модели памяти
-    void changeModel(uint8_t _new, bool isReset);
+    void changeModel(uint8_t _new);
 
     // выполнение
-    void execute();
+    int execute();
 
-    // установка актуальных страниц
-    void setPages();
-
-    // проверить на срабатывании точки останова
+    // проверить на срабатывании ловушки
     bool checkBPs(uint16_t address, uint8_t flg);
 
-    // быстрая установка в коде
+    // быстрая установка ловушки в коде
     void quickBP(uint16_t address);
 
     // выполнение при трассировке
     void stepDebug();
+
+    // выполнение в обычном режиме
+    int stepCPU(bool allow_int);
 
     // быстрое сохранение
     void quickSave();
@@ -116,26 +108,14 @@ public:
     // чтение из порта
     uint8_t readPort(uint8_t A0A7, uint8_t A8A15);
 
-    // быстрая проверка на точку останова
+    // быстрая проверка на ловушку
     BREAK_POINT* quickCheckBPs(uint16_t address, uint8_t flg);
 
     // модель памяти
-    uint8_t* _MODEL;
-
-    // видео страницы
-    uint8_t *pageVRAM, *pageATTRIB;
-
-    // активные страницы памяти
-    static uint8_t *memPAGES[4];
+    static uint8_t* _MODEL;
 
     // статус
     static uint8_t* _STATE;
-
-    // счетчик тактов
-    static uint32_t* _TICK;
-
-    // счетчик тактов в кадре
-    static uint32_t frameTick;
 
     // адрес возврата
     static uint16_t* _CALL;
@@ -143,23 +123,14 @@ public:
     // текущая машина
     static ZX_MACHINE* machine;
 
-    // страницы ПЗУ
-    uint8_t* PAGE_ROM[4];
+    // начало инструкции
+    static uint16_t PC;
 
     // буфер ОЗУ
-    uint8_t* RAMs;
-
-    // буфер ПЗУ - начальный/конечный
-    uint8_t* ROMb, *ROMe;
-
-    // буфер ПЗУ бета диска
-    uint8_t *ROMtr;
+    uint8_t *RAMbs;
 
     // процессор
     zxCPU* cpu;
-
-    // дисковод
-    zxVG93* disk;
 
     // видеокарта
     zxGPU* gpu;
@@ -176,58 +147,39 @@ public:
     // отладчик
     zxDebugger* debugger;
 
-    // начало инструкции
-    static uint16_t PC;
-
     // пауза между загрузкой блоков
     int pauseBetweenTapeBlocks;
 
     int getAddressCpuReg(const char *value);
 
-    jint UpdateSound(uint8_t *buf);
+    // нажата/отжата кнопка на клаве
+    int updateKeys(int key, int act) { return devs[DEV_KEYB]->update(key | (act << 7)); }
 
 protected:
-
-    // загрузка состояния
+    // восстановление состояния
     bool restoreState(const char *path);
 
     // сохранение состояния
     bool saveState(const char* path);
 
-    // исполнение инструкции процессора
-    int step(bool allow_int);
-
     // перехватчик
     void trap();
 
-    void write1FFD(uint8_t val);
-
-    void write7FFD(uint8_t val);
-
-    // содержимое портов
-    uint8_t *_KEMPSTON, *_1FFD, *_7FFD, *_FE;
-
-    // страницы
-    uint8_t *_RAM, *_VID, *_ROM;
-
-    // текущий атрибут (порт #FF)
-    uint8_t _FF;
-
-    // TSTATES
-    int stateUP, stateLP, stateRP, stateDP;
-
-    // остаток TSTATES
-    int deltaTSTATE;
-
-    // старое значение кнопок джойстика
-    uint8_t joyOldButtons;
-
-    // параметры мерцания
-    uint32_t blink;
-
-    // цвет и размер границы
-    uint32_t sizeBorder, colorBorder;
+    // добавление устройства
+    void addDev(zxDev *dev);
 
     // имя проги
     std::string name;
+
+    // список доступных устройств
+    zxDev* devs[DEV_COUNT];
+
+    // список устройств на чтение/запись
+    zxDev* access_devs[16];
+
+    // карта устройств на чтение/запись
+    uint8_t map_devs[65536 * 2];
+
+    // цепочки адресов устройств(до 8-и), которые прошли тест на чтение/запись в порт
+    zxDev* cache_devs[512][9];
 };

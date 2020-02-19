@@ -195,7 +195,11 @@ class ZxWnd : Wnd() {
             // Создаем UI хэндлер
             hand = Handler(Looper.getMainLooper(), this)
             // Инициализируем БД
-            SQL.connection(this, false, ZxPreset)
+            if(!SQL.connection(this, false, ZxPreset)) {
+                // инициализировать таблицы
+                ZxPreset.setDefaults(this)
+                //ZxPokes.setDefaults()
+            }
             // Инициализируем установки
             settings = loadResource("settings", "array_str", arrayOf(""))
             Settings.initialize(getSharedPreferences(logTag, Context.MODE_PRIVATE), settings)
@@ -221,6 +225,7 @@ class ZxWnd : Wnd() {
                     zxInit(assets, nameAutoSave, errors)
                 }
             }
+            ZxPreset.load("")
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
             "#errors".b = true
         }
@@ -294,6 +299,7 @@ class ZxWnd : Wnd() {
                 hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = read16(ZX_CPU_PC), a2 = ZX_ALL, o = dbg.toString())
                 if(!dbg) {
                     props[ZX_PROP_EXECUTE] = 1
+                    // закрываем отладчик
                     hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
                 }
             }
@@ -347,6 +353,7 @@ class ZxWnd : Wnd() {
         }
         if(id == MENU_DEBUGGER_LABEL || id == MENU_DEBUGGER_CODE || id == MENU_DEBUGGER_VALUE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_DEBUGGER.ordinal, a1 = 0, a2 = ZX_RL)
+        // остановка/запуск эмуляции
         if(id == MENU_PROPS_EXECUTE)
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
         return isChecked

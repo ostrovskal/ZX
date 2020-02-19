@@ -132,7 +132,6 @@ class ZxFormMain: Form() {
                             "[PAUSE]"
                         } else {
                             val prgName = ZxWnd.zxProgramName("")
-                            ZxPreset.load(prgName)
                             if (Config.isPortrait) {
                                 prgName
                             } else {

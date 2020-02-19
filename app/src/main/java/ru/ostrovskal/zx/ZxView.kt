@@ -110,6 +110,8 @@ class ZxView(context: Context) : GLSurfaceView(context) {
                 }
             }
             if (update) {
+                // RESET/MODEL/IO
+                ZxPreset.load("")
                 wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
             }
             msg.recycle()

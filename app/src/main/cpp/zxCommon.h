@@ -25,7 +25,7 @@
 
 #include "zxFile.h"
 #include "zxCPU.h"
-#include "zxULA.h"
+#include "zxSpeccy.h"
 
 struct MNEMONIC {
     // приемник
@@ -43,7 +43,7 @@ struct MNEMONIC {
 };
 
 // Глобальные
-extern zxULA* 				            ULA;
+extern zxSpeccy* 				        zx;
 extern uint8_t* 			            opts;
 extern uint8_t* 			            labels;
 extern uint8_t* 			            TMP_BUF;
@@ -93,7 +93,7 @@ constexpr int ZX_BP_OPS_LSE             = 5; // <=
 
 // Биты состояний
 enum ZX_STATE {
-    ZX_SCR  = 0x01, // когда рисуется экран
+    //ZX_SCR  = 0x01, // когда рисуется экран
     ZX_PAUSE= 0x02, // пауза между загрузкой блоков TAP
     ZX_HALT = 0x04, // останов. ждет прерывания
     ZX_TRDOS= 0x08, // режим диска
@@ -113,7 +113,7 @@ constexpr int ZX_PROP_VALUES_SEMI_ROW = 103; // Значения в полуря
 constexpr int ZX_PROP_VALUES_KEMPSTON = 111; // Значение для кемпстон-джойстика
 constexpr int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передаваемое из JNI
 constexpr int ZX_PROP_PORT_FEFC       = 116; // Значение передаваемое в порт компаньона
-constexpr int ZX_PROP_VALUES_BUTTON   = 322;// Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
+constexpr int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 constexpr int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
 
 // 1. Булевы значения
@@ -244,7 +244,7 @@ constexpr int RADIX_BOL 				= 6;
 
 #define SAFE_A_DELETE(ptr)              if(ptr) { delete[] ptr; (ptr) = nullptr; }
 #define SAFE_DELETE(ptr)                if(ptr) { delete (ptr); (ptr) = nullptr; }
-#define modifySTATE(a, r)               { (*zxULA::_STATE) &= ~(r); (*zxULA::_STATE) |= (a); }
+#define modifySTATE(a, r)               { (*zxSpeccy::_STATE) &= ~(r); (*zxSpeccy::_STATE) |= (a); }
 #define SWAP_REG(r1, r2)                { auto a = *(r1); auto b = *(r2); *(r1) = b; *(r2) = a; }
 
 inline uint32_t Dword(const uint8_t * ptr)  { return ptr[0] | (uint32_t)(ptr[1]) << 8 | (uint32_t)(ptr[2]) << 16 | (uint32_t)(ptr[3]) << 24; }
@@ -267,10 +267,10 @@ uint8_t* packBlock(uint8_t* src, uint8_t* srcE, uint8_t* dst, bool sign, uint32_
 int parseExtension(const char* name);
 
 // вернуть реальный адрес памяти
-inline uint8_t* realPtr(uint16_t address) { return &zxULA::memPAGES[address >> 14][address & 16383]; }
+inline uint8_t* realPtr(uint16_t address) { return &zxDevMem::memPAGES[address >> 14][address & 16383]; }
 
 // проверка на состояние
-inline bool checkSTATE(uint8_t state) { return (*zxULA::_STATE & (state)); }
+inline bool checkSTATE(uint8_t state) { return (*zxSpeccy::_STATE & (state)); }
 
 // читаем 8 бит из памяти
 inline uint8_t rm8(uint16_t address) { return *realPtr(address); }
@@ -279,7 +279,7 @@ inline uint8_t rm8(uint16_t address) { return *realPtr(address); }
 inline uint16_t rm16(uint16_t address) { return (rm8(address) | (rm8((uint16_t) (address + 1)) << 8)); }
 
 // пишем в память 8 битное значение
-inline void wm8(uint8_t* address, uint8_t val) { if(address < ULA->ROMb || address > ULA->ROMe) *address = val;}
+inline void wm8(uint8_t* address, uint8_t val) { if(address < zxDevMem::ROMb || address > zxDevMem::ROMe) *address = val;}
 
 // пропуск пробелов
 inline void ssh_skip_spc(char** s) {

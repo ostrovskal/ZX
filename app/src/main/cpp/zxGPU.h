@@ -5,9 +5,9 @@
 #pragma once
 
 class zxGPU {
-    friend class zxULA;
+    friend class zxSpeccy;
 public:
-    zxGPU();
+    zxGPU() : frameHeight(0), frameWidth(0), texture(0) { }
     ~zxGPU();
 
     void initGL();
@@ -18,6 +18,8 @@ public:
 
     void uninitGL();
 
+    // буфер кадра
+    static uint32_t* frameBuffer;
 protected:
 
     // габариты текстуры
@@ -25,8 +27,4 @@ protected:
 
     // ИД текстуры
     GLuint texture;
-
-    // буфер кадра
-    uint32_t* frameBuffer;
-
 };

@@ -85,9 +85,9 @@ size_t zxDA::cmdParser(uint16_t* pc, uint16_t* buffer, bool regSave) {
     } else if(regDst == _C16 || regDst == _RPHL) {
         n = rm16(vDst);
     } else if((regSrc == _RBC || regSrc == _RDE) && regDst == _RA) {
-        n = rm16(regSrc == _RBC ? *ULA->cpu->_BC : *ULA->cpu->_DE);
+        n = rm16(regSrc == _RBC ? *zx->cpu->_BC : *zx->cpu->_DE);
     } else if((regDst == _RBC || regDst == _RDE) && regSrc == _RA) {
-        n = rm16(regDst == _RBC ? *ULA->cpu->_BC : *ULA->cpu->_DE);
+        n = rm16(regDst == _RBC ? *zx->cpu->_BC : *zx->cpu->_DE);
     } else n = 0;
     *buffer++ = (uint16_t)n; *buffer++ = code;
     // длина кодов и они сами
@@ -97,7 +97,7 @@ size_t zxDA::cmdParser(uint16_t* pc, uint16_t* buffer, bool regSave) {
     // значения регистров(если надо)
     *buffer++ = (uint16_t)regSave;
     if(regSave) {
-        auto cpu = ULA->cpu;
+        auto cpu = zx->cpu;
         *buffer++ = *cpu->_AF; *buffer++ = *cpu->_BC; *buffer++ = *cpu->_DE; *buffer++ = *cpu->_HL;
         *buffer++ = *cpu->_IX; *buffer++ = *cpu->_IY; *buffer++ = *cpu->_SP;
     }
@@ -213,8 +213,8 @@ const char* zxDA::cmdToString(uint16_t* buffer, char* daResult, int flags) {
     // заголовок
     if(flags & DA_PC) {
         static const char* bpTypes[] = { "   ", " * ", " + ", " *+"};
-        auto isExec = ULA->quickCheckBPs(_pc, ZX_BP_EXEC) != nullptr;
-        auto isMem = ULA->quickCheckBPs(_pc, ZX_BP_WMEM) != nullptr;
+        auto isExec = zx->quickCheckBPs(_pc, ZX_BP_EXEC) != nullptr;
+        auto isMem = zx->quickCheckBPs(_pc, ZX_BP_WMEM) != nullptr;
         ssh_strcpy(&daResult, ssh_fmtValue(_pc, ZX_FV_NUM16, true));
         ssh_strcpy(&daResult, bpTypes[isExec | (isMem << 1)]);
     }

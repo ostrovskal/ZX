@@ -50,7 +50,7 @@ const char *zxDebugger::itemList(int cmd, int data, int flags){
             break;
         case ZX_DEBUGGER_MODE_SP: {
             // stack addr       >content<     chars
-            auto isSP = tmp == *ULA->cpu->_SP;
+            auto isSP = tmp == *zx->cpu->_SP;
             int val;
             auto length = 5 - opts[ZX_PROP_SHOW_HEX];
             if(data < 65535 && data >= 0) ssh_strcpy(&rtmp, ssh_fmtValue(data, ZX_FV_OPS16, true));
@@ -115,8 +115,8 @@ const char *zxDebugger::itemList(int cmd, int data, int flags){
 
 void zxDebugger::trace(int mode) {
     uint16_t yAddr, nAddr;
-    auto pc = *ULA->cpu->_PC;
-    if(mode == ZX_CMD_TRACE_OVER) yAddr = nAddr = *zxULA::_CALL;
+    auto pc = *zx->cpu->_PC;
+    if(mode == ZX_CMD_TRACE_OVER) yAddr = nAddr = *zxSpeccy::_CALL;
     else {
         if(jump(pc, ZX_DEBUGGER_MODE_PC, mode == ZX_CMD_TRACE_IN) == ZX_DEBUGGER_MODE_PC) {
             yAddr = *(uint16_t *) (opts + ZX_PROP_JNI_RETURN_VALUE);
@@ -126,9 +126,9 @@ void zxDebugger::trace(int mode) {
         }
     }
     auto tm = time(nullptr);
-    auto _pc = ULA->cpu->_PC;
+    auto _pc = zx->cpu->_PC;
     while(true) {
-        ULA->stepDebug();
+        zx->stepDebug();
         if(*_pc == yAddr || *_pc == nAddr) break;
         if((time(nullptr) - tm) >= 3) break;
     }
@@ -138,7 +138,7 @@ int zxDebugger::jump(uint16_t entry, int mode, bool isCall) {
     uint16_t jmp(0), next(0);
     int addr(entry), offs;
     MNEMONIC* m;
-    auto cpu = ULA->cpu;
+    auto cpu = zx->cpu;
     int prefix, code;
     switch(mode) {
         case ZX_DEBUGGER_MODE_PC:

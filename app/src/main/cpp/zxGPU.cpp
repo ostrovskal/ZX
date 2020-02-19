@@ -5,6 +5,8 @@
 #include "zxCommon.h"
 #include "zxGPU.h"
 
+uint32_t* zxGPU::frameBuffer(new uint32_t[352 * 288]);
+
 static GLuint createShader(GLenum type, const char* text) {
     GLint compileStatus;
     auto shaderId = glCreateShader(type);
@@ -32,10 +34,6 @@ static GLuint createProgram(GLuint vShader, GLuint fShader) {
         return 0;
     }
     return programId;
-}
-
-zxGPU::zxGPU() : frameHeight(0), frameWidth(0), texture(0) {
-    frameBuffer = new uint32_t[352 * 288];
 }
 
 zxGPU::~zxGPU() {

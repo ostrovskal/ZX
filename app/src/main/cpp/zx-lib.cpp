@@ -28,10 +28,10 @@ static int turbo_delay = 0;
 extern "C" {
 
     int zxExecute(JNIEnv*, jclass) {
-        ULA->execute();
+        auto ret = zx->execute();
         if(opts[ZX_PROP_TURBO_MODE]) {
             turbo_delay++;
-            if(turbo_delay & 1) ULA->execute();
+            if(turbo_delay & 1) ret = zx->execute();
         }
         auto tms = currentTimeMillis();
         auto tm = tms - tme;
@@ -42,10 +42,10 @@ extern "C" {
         }
         tme = tms;
         if(checkSTATE(ZX_BP)) {
-            *ULA->_STATE &= ~ZX_BP;
+            *zx->_STATE &= ~ZX_BP;
             return 2;
         }
-        return ULA->updateKeys(0, 0);
+        return ret;
     }
 
     void zxShutdown(JNIEnv *env, jobject) {
@@ -55,20 +55,20 @@ extern "C" {
             objProps = nullptr;
         }
         // Uninit GL
-        ULA->gpu->uninitGL();
-        ULA->cpu->shutdown();
+        zx->gpu->uninitGL();
+        zx->cpu->shutdown();
     }
 
     jboolean zxIO(JNIEnv* env, jclass, jstring nm, jboolean load) {
         auto path = env->GetStringUTFChars(nm, nullptr);
         LOG_DEBUG("%s \"%s\"", load ? "load" : "save", path);
         auto type = parseExtension(path);
-        auto ret = (jboolean)(load ? ULA->load(path, type) : ULA->save(path, type));
+        auto ret = (jboolean)(load ? zx->load(path, type) : zx->save(path, type));
         if(!ret) {
             LOG_DEBUG("Не удалось загрузить/записать <%s>!", path)
         }
         else if(type > ZX_CMD_IO_STATE) {
-            ULA->programName(path);
+            zx->programName(path);
         }
         return ret;
     }
@@ -110,8 +110,8 @@ extern "C" {
             copyAssetsFile(amgr, "rom.zx", "rom.zx");
         }
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
-        ULA->changeModel(opts[ZX_PROP_MODEL_TYPE], true);
-        if(!error) ULA->load(autoSavePath, ZX_CMD_IO_STATE);
+        zx->changeModel(opts[ZX_PROP_MODEL_TYPE]);
+        if(!error) zx->load(autoSavePath, ZX_CMD_IO_STATE);
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props, jstring filesDir, jstring cacheDir) {
@@ -127,7 +127,7 @@ extern "C" {
         // инициализировать пути к системным папкам
         FOLDER_FILES = env->GetStringUTFChars(filesDir, nullptr);
         FOLDER_CACHE = env->GetStringUTFChars(cacheDir, nullptr);
-        ULA = new zxULA();
+        zx = new zxSpeccy();
         LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
 
@@ -183,37 +183,37 @@ extern "C" {
     }
 
     jstring zxProgramName(JNIEnv* env, jclass, jstring name) {
-        return env->NewStringUTF(ULA->programName(env->GetStringUTFChars(name, nullptr)));
+        return env->NewStringUTF(zx->programName(env->GetStringUTFChars(name, nullptr)));
     }
 
     jint zxCmd(JNIEnv* env, jclass, jint cmd, jint arg1, jint arg2, jstring arg3) {
         int ret(0);
         switch(cmd) {
             case ZX_CMD_POKE:      ::wm8(realPtr((uint16_t)arg1), (uint8_t)arg2); break;
-            case ZX_CMD_UPDATE_KEY:ret = ULA->updateKeys(arg1, arg2); break;
-            case ZX_CMD_PROPS:     ULA->updateProps(arg1); break;
-            case ZX_CMD_MODEL:     ULA->changeModel(opts[ZX_PROP_MODEL_TYPE], true); break;
-            case ZX_CMD_RESET:     ULA->signalRESET(true); break;
-            case ZX_CMD_QUICK_BP:  ULA->quickBP((uint16_t)arg1); break;
-            case ZX_CMD_TRACE_X:   ULA->debugger->trace(arg1); break;
-            case ZX_CMD_STEP_DEBUG:ULA->stepDebug(); break;
-            case ZX_CMD_MOVE_PC:   ret = ULA->debugger->move(arg1, arg2, 10); break;
-            case ZX_CMD_JUMP:      ret = ULA->debugger->jump((uint16_t)arg1, arg2, true); break;
-            case ZX_CMD_ASSEMBLER: ret = ULA->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
-            case ZX_CMD_INIT_GL:   ULA->gpu->initGL(); break;
-            case ZX_CMD_TAPE_COUNT:ret = ULA->tape->countBlocks; break;
-            case ZX_CMD_MAGIC:     ULA->cpu->signalNMI(); break;
-            case ZX_CMD_DISK_OPS:  ret = ULA->diskOperation(arg1, arg2, env->GetStringUTFChars(arg3, nullptr)); break;
-            case ZX_CMD_QUICK_SAVE:ULA->quickSave(); break;
-            case ZX_CMD_VALUE_REG: ret = ULA->getAddressCpuReg(env->GetStringUTFChars(arg3, nullptr)); break;
-            case ZX_CMD_TAPE_RESET:ULA->tape->reset(); break;
+            case ZX_CMD_UPDATE_KEY:ret = zx->updateKeys(arg1, arg2); break;
+            case ZX_CMD_PROPS:     zx->update(arg1); break;
+            case ZX_CMD_MODEL:     zx->changeModel(opts[ZX_PROP_MODEL_TYPE]); break;
+            case ZX_CMD_RESET:     zx->reset(); break;
+            case ZX_CMD_QUICK_BP:  zx->quickBP((uint16_t)arg1); break;
+            case ZX_CMD_TRACE_X:   zx->debugger->trace(arg1); break;
+            case ZX_CMD_STEP_DEBUG:zx->stepDebug(); break;
+            case ZX_CMD_MOVE_PC:   ret = zx->debugger->move(arg1, arg2, 10); break;
+            case ZX_CMD_JUMP:      ret = zx->debugger->jump((uint16_t)arg1, arg2, true); break;
+            case ZX_CMD_ASSEMBLER: ret = zx->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
+            case ZX_CMD_INIT_GL:   zx->gpu->initGL(); break;
+            case ZX_CMD_TAPE_COUNT:ret = zx->tape->countBlocks; break;
+            case ZX_CMD_MAGIC:     zx->cpu->signalNMI(); break;
+            case ZX_CMD_DISK_OPS:  ret = zx->diskOperation(arg1, arg2, env->GetStringUTFChars(arg3, nullptr)); break;
+            case ZX_CMD_QUICK_SAVE:zx->quickSave(); break;
+            case ZX_CMD_VALUE_REG: ret = zx->getAddressCpuReg(env->GetStringUTFChars(arg3, nullptr)); break;
+            case ZX_CMD_TAPE_RESET:zx->tape->reset(); break;
         }
         return ret;
     }
 
     jint zxUpdateAudio(JNIEnv* env, jobject, jobject byte_buffer) {
         auto buf = (uint8_t *)env->GetDirectBufferAddress(byte_buffer);
-        return ULA->UpdateSound(buf);
+        return zx->snd->execute(buf);
     }
 
     jint zxStringToNumber(JNIEnv* env, jclass, jstring value, jint radix) {
@@ -221,12 +221,12 @@ extern "C" {
     }
 
     jstring zxDebuggerString(JNIEnv* env, jclass, jint cmd, jint data, jint flags) {
-        return env->NewStringUTF(ULA->debugger->itemList(cmd, data, flags));
+        return env->NewStringUTF(zx->debugger->itemList(cmd, data, flags));
     }
 
     jstring zxTapeBlock(JNIEnv* env, jclass, jint idx, jshortArray data) {
         auto arr = (uint16_t *) env->GetPrimitiveArrayCritical(data, nullptr);
-        auto name = ULA->tape->getBlockData(idx, arr);
+        auto name = zx->tape->getBlockData(idx, arr);
         env->ReleasePrimitiveArrayCritical((jarray)data, arr, JNI_ABORT);
         return env->NewStringUTF(name);
     }

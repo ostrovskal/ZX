@@ -205,6 +205,7 @@ class ZxDebugger {
                     data = ZxWnd.read16(ZX_CPU_PC)
                     flags = ZX_ALL
                 } else flags = ZX_STORY
+                // меняем play/pause -> [NAME PROG]/[PAUSE]
                 wnd.hand?.send(RECEPIENT_FORM, ZxWnd.ZxMessages.ACT_UPDATE_NAME_PROG.ordinal)
             }
             DEBUGGER_ACT_TRACE_IN,

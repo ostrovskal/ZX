@@ -117,9 +117,8 @@ bool zxFormats::openZ80(const char *path) {
         memcpy(&TMP_BUF[2 << 14], &TMP_BUF[1 << 14], 16384);
     }
     // меняем модель памяти и иинициализируем регистры
-    auto isZ80 = strcasecmp(path + strlen(path) - 4, ".z80") == 0;
-    auto cpu = ULA->cpu;
-    ULA->changeModel(model, isZ80);
+    auto cpu = zx->cpu;
+    zx->changeModel(model);
     *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL;
     *cpu->_A = head1->A; *cpu->_F = head1->F; opts[RA_] = head1->A_; opts[RF_] = head1->F_;
     *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY;
@@ -127,18 +126,18 @@ bool zxFormats::openZ80(const char *path) {
     *cpu->_IFF1 = head1->IFF1; *cpu->_IFF2 = head1->IFF2;
     if(head1->STATE1 == 255) head1->STATE1 = 1;
     *cpu->_R |= (head1->STATE1 << 7) | (head1->R & 0x7F);
-    ULA->writePort(0xfe, 0, (uint8_t)(224 | ((head1->STATE1 & 14) >> 1)));
+    zx->writePort(0xfe, 0, (uint8_t)(224 | ((head1->STATE1 & 14) >> 1)));
     memcpy(&opts[RC_], &head1->BC_, 6);
     *cpu->_PC = PC;
     LOG_INFO("Z80 Start PC: %i", PC);
     if(head2) {
-        ULA->writePort(0xfd, 0x7f, head2->hardState);
+        zx->writePort(0xfd, 0x7f, head2->hardState);
         memcpy(&opts[AY_AFINE], head2->sndRegs, 16);
-        ULA->writePort(0xfd, 0xff, head2->sndChipRegNumber);
+        zx->writePort(0xfd, 0xff, head2->sndChipRegNumber);
     }
-    if(head3 && length == 87) ULA->writePort(0xfd, 0x1f, head3->port1FFD);
+    if(head3 && length == 87) zx->writePort(0xfd, 0x1f, head3->port1FFD);
     // копируем буфер
-    memcpy(ULA->RAMs, TMP_BUF, ZX_TOTAL_RAM);
+    memcpy(zx->RAMbs, TMP_BUF, ZX_TOTAL_RAM);
     return true;
 }
 
@@ -151,22 +150,22 @@ bool zxFormats::saveZ80(const char *path) {
     memset(&head, 0, sizeof(HEAD3_Z80));
 
     auto buf = TMP_BUF;
-    auto cpu = ULA->cpu;
-    auto ram = ULA->RAMs;
+    auto cpu = zx->cpu;
+    auto ram = zx->RAMbs;
     // основные
     head1->BC = *cpu->_BC; head1->DE = *cpu->_DE; head1->HL = *cpu->_HL;
     head1->A = *cpu->_A; head1->F = *cpu->_F; head1->A_ = opts[RA_]; head1->F_ = opts[RF_];
     head1->SP = *cpu->_SP; head1->IX = *cpu->_IX; head1->IY = *cpu->_IY; head1->PC = 0;
     head1->STATE2 = *cpu->_IM; head1->IFF1 = *cpu->_IFF1; head1->IFF2 = *cpu->_IFF2;
     head1->I = *cpu->_I; head1->R = (uint8_t)(*cpu->_R & 127);
-    head1->STATE1 = (uint8_t)((*cpu->_R & 128) >> 7) | (uint8_t)((*ULA->_FE & 7) << 1);
+    head1->STATE1 = (uint8_t)((*cpu->_R & 128) >> 7) | (uint8_t)((opts[PORT_FE] & 7) << 1);
     memcpy(&head1->BC_, &opts[RC_], 6);
     // для режима 128К
     head2->PC = *cpu->_PC;
-    head2->hardMode = models[*ULA->_MODEL];
+    head2->hardMode = models[*zx->_MODEL];
     head2->length = 55;
-    head.port1FFD = *ULA->_1FFD;
-    head2->hardState = *ULA->_7FFD;
+    head.port1FFD = opts[PORT_1FFD];
+    head2->hardState = opts[PORT_7FFD];
     head2->sndChipRegNumber = opts[AY_REG];
     memcpy(head2->sndRegs, &opts[AY_AFINE], 16);
     ssh_memzero(head2->sndRegs, 16);
@@ -179,7 +178,7 @@ bool zxFormats::saveZ80(const char *path) {
         packPage(&buf, &ram[2 << 14], 4);
         packPage(&buf, &ram[7 << 14], 5);
     } else {
-        auto count = zxULA::machine->ramPages;
+        auto count = zxSpeccy::machine->ramPages;
         LOG_INFO("saveZ80 pages:%i model:%i", count, head2->hardMode);
         for(int i = 0; i < count; i++) {
             packPage(&buf, &ram[i << 14], (uint8_t)(i + 3));
@@ -215,7 +214,7 @@ bool zxFormats::openWAV(const char *path) {
     if(wav.wBitsPerSample != 8 && wav.wBitsPerSample != 16)
         return false;
 
-    auto tape = ULA->tape;
+    auto tape = zx->tape;
 
     tape->reset();
 
@@ -268,7 +267,7 @@ bool zxFormats::openWAV(const char *path) {
 }
 
 bool zxFormats::saveWAV(const char *path) {
-    auto tape = ULA->tape;
+    auto tape = zx->tape;
     // расчитать размер блока данных
     auto size = tape->calcSizeBufferImpulse(true);
     auto buf = new uint8_t[size];
@@ -300,11 +299,11 @@ bool zxFormats::saveWAV(const char *path) {
 bool zxFormats::openTAP(const char *path) {
     auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], true);
     if(!ptr) return false;
-    return ULA->tape->load(ptr, false) != nullptr;
+    return zx->tape->load(ptr, false) != nullptr;
 }
 
 bool zxFormats::saveTAP(const char *path) {
-    auto buf = ULA->tape->save(0, TMP_BUF, false);
+    auto buf = zx->tape->save(0, TMP_BUF, false);
     return zxFile::writeFile(path, TMP_BUF, buf - TMP_BUF, true);
 }
 
