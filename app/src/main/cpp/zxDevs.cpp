@@ -322,6 +322,7 @@ int zxDevYM::update(int) {
     } else if(sound_stereo_ay == 2) {
         rchan2pos = pos; rchan3pos = 0;
     }
+    return 0;
 }
 
 void zxDevYM::reset() {
@@ -600,23 +601,29 @@ int zxDevBeta128::update(int) {
 }
 
 zxDevBeta128::zxDevBeta128() : next(0), direction(0), rqs(R_NONE), states(S_IDLE), nfdd(0), wait_drq(0), ops(0),
-                   found_sec(nullptr), rwptr(nullptr), rwlen(0), crc(0), start_crc(nullptr) {
+                               rwptr(nullptr), rwlen(0), crc(0), start_crc(nullptr) {
     reset();
 }
 
-bool zxDevBeta128::open(const char* path, int drive, int type) {
+bool zxDevBeta128::open(uint8_t* ptr, size_t size, int type) {
+    auto drive = opts[ZX_PROP_JNI_RETURN_VALUE];
     if(drive >= 0 && drive < 4) {
-        size_t length; uint8_t* ptr;
-        if((ptr = (uint8_t*)zxFile::readFile(path, TMP_BUF, true, &length))) {
-            if (drive == nfdd) {
-                found_sec = nullptr;
-                opts[TRDOS_STS] = ST_NOTRDY;
-                rqs = R_INTRQ; states = S_IDLE;
-            }
-            return fdds[drive].open(ptr, length, type);
+        if (drive == nfdd) {
+            found_sec = nullptr;
+            opts[TRDOS_STS] = ST_NOTRDY;
+            rqs = R_INTRQ; states = S_IDLE;
         }
+        return fdds[drive].open(ptr, size, type);
     }
     return false;
+}
+
+uint8_t* zxDevBeta128::save(int type) {
+    auto drive = opts[ZX_PROP_JNI_RETURN_VALUE];
+    if(drive >= 0 && drive < 4) {
+        return fdds[drive].save(type);
+    }
+    return nullptr;
 }
 
 uint16_t zxDevBeta128::CRC(uint8_t v, uint16_t prev_crc) const {
@@ -1046,7 +1053,7 @@ void zxDevBeta128::eject(int num) {
     fdds[num].eject();
 }
 
-int zxDevBeta128::is_readonly(int num, int write = -1) {
+int zxDevBeta128::is_readonly(int num, int write) {
     if(write != -1) fdds[num].protect = write != 0;
     return fdds[num].is_protect();
 }

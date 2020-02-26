@@ -53,6 +53,8 @@ extern BREAK_POINT*			            bps;
 extern uint8_t                          numBits[8];
 extern uint32_t                         frequencies[];
 
+inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
+
 // вывод отладочной информации
 void info(const char* msg, const char* file, const char* func, int line, ...);
 void debug(const char* msg, const char* file, const char* func, int line, ...);
@@ -64,6 +66,7 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 #endif
 
 #define LOG_INFO(m, ...)                info(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
+#define align_by(a, b)                  (((uint32_t)(a) + ((b) - 1)) & ~((b) - 1))
 
 //#define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
 
@@ -71,7 +74,7 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 
 constexpr int ZX_TOTAL_RAM              = 512 * 1024;
 constexpr int ZX_SIZE_TMP_BUF           = 1024 * 1024;
-constexpr int INDEX_OPEN                = 580 * 1024;
+constexpr int INDEX_OPEN                = 512 * 1024;
 constexpr int INDEX_DA                  = 256 * 1024;
 constexpr int INDEX_TEMP                = 512 * 1024;
 constexpr int INDEX_INTERNAL            = 520 * 1024;
@@ -115,6 +118,7 @@ constexpr int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передав�
 constexpr int ZX_PROP_PORT_FEFC       = 116; // Значение передаваемое в порт компаньона
 constexpr int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 constexpr int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
+constexpr int ZX_PROP_VALUES_TAPE     = 410; // Массив значений требуемого сектора
 
 // 1. Булевы значения
 constexpr int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
@@ -193,17 +197,16 @@ constexpr int ZX_CMD_UPDATE_KEY         = 3; // Обковление кнопо�
 constexpr int ZX_CMD_INIT_GL            = 4; // Инициализация GL
 constexpr int ZX_CMD_POKE               = 5; // Установка POKE
 constexpr int ZX_CMD_ASSEMBLER          = 6; // Ассемблирование
-constexpr int ZX_CMD_TAPE_COUNT         = 7; // Получение количества блоков ленты
+constexpr int ZX_CMD_TAPE_OPS           = 7; // Операции с лентой
 constexpr int ZX_CMD_QUICK_BP           = 8; // Быстрая установка точки останова
 constexpr int ZX_CMD_TRACE_X            = 9; // Трассировка
 constexpr int ZX_CMD_STEP_DEBUG         = 10;// Выполнение в отладчике
 constexpr int ZX_CMD_MOVE_PC            = 11;// Выполнение сдвига ПС
 constexpr int ZX_CMD_JUMP               = 12;// Получение адреса в памяти/адреса перехода в инструкции
 constexpr int ZX_CMD_MAGIC              = 13;// Нажатие на кнопку MAGIC
-constexpr int ZX_CMD_DISK_OPS           = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
-constexpr int ZX_CMD_QUICK_SAVE         = 15; // Быстрое сохранение
-constexpr int ZX_CMD_VALUE_REG          = 16; // Получить адрес из регистра/значения
-constexpr int ZX_CMD_TAPE_RESET         = 17; // Сбросить ленту
+constexpr int ZX_CMD_DISK_OPS           = 14;// Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
+constexpr int ZX_CMD_QUICK_SAVE         = 15;// Быстрое сохранение
+constexpr int ZX_CMD_VALUE_REG          = 16;// Получить адрес из регистра/значения
 
 constexpr int ZX_DISK_OPS_GET_READONLY  = 0; //
 constexpr int ZX_DISK_OPS_EJECT         = 1; //
@@ -213,11 +216,18 @@ constexpr int ZX_DISK_OPS_SET_READONLY  = 4; //
 constexpr int ZX_DISK_OPS_TRDOS         = 5; //
 constexpr int ZX_DISK_OPS_RSECTOR       = 6; //
 
+constexpr int ZX_TAPE_OPS_COUNT         = 0; //
+constexpr int ZX_TAPE_OPS_RESET         = 1; //
+constexpr int ZX_TAPE_OPS_BLOCKC        = 2; //
+constexpr int ZX_TAPE_OPS_BLOCKP        = 3; //
+constexpr int ZX_TAPE_OPS_TRAP_SAVE     = 4; //
+constexpr int ZX_TAPE_OPS_TRAP_LOAD     = 5; //
+
 constexpr int ZX_CMD_KEY_MODE_CAPS      = 32; //
 constexpr int ZX_CMD_KEY_MODE_SYMBOL    = 64; //
 
 constexpr int ZX_CMD_TRACE_IN           = 0; // Трассировка с заходом
-//constexpr int ZX_CMD_TRACE_OUT          = 1; // Трассировка с обходом
+//constexpr int ZX_CMD_TRACE_OUT        = 1; // Трассировка с обходом
 constexpr int ZX_CMD_TRACE_OVER         = 2; // Трассировка с выходом
 
 constexpr int ZX_DEBUGGER_MODE_PC       = 0; // Список ДА
@@ -226,12 +236,18 @@ constexpr int ZX_DEBUGGER_MODE_DT       = 2; // Список данных
 
 // Комманды ввода/вывода
 constexpr int ZX_CMD_IO_STATE           = 0; // Загрузить/сохранить состояние
-constexpr int ZX_CMD_IO_Z80             = 1; // Загрузить/сохранить снимок памяти
-constexpr int ZX_CMD_IO_TAPE            = 2; // Загрузить/сохранить ленту
-constexpr int ZX_CMD_IO_WAVE            = 3; // Загрузить/сохранить звук
-constexpr int ZX_CMD_IO_TRD             = 4; // Загрузить/сохранить образ диска
-constexpr int ZX_CMD_IO_SCL             = 5; // Загрузить/сохранить образ диска
-constexpr int ZX_CMD_IO_FDI             = 6; // Загрузить/сохранить образ диска
+constexpr int ZX_CMD_IO_EZX             = 1; //
+constexpr int ZX_CMD_IO_Z80             = 2; //
+constexpr int ZX_CMD_IO_SNA             = 3; //
+constexpr int ZX_CMD_IO_TAP             = 4; //
+constexpr int ZX_CMD_IO_TZX             = 5; //
+constexpr int ZX_CMD_IO_CSW             = 6; //
+constexpr int ZX_CMD_IO_WAV             = 7; //
+constexpr int ZX_CMD_IO_TRD             = 8; //
+constexpr int ZX_CMD_IO_SCL             = 9; //
+constexpr int ZX_CMD_IO_FDI             = 10;//
+constexpr int ZX_CMD_IO_UDI             = 11;//
+constexpr int ZX_CMD_IO_TD0             = 12;//
 
 // Система счистления для преобразования строк/чисел
 constexpr int RADIX_DEC 				= 0;

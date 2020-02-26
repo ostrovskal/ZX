@@ -286,7 +286,7 @@ class ZxFormSettings : Form() {
     }
 
     private val tapePage: TabLayout.Content.() -> View = {
-        countTapeBlocks = ZxWnd.zxCmd(ZX_CMD_TAPE_COUNT, 0, 0, "")
+        countTapeBlocks = ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_COUNT, 0, "")
         cellLayout(10, 10) {
             val r = ribbon(R.id.ribbonMain, false, style_debugger_ribbon) {
                 adapter = TapeAdapter(context, TapeItem())
@@ -304,7 +304,7 @@ class ZxFormSettings : Form() {
             }.lps(0, 8, 6, 2)
             button {
                 iconResource = R.integer.I_RESET
-                setOnClickListener { ZxWnd.zxCmd(ZX_CMD_TAPE_RESET, 0, 0, ""); r.requestLayout() }
+                setOnClickListener { ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_RESET, 0, ""); r.requestLayout() }
             }.lps(7, 8, 2, 2)
         }
     }
@@ -541,8 +541,8 @@ class ZxFormSettings : Form() {
 
     inner class TapeAdapter(context: Context, item: UiComponent) : ArrayListAdapter<ViewGroup>(context, item, item, listOf()) {
 
-        private val block       = ShortArray(10) { 0 }
-        private val pblock      = ShortArray(10) { 0 }
+        //private val block       = ShortArray(10) { 0 }
+        //private val pblock      = ShortArray(10) { 0 }
 
         override fun getCount() = countTapeBlocks
 
@@ -563,34 +563,34 @@ class ZxFormSettings : Form() {
         @SuppressLint("SetTextI18n")
         override fun createView(position: Int, convertView: View?, resource: UiComponent, parent: ViewGroup, color: Boolean): View? {
             return ((convertView ?: resource.createView(UiCtx(context))) as? CellLayout)?.apply {
-                val nameBlock = ZxWnd.zxTapeBlock(position, block)
-                ZxWnd.zxTapeBlock(position - 1, pblock)
-                val flag    = block[2].toInt()
-                val blk     = block[3].toInt()
-                val pflag   = pblock[2].toInt()
-                val pblk    = pblock[3].toInt()
+                ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_BLOCKC, position, "")
+                ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_BLOCKP, position - 1, "")
+                val flag    = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 4)//block[2].toInt()
+                val blk     = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 6)
+                val pflag   = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 132)
+                val pblk    = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 134)
                 byIdx<Text>(0).apply {
                     var sflag = ""
                     val caption = getString(when(flag) {
                         0   -> R.string.settingsTapeCaption
-                        255 -> typeBlock(pblk, pflag, pblock[5].toInt())
+                        255 -> typeBlock(pblk, pflag, ZxWnd.read16(ZX_PROP_VALUES_TAPE + 138))
                         else-> { sflag = "($flag)"; R.string.settingsTapeBlock }
                     })
                     text = "$caption$sflag"
-                    textColor = if(block[7].toInt() != 0) Color.GRAY else Color.YELLOW
+                    textColor = if(ZxWnd.read16(ZX_PROP_VALUES_TAPE + 14) != 0) Color.GRAY else Color.YELLOW
                 }
-                byIdx<Text>(1).text = (block[0].toInt() and 0xffff).toString()
-                byIdx<Text>(2).text = block[1].toString(16).toUpperCase(Locale.ROOT)
+                byIdx<Text>(1).text = ZxWnd.read16(ZX_PROP_VALUES_TAPE).toString()
+                byIdx<Text>(2).text = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 2).toString(16).toUpperCase(Locale.ROOT)
                 byIdx<Text>(3).text = ""
                 byIdx<Text>(4).text = ""
                 byIdx<Text>(5).text = ""
                 if(flag == 0) {
-                    byIdx<Text>(3).text = nameBlock
-                    byIdx<Text>(4).text = getString(typeBlock(blk, flag, block[5].toInt()))
-                    byIdx<Text>(5).text = (block[4].toInt() and 0xffff).toString()
+                    byIdx<Text>(3).text = String(ZxWnd.props, ZX_PROP_VALUES_TAPE + 20, 10)
+                    byIdx<Text>(4).text = getString(typeBlock(blk, flag, ZxWnd.read16(ZX_PROP_VALUES_TAPE + 10)))
+                    byIdx<Text>(5).text = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 8).toString()
                 } else if(flag == 255) {
                     if(pflag == 0) {
-                        val param = (pblock[5].toInt() and 0xffff)
+                        val param = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 138)
                         val sblk = getString(when (pblk) {
                             0    -> R.string.settingsTapeLine
                             1, 2 -> R.string.settingsTapeArray

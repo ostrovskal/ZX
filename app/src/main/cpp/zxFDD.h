@@ -17,9 +17,7 @@ extern uint32_t Z80FQ;
 #define _ST_SET(current, next)      states = ((current) | ((next) << 4))
 #define _ST_NEXT                    (uint8_t)((states & 240) >> 4)
 
-inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
 inline uint16_t wordBE(const uint8_t* ptr)	{ return ptr[0] << 8 | ptr[1]; }
-
 
 class zxDisk {
 public:
@@ -61,6 +59,7 @@ protected:
 };
 
 class zxFDD {
+    friend class zxFormats;
 public:
     zxFDD() : motor(0), trk(0), head(0), ts(0), protect(false), disk(nullptr) { }
     ~zxFDD() { eject(); }
@@ -74,7 +73,8 @@ public:
     bool is_disk() const	{ return disk != nullptr; }
     bool is_protect() const	{ return protect; }
     //bool is_boot();
-    bool open(const void* data, size_t data_size, int type);
+    bool open(uint8_t* data, size_t data_size, int type);
+    uint8_t* save(int type);
 
     uint32_t ticks() const { return ts; }
     uint32_t engine(int v = -1) { if(v != -1) motor = (uint32_t)v; return motor; }
@@ -91,12 +91,7 @@ protected:
     void write_blk(int& pos, uint8_t val, int count) { for(int i = 0; i < count; ++i) get_trk()->write(pos++, val); }
     void make_trd();
     bool add_file(const uint8_t * hdr, const uint8_t * data);
-    bool read_scl(const void* data, size_t data_size);
-    bool read_trd(const void* data, size_t data_size);
-    bool read_fdi(const void* data, size_t data_size);
-
     uint16_t CRC(uint8_t * src, int size) const;
-
 protected:
     uint32_t motor, ts;
     uint8_t  trk;

@@ -67,10 +67,10 @@ public:
     void writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val);
 
     // загрузка
-    bool load(const char* path, int type);
+    bool load(const char* path);
 
     // запись
-    bool save(const char* path, int type);
+    bool save(const char* path);
 
     // обновление устройств
     void update(int filter);
@@ -138,9 +138,6 @@ public:
     // звуковая карта
     zxSoundMixer* snd;
 
-    // лента
-    zxTape* tape;
-
     // ассемблер
     zxAssembler* assembler;
 
@@ -155,12 +152,14 @@ public:
     // нажата/отжата кнопка на клаве
     int updateKeys(int key, int act) { return devs[DEV_KEYB]->update(key | (act << 7)); }
 
+    int tapeOperations(int ops, int param);
+
 protected:
     // восстановление состояния
-    bool restoreState(const char *path);
+    bool restoreState(uint8_t* ptr);
 
     // сохранение состояния
-    bool saveState(const char* path);
+    uint8_t* saveState();
 
     // перехватчик
     void trap();

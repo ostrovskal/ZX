@@ -18,12 +18,16 @@ public:
     virtual bool    checkRead(uint16_t port) const { return false; }
     // проверка на порт на запись
     virtual bool    checkWrite(uint16_t port) const { return false; }
+    // открыть
+    virtual bool    open(uint8_t* ptr, size_t size, int type) { return false; }
     // запись в порт
     virtual void    write(uint16_t port, uint8_t val) {  }
     // чтение из порта
     virtual void    read(uint16_t port, uint8_t* ret) {  }
     // восстановление/сохранение состояния
     virtual uint8_t* state(uint8_t* ptr, bool restore) { return ptr; }
+    // сохранить
+    virtual uint8_t* save(int type) { return nullptr; }
     // сброс устройства
     virtual void    reset() { }
     // обновление
@@ -150,22 +154,6 @@ public:
 protected:
 };
 
-class zxDevTape : public zxDev {
-public:
-    // проверка на порт для чтения
-    virtual bool    checkRead(uint16_t port) const override { return !(port & 1); }
-    // чтение из порта
-    virtual void    read(uint16_t port, uint8_t* ret) override { }
-    // сброс устройства
-    virtual void    reset() override { }
-    // обновление
-    virtual int     update(int param = 0) override { return 0; }
-    // тип устройства
-    virtual int     type() const override { return DEV_TAPE; }
-    // доступ к портам
-    virtual int     access() const override { return ACCESS_READ; }
-};
-
 class zxFDD;
 class zxDevBeta128: public zxDev {
 public:
@@ -206,9 +194,9 @@ public:
     virtual uint8_t* state(uint8_t* ptr, bool restore) override;
 
     // монтировать образ
-    bool open(const char* path, int drive, int type);
+    virtual bool    open(uint8_t* ptr, size_t size, int type) override;
     // сохранение диска
-    int save(const char *path, int num, int type) { return 0; }
+    virtual uint8_t* save(int type) override;
     // перехват команд
     void trap(uint16_t pc);
     // извлечь
@@ -476,5 +464,21 @@ protected:
     uint32_t toneLevels[16];
     // частота звукового процессора
     uint32_t clockAY;
+};
+
+class zxDevTape : public zxDevSound {
+public:
+    // проверка на порт для чтения
+    virtual bool    checkRead(uint16_t port) const override { return !(port & 1); }
+    // чтение из порта
+    virtual void    read(uint16_t port, uint8_t* ret) override { }
+    // сброс устройства
+    virtual void    reset() override { }
+    // обновление
+    virtual int     update(int param = 0) override { return 0; }
+    // тип устройства
+    virtual int     type() const override { return DEV_TAPE; }
+    // доступ к портам
+    virtual int     access() const override { return ACCESS_READ; }
 };
 

@@ -4,6 +4,7 @@
 
 #include "zxCommon.h"
 #include "zxFDD.h"
+#include "zxFormats.h"
 
 // ----------------------------------------------------------------------------------------------------------------------------------
 // Бит      | Восст. и позиц.  |    Запись сектора  | Чтение сектора    |   Чтение адреса   |   Запись дорожки  |   Чтение дорожки  |
@@ -153,19 +154,32 @@ void zxDisk::TRACK::update() {
     total_sec--;
 }
 
-bool zxFDD::open(const void* data, size_t data_size, int type) {
+bool zxFDD::open(uint8_t* data, size_t data_size, int type) {
     engine(0);
     bool ret = false;
     switch(type) {
-        case ZX_CMD_IO_SCL: ret = read_scl(data, data_size); break;
-        case ZX_CMD_IO_FDI: ret = read_fdi(data, data_size); break;
-        case ZX_CMD_IO_TRD: ret = read_trd(data, data_size); break;
+        case ZX_CMD_IO_TRD: ret = zxFormats::openTRD(this, data, data_size); break;
+        case ZX_CMD_IO_SCL: ret = zxFormats::openSCL(this, data, data_size); break;
+        case ZX_CMD_IO_FDI: ret = zxFormats::openFDI(this, data, data_size); break;
+        case ZX_CMD_IO_UDI: ret = zxFormats::openUDI(this, data, data_size); break;
+        case ZX_CMD_IO_TD0: ret = zxFormats::openTD0(this, data, data_size); break;
     }
     if(!ret) {
         // удалить образ
         SAFE_DELETE(disk);
     }
     return ret;
+}
+
+uint8_t* zxFDD::save(int type) {
+    switch(type) {
+        case ZX_CMD_IO_TRD: return zxFormats::saveTRD(this);
+        case ZX_CMD_IO_SCL: return zxFormats::saveSCL(this);
+        case ZX_CMD_IO_FDI: return zxFormats::saveFDI(this);
+        case ZX_CMD_IO_UDI: return zxFormats::saveUDI(this);
+        case ZX_CMD_IO_TD0: return zxFormats::saveTD0(this);
+    }
+    return nullptr;
 }
 
 /*
@@ -182,14 +196,6 @@ bool zxFDD::is_boot() {
     return false;
 }
 */
-
-// Рассогласование данных по боевым функциям АРМ
-static uint16_t sec_dataW(zxDisk::TRACK::SECTOR* s, size_t offset) { return wordLE(s->content + offset); }
-
-static void sec_dataW(zxDisk::TRACK::SECTOR* s, size_t offset, uint16_t d) {
-    s->content[offset] = (uint8_t)(d & 0xff);
-    s->content[offset + 1] = (uint8_t)(d >> 8);
-}
 
 uint16_t zxFDD::CRC(uint8_t * src, int size) const {
     uint32_t crc(0xcdb4);
@@ -280,7 +286,9 @@ void zxFDD::fillDiskConfig(zxDisk::TRACK::SECTOR *s) {
 
 void zxFDD::update_crc(zxDisk::TRACK::SECTOR *s) const {
     auto len = s->len();
-    sec_dataW(s, (size_t)len, swap_byte_order(CRC(s->content - 1, len + 1)));
+    auto d = swap_byte_order(CRC(s->content - 1, len + 1));
+    s->content[len + 0] = (uint8_t)(d & 0xff);
+    s->content[len + 1] = (uint8_t)(d >> 8);
 }
 
 bool zxFDD::add_file(const uint8_t *hdr, const uint8_t *data) {
@@ -291,16 +299,21 @@ bool zxFDD::add_file(const uint8_t *hdr, const uint8_t *data) {
     auto* dir = get_sec(0, 0, 1 + pos / 256);
     if(!dir) return false;
     // диск заполнен
-    if(sec_dataW(s, 229) < len) return false;
+    if(wordLE(s->content + 229) < len) return false;
     memcpy(dir->content + (pos & 0xff), hdr, 14);
-    sec_dataW(dir, (size_t)((pos & 0xff) + 14), sec_dataW(s, 0xe1));
+    auto offs = (size_t)((pos & 0xff) + 14);
+    auto d = wordLE(s->content + 225);
+    dir->content[offs + 0] = (uint8_t)(d & 0xFF);
+    dir->content[offs + 1] = (uint8_t)(d >> 8);
     update_crc(dir);
 
     pos = s->content[225] + 16 * s->content[0xe2];
     s->content[225] = (uint8_t)((pos + len) & 0x0f);
     s->content[226] = (uint8_t)((pos + len) >> 4);
     s->content[228]++;
-    sec_dataW(s, 229, (uint16_t)(sec_dataW(s, 0xe5) - len));
+    d = (uint16_t)(wordLE(s->content + 229) - len);
+    dir->content[229] = (uint8_t)(d & 0xFF);
+    dir->content[230] = (uint8_t)(d >> 8);
     update_crc(s);
 
     // перейти на следующую дорожку
@@ -308,94 +321,6 @@ bool zxFDD::add_file(const uint8_t *hdr, const uint8_t *data) {
         int t = pos / 32;
         int h = (pos / 16) & 1;
         if(!write_sec(t, h, (pos & 0x0f) + 1, data + i * 256)) return false;
-    }
-    return true;
-}
-
-bool zxFDD::read_scl(const void* data, size_t data_size) {
-    if(data_size < 9) return false;
-    auto buf = (const uint8_t*)data;
-    if(memcmp(data, "SINCLAIR", 8) || int(data_size) < (9 + 270 * buf[8])) return false;
-
-    make_trd();
-    int size = 0;
-    for(int i = 0; i < buf[8]; ++i) size += buf[14 * i + 22];
-    if(size > 2544) {
-        auto s = get_sec(0, 0, 9);
-        // free sec
-        sec_dataW(s, 0xe5, (uint16_t)size);
-        update_crc(s);
-    }
-    auto d = buf + 9 + 14 * buf[8];
-    for(int i = 0; i < buf[8]; ++i) {
-        if(!add_file(buf + 9 + 14 * i, d)) return false;
-        d += buf[14 * i + 22] * 256;
-    }
-    return true;
-}
-
-bool zxFDD::read_trd(const void *data, size_t data_size) {
-    make_trd();
-    if(data_size > 655360) data_size = 655360;
-    for(size_t i = 0; i < data_size; i += 256) {
-        write_sec(i >> 13, (i >> 12) & 1, ((i >> 8) & 0x0f) + 1, (const uint8_t *)data + i);
-    }
-    return true;
-}
-
-bool zxFDD::read_fdi(const void *data, size_t data_size) {
-    delete disk;
-    auto buf = (const uint8_t*)data;
-    disk = new zxDisk(buf[4], buf[6]);
-
-    auto offsSecs = *(uint16_t*)(buf + 0x0A);
-    auto offsTrks = *(uint16_t*)(buf + 0x0C);
-    auto trks = buf + 0x0E + offsTrks;
-    auto dat = buf + offsSecs;
-
-    for(int i = 0; i < disk->trks; ++i) {
-        for(int j = 0; j < disk->heads; ++j) {
-            seek(i, j);
-            auto t = get_trk(); auto l = t->len; auto d = t->content;
-            int id_len = l / 8 + ((l & 7) != 0);
-            memset(d, 0, (size_t)(l + id_len));
-
-            int pos = 0;
-            // gap4a sync iam
-            write_blk(pos, 0x4e, 80); write_blk(pos, 0, 12); write_blk(pos, 0xc2, 3);
-            write(pos++, 0xfc);
-
-            auto t0 = dat + Dword(trks);
-            auto ns = trks[6];
-            t->total_sec = ns;
-            trks += 7;
-            for(int n = 0; n < ns; ++n) {
-                // gap1 sync am
-                write_blk(pos, 0x4e, 40); write_blk(pos, 0, 12); write_blk(pos, 0xa1, 3); write(pos++, 0xfe);
-                auto sec = get_sec(n);
-                sec->caption = d + pos;
-                write(pos++, trks[0]); write(pos++, trks[1]); write(pos++, trks[2]); write(pos++, trks[3]);
-                auto crc = CRC(d + pos - 5, 5);
-                write(pos++, (uint8_t)(crc >> 8)); write(pos++, (uint8_t)crc);
-                if(trks[4] & 0x40) sec->content = nullptr;
-                else {
-                    auto data1 = (t0 + wordLE(trks + 5));
-                    if(data1 + 128 > buf + data_size) return false;
-                    // gap2 sync am
-                    write_blk(pos, 0x4e, 22); write_blk(pos, 0, 12); write_blk(pos, 0xa1, 3); write(pos++, 0xfb);
-                    sec->content = d + pos;
-                    auto len = sec->len();
-                    memcpy(sec->content, data1, (size_t)len);
-                    crc = CRC(d + pos - 1, len + 1);
-                    if(!(trks[4] & (1 << (trks[3] & 3)))) crc ^= 0xffff;
-                    pos += len;
-                    write(pos++, (uint8_t)(crc >> 8)); write(pos++, (uint8_t)crc);
-                }
-                trk += 7;
-            }
-            if(pos > get_trk()->len) { assert(0); }
-            write_blk(pos, 0x4e, get_trk()->len - pos - 1); //gap3
-        }
     }
     return true;
 }

@@ -62,12 +62,11 @@ extern "C" {
     jboolean zxIO(JNIEnv* env, jclass, jstring nm, jboolean load) {
         auto path = env->GetStringUTFChars(nm, nullptr);
         LOG_DEBUG("%s \"%s\"", load ? "load" : "save", path);
-        auto type = parseExtension(path);
-        auto ret = (jboolean)(load ? zx->load(path, type) : zx->save(path, type));
+        auto ret = (jboolean)(load ? zx->load(path) : zx->save(path));
         if(!ret) {
-            LOG_DEBUG("Не удалось загрузить/записать <%s>!", path)
+            LOG_DEBUG("Не удалось %s <%s>!", load ? "загрузить" : "записать", path);
         }
-        else if(type > ZX_CMD_IO_STATE) {
+        else if(!strstr(path, ".zx")) {
             zx->programName(path);
         }
         return ret;
@@ -81,37 +80,40 @@ extern "C" {
         if(opts[ZX_PROP_FIRST_LAUNCH]) {
             // перенести все игры из активов на диск
             std::string out("games/");
-            std::string z80("Z80/");
-            std::string tap("TAP/");
-            std::string trdos("TRDOS/");
+            std::string z80("SNAPSHOT/");
+            std::string tap("TAPE/");
+            std::string img("IMAGES/");
             std::string path("");
             zxFile::makeDir(zxFile::makePath("SAVERS", true).c_str());
-            zxFile::makeDir(zxFile::makePath("Z80", true).c_str());
-            zxFile::makeDir(zxFile::makePath("TAP", true).c_str());
-            zxFile::makeDir(zxFile::makePath("TRDOS", true).c_str());
+            zxFile::makeDir(zxFile::makePath("SNAPSHOT", true).c_str());
+            zxFile::makeDir(zxFile::makePath("TAPE", true).c_str());
+            zxFile::makeDir(zxFile::makePath("IMAGES", true).c_str());
             auto dir = AAssetManager_openDir(amgr, "games");
             const char* file;
             while ((file = AAssetDir_getNextFileName(dir))) {
                 switch(parseExtension(file)) {
-                    case ZX_CMD_IO_Z80:  path    = z80 + file; break;
-                    case ZX_CMD_IO_TAPE: path    = tap + file; break;
+                    case ZX_CMD_IO_Z80:
+                    case ZX_CMD_IO_SNA: path = z80 + file; break;
+                    case ZX_CMD_IO_TAP:
+                    case ZX_CMD_IO_TZX: path = tap + file; break;
                     case ZX_CMD_IO_TRD:
                     case ZX_CMD_IO_SCL:
-                    case ZX_CMD_IO_FDI:  path    = trdos + file; break;
+                    case ZX_CMD_IO_UDI:
+                    case ZX_CMD_IO_FDI: path = img + file; break;
                     default: path = file; break;
                 }
                 copyAssetsFile(amgr, (out + file).c_str(), path.c_str());
             }
             AAssetDir_close(dir);
             opts[ZX_PROP_FIRST_LAUNCH] = 0;
-            copyAssetsFile(amgr, "tapLoad48.zx", "tapLoad48.zx");
-            copyAssetsFile(amgr, "trdosLoad128.zx", "trdosLoad128.zx");
-            copyAssetsFile(amgr, "trdosLoad48.zx", "trdosLoad48.zx");
-            copyAssetsFile(amgr, "rom.zx", "rom.zx");
+            copyAssetsFile(amgr, "tapLoad48.ezx", "tapLoad48.ezx");
+            copyAssetsFile(amgr, "trdosLoad128.ezx", "trdosLoad128.ezx");
+            copyAssetsFile(amgr, "trdosLoad48.ezx", "trdosLoad48.ezx");
+            copyAssetsFile(amgr, "rom.ezx", "rom.ezx");
         }
         copyAssetsFile(amgr, "labels.bin", nullptr, &labels);
         zx->changeModel(opts[ZX_PROP_MODEL_TYPE]);
-        if(!error) zx->load(autoSavePath, ZX_CMD_IO_STATE);
+        if(!error) zx->load(autoSavePath);
     }
 
     void zxProps(JNIEnv* env, jclass, jbyteArray props, jstring filesDir, jstring cacheDir) {
@@ -201,12 +203,11 @@ extern "C" {
             case ZX_CMD_JUMP:      ret = zx->debugger->jump((uint16_t)arg1, arg2, true); break;
             case ZX_CMD_ASSEMBLER: ret = zx->assembler->parser(arg1, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_INIT_GL:   zx->gpu->initGL(); break;
-            case ZX_CMD_TAPE_COUNT:ret = zx->tape->countBlocks; break;
             case ZX_CMD_MAGIC:     zx->cpu->signalNMI(); break;
             case ZX_CMD_DISK_OPS:  ret = zx->diskOperation(arg1, arg2, env->GetStringUTFChars(arg3, nullptr)); break;
             case ZX_CMD_QUICK_SAVE:zx->quickSave(); break;
             case ZX_CMD_VALUE_REG: ret = zx->getAddressCpuReg(env->GetStringUTFChars(arg3, nullptr)); break;
-            case ZX_CMD_TAPE_RESET:zx->tape->reset(); break;
+            case ZX_CMD_TAPE_OPS:  ret = zx->tapeOperations(arg1, arg2); break;
         }
         return ret;
     }
@@ -222,13 +223,6 @@ extern "C" {
 
     jstring zxDebuggerString(JNIEnv* env, jclass, jint cmd, jint data, jint flags) {
         return env->NewStringUTF(zx->debugger->itemList(cmd, data, flags));
-    }
-
-    jstring zxTapeBlock(JNIEnv* env, jclass, jint idx, jshortArray data) {
-        auto arr = (uint16_t *) env->GetPrimitiveArrayCritical(data, nullptr);
-        auto name = zx->tape->getBlockData(idx, arr);
-        env->ReleasePrimitiveArrayCritical((jarray)data, arr, JNI_ABORT);
-        return env->NewStringUTF(name);
     }
 
     jstring zxFormatNumber(JNIEnv* env, jclass, jint value, jint radix, jboolean force) {
@@ -249,7 +243,6 @@ extern "C" {
             { "zxFormatNumber", "(IIZ)Ljava/lang/String;", (void*)&zxFormatNumber },
             { "zxDebuggerString", "(III)Ljava/lang/String;", (void*)&zxDebuggerString },
             { "zxStringToNumber", "(Ljava/lang/String;I)I", (void*)&zxStringToNumber },
-            { "zxTapeBlock", "(I[S)Ljava/lang/String;", (void*)&zxTapeBlock },
             { "zxUpdateAudio", "(Ljava/nio/ByteBuffer;)I", (void*)&zxUpdateAudio }
     };
 

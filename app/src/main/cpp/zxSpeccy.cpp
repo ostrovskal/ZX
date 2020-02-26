@@ -119,13 +119,14 @@ zxSpeccy::zxSpeccy() : pauseBetweenTapeBlocks(0), cpu(nullptr), snd(nullptr), gp
 void zxSpeccy::addDev(zxDev *dev) {
     devs[dev->type()] = dev;
     if(dev->access() & ACCESS_READ) {
-        auto d = &access_devs[-1];
-        while(*++d) { }
-        *d = dev;
+        for(int i = 0 ; i < 8; i++) {
+            if(!access_devs[i]) { access_devs[i] = dev; break; }
+        }
     }
     if(dev->access() & ACCESS_WRITE) {
-        auto d = &access_devs[7];
-        while(*++d) { } *d = dev;
+        for(int i = 8 ; i < 16; i++) {
+            if(!access_devs[i]) { access_devs[i] = dev; break; }
+        }
     }
 }
 
@@ -143,31 +144,74 @@ zxSpeccy::~zxSpeccy() {
     SAFE_A_DELETE(RAMbs);
 }
 
-bool zxSpeccy::load(const char *path, int type) {
+bool zxSpeccy::load(const char *path) {
+    size_t size;
+    uint8_t* ptr;
+    auto type = parseExtension(path);
+    if(!(ptr = (uint8_t*)zxFile::readFile(path, TMP_BUF, type != ZX_CMD_IO_STATE, &size))) return false;
     bool ret = false;
     switch(type) {
-        case ZX_CMD_IO_WAVE:
-            ret = zxFormats::openWAV(path);
+        case ZX_CMD_IO_STATE:
+            ret = restoreState(ptr);
             break;
-        case ZX_CMD_IO_TAPE:
-            ret = zxFormats::openTAP(path);
-            if(ret && opts[ZX_PROP_TRAP_TAPE] && (opts[PORT_7FFD] & 32)) {
-                ret = zxFormats::openZ80("tapLoad48.zx");
+        case ZX_CMD_IO_WAV:
+        case ZX_CMD_IO_TAP:
+        case ZX_CMD_IO_CSW:
+        case ZX_CMD_IO_TZX:
+            ret = devs[DEV_TAPE]->open(ptr, size, type);
+            if(ret && opts[ZX_PROP_TRAP_TAPE] && (opts[PORT_7FFD] & 32) && type == ZX_CMD_IO_TAP) {
+                if((ptr = (uint8_t*)zxFile::readFile("tapLoad48.ezx", TMP_BUF, true, &size))) {
+                    ret = zxFormats::openSnapshot(ptr, size, ZX_CMD_IO_EZX);
+                }
             }
             break;
-        case ZX_CMD_IO_STATE:
-            ret = restoreState(path);
-            break;
+        case ZX_CMD_IO_EZX:
         case ZX_CMD_IO_Z80:
-            ret = zxFormats::openZ80(path);
+        case ZX_CMD_IO_SNA:
+            ret = zxFormats::openSnapshot(ptr, size, type);
+            break;
+        case ZX_CMD_IO_TRD:
+        case ZX_CMD_IO_SCL:
+        case ZX_CMD_IO_FDI:
+        case ZX_CMD_IO_UDI:
+        case ZX_CMD_IO_TD0:
+            ret = devs[DEV_DISK]->open(ptr, size, type);
             break;
     }
     return ret;
 }
 
-bool zxSpeccy::restoreState(const char *path) {
-    auto ptr = (uint8_t*)zxFile::readFile(path, &TMP_BUF[INDEX_OPEN], false);
-    if(!ptr) return false;
+bool zxSpeccy::save(const char *path) {
+    auto type = parseExtension(path);
+    uint8_t* ret(nullptr);
+    switch(type) {
+        case ZX_CMD_IO_STATE:
+            ret = saveState();
+            break;
+        case ZX_CMD_IO_WAV:
+        case ZX_CMD_IO_TAP:
+        case ZX_CMD_IO_CSW:
+        case ZX_CMD_IO_TZX:
+            ret = devs[DEV_TAPE]->save(type);
+            break;
+        case ZX_CMD_IO_TRD:
+        case ZX_CMD_IO_SCL:
+        case ZX_CMD_IO_FDI:
+        case ZX_CMD_IO_UDI:
+        case ZX_CMD_IO_TD0:
+            ret = devs[DEV_DISK]->save(type);
+            break;
+        case ZX_CMD_IO_EZX:
+        case ZX_CMD_IO_Z80:
+        case ZX_CMD_IO_SNA:
+            ret = zxFormats::saveSnapshot(type);
+            break;
+    }
+    if(ret) return zxFile::writeFile(path, TMP_BUF, ret - TMP_BUF, type != ZX_CMD_IO_STATE);
+    return false;
+}
+
+bool zxSpeccy::restoreState(uint8_t* ptr) {
     // меняем модель
     changeModel(ptr[MODEL]);
     // грузим базовые параметры
@@ -185,7 +229,7 @@ bool zxSpeccy::restoreState(const char *path) {
     return true;
 }
 
-bool zxSpeccy::saveState(const char* path) {
+uint8_t* zxSpeccy::saveState() {
     auto ptr = TMP_BUF;
     modifySTATE(0, ZX_PAUSE);
     // сохраняем базовые параметры
@@ -194,27 +238,7 @@ bool zxSpeccy::saveState(const char* path) {
     ssh_memcpy(&ptr, name.c_str(), (size_t)(name.length() + 1));
     // сохранение состояния устройств
     for(int i = 0 ; i < DEV_COUNT; i++) ptr = devs[i]->state(ptr, false);
-    // записываем
-    return zxFile::writeFile(path, TMP_BUF, ptr - TMP_BUF, false);
-}
-
-bool zxSpeccy::save(const char *path, int type) {
-    bool ret = false;
-    switch(type) {
-        case ZX_CMD_IO_WAVE:
-            ret = zxFormats::saveWAV(path);
-            break;
-        case ZX_CMD_IO_TAPE:
-            ret = zxFormats::saveTAP(path);
-            break;
-        case ZX_CMD_IO_STATE:
-            ret = saveState(path);
-            break;
-        case ZX_CMD_IO_Z80:
-            ret = zxFormats::saveZ80(path);
-            break;
-    }
-    return ret;
+    return ptr;
 }
 
 void zxSpeccy::update(int filter) {
@@ -298,19 +322,19 @@ void zxSpeccy::trap() {
 /*
                 if(PC == 15616) {
                     const char* name(nullptr);
-                    if(*_MODEL < MODEL_128) name = "trdosLoad48.zx";
-                    else if(*_MODEL < MODEL_PENTAGON) name = "trdosLoad128.zx";
-                    else return;
-                    zxFormats::saveZ80(name);
+                    if (opts[PORT_7FFD] & 32) name = "trdosLoad48.ezx";
+                    else if (*_MODEL < MODEL_PENTAGON) name = "trdosLoad128.ezx";
+                    else break;
+                    save(name);
                 }
 */
                 if(opts[ROM] == 1) *_STATE |= ZX_TRDOS;
             }
             bool success = false;
-            if (pc == 1218) success = tape->trapSave();
+            if (pc == 1218) success = tapeOperations(ZX_TAPE_OPS_TRAP_SAVE, 0) != 0;
             else if (pc == 1366 || pc == 1378) {
-//                zxFormats::saveZ80(*_MODEL >= MODEL_128 ? "tapLoad128.zx" : "tapLoad48.zx");
-                success = tape->trapLoad();
+//                zxFormats::saveZ80(*_MODEL >= MODEL_128 ? "tapLoad128.ezx" : "tapLoad48.ezx");
+                success = tapeOperations(ZX_TAPE_OPS_TRAP_LOAD, 0) != 0;
             }
             if (success) {
                 auto psp = cpu->_SP;
@@ -432,15 +456,15 @@ int zxSpeccy::diskOperation(int num, int ops, const char* path) {
     switch(ops & 7) {
         case ZX_DISK_OPS_GET_READONLY:  ret = disk->is_readonly(num & 3); break;
         case ZX_DISK_OPS_EJECT:         disk->eject(num); break;
-        case ZX_DISK_OPS_OPEN:          ret = (int)disk->open(path, num, parseExtension(path)); break;
-        case ZX_DISK_OPS_SAVE:          ret = disk->save(path, num, parseExtension(path)); break;
+        case ZX_DISK_OPS_OPEN:          ret = load(path); break;
+        case ZX_DISK_OPS_SAVE:          opts[ZX_PROP_JNI_RETURN_VALUE] = (uint8_t)num; ret = save(path); break;
         case ZX_DISK_OPS_SET_READONLY:  ret = disk->is_readonly(num & 3, (num & 128)); break;
         case ZX_DISK_OPS_TRDOS: {
             const char* name(nullptr);
-            if (opts[PORT_7FFD] & 32) name = "trdosLoad48.zx";
-            else if (*_MODEL < MODEL_PENTAGON) name = "trdosLoad128.zx";
+            if (opts[PORT_7FFD] & 32) name = "trdosLoad48.ezx";
+            else if (*_MODEL < MODEL_PENTAGON) name = "trdosLoad128.ezx";
             else break;
-            ret = zxFormats::openZ80(name);
+            ret = load(name);
             break;
         }
         case ZX_DISK_OPS_RSECTOR:       ret = disk->read_sector(num & 3, (num >> 3) + 1); break;
@@ -457,7 +481,7 @@ void zxSpeccy::quickSave() {
         file.close();
         a++;
     }
-    zxFormats::saveZ80(strstr(buf, "SAVERS/"));
+    save(strstr(buf, "SAVERS/"));
 }
 
 int zxSpeccy::getAddressCpuReg(const char *value) {
@@ -472,6 +496,35 @@ int zxSpeccy::getAddressCpuReg(const char *value) {
         ret = *(int*)ssh_ston(value, RADIX_DEC);
     } else {
         ret = *(uint16_t*)&opts[regs[i * 3 + 2]];
+    }
+    return ret;
+}
+
+int zxSpeccy::tapeOperations(int ops, int) {
+    /*
+    jstring zxTapeBlock(JNIEnv* env, jclass, jint idx, jshortArray data) {
+        auto arr = (uint16_t *) env->GetPrimitiveArrayCritical(data, nullptr);
+        auto name = zx->tape->getBlockData(idx, arr);
+        env->ReleasePrimitiveArrayCritical((jarray)data, arr, JNI_ABORT);
+        return env->NewStringUTF(name);
+    }
+
+     *
+     */
+    int ret(0);
+    switch(ops) {
+        case ZX_TAPE_OPS_COUNT:
+            break;
+        case ZX_TAPE_OPS_RESET:
+            break;
+        case ZX_TAPE_OPS_BLOCKC:
+            break;
+        case ZX_TAPE_OPS_BLOCKP:
+            break;
+        case ZX_TAPE_OPS_TRAP_LOAD:
+            break;
+        case ZX_TAPE_OPS_TRAP_SAVE:
+            break;
     }
     return ret;
 }

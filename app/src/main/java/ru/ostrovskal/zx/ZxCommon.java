@@ -137,6 +137,7 @@ public final class ZxCommon {
     public static final int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передаваемое из JNI
     public static final int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
     public static final int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
+    public static final int ZX_PROP_VALUES_TAPE     = 410; // Массив значений блока ленты
 
     // 1. Булевы значения
     public static final int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска
@@ -190,7 +191,7 @@ public final class ZxCommon {
     public static final int ZX_CMD_INIT_GL          = 4;  // Инициализация GL
     public static final int ZX_CMD_POKE             = 5;  // Установка POKE
     public static final int ZX_CMD_ASSEMBLER        = 6;  // Ассемблирование
-    public static final int ZX_CMD_TAPE_COUNT       = 7;  // Получение количества блоков ленты
+    public static final int ZX_CMD_TAPE_OPS         = 7;  // Получение количества блоков ленты
     public static final int ZX_CMD_QUICK_BP         = 8;  // Быстрая установка точки останова
     public static final int ZX_CMD_TRACE_X          = 9;  // Трассировка
     public static final int ZX_CMD_STEP_DEBUG       = 10; // Выполнение в отладчике
@@ -200,7 +201,6 @@ public final class ZxCommon {
     public static final int ZX_CMD_DISK_OPS         = 14; // Операции с диском - 0 = get readonly, 1 - Извлечь, 2 - Вставить, 3 - save, 4 - set readonly, 5 - trdos
     public static final int ZX_CMD_QUICK_SAVE       = 15; // Быстрое сохранение
     public static final int ZX_CMD_VALUE_REG        = 16; // Получить адрес из регистра/значения
-    public static final int ZX_CMD_TAPE_RESET       = 17; // Сбросить ленту
 
     public static final int ZX_DEBUGGER_MODE_PC     = 0; // Список ДА
     public static final int ZX_DEBUGGER_MODE_SP     = 1; // Список СП
@@ -213,6 +213,11 @@ public final class ZxCommon {
     public static final int ZX_DISK_OPS_SET_READONLY= 4; //
     public static final int ZX_DISK_OPS_TRDOS       = 5; //
     public static final int ZX_DISK_OPS_RSECTOR     = 6; //
+
+    public static final int ZX_TAPE_OPS_COUNT       = 0; //
+    public static final int ZX_TAPE_OPS_RESET       = 1; //
+    public static final int ZX_TAPE_OPS_BLOCKC      = 2; //
+    public static final int ZX_TAPE_OPS_BLOCKP      = 3; //
 
     private static final int ATTR_SSH_COLOR_DEBUGGER_SELECTOR     = 1000; // Аттрибут для цвета выделения в отладчике
 
