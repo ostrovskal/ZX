@@ -22,7 +22,7 @@ static void copyAssetsFile(AAssetManager *aMgr, const char *aPath, const char *p
     }
 }
 
-static long tme = 0;
+static u_long tme = 0;
 static int turbo_delay = 0;
 
 extern "C" {
@@ -48,7 +48,7 @@ extern "C" {
         return ret;
     }
 
-    void zxShutdown(JNIEnv *env, jobject) {
+    void zxShutdown(JNIEnv *env, jclass) {
         LOG_DEBUG("", nullptr)
         if(objProps) {
             env->DeleteGlobalRef(objProps);
@@ -72,7 +72,7 @@ extern "C" {
         return ret;
     }
 
-    void zxInit(JNIEnv *env, jobject, jobject asset, jstring savePath, jboolean error) {
+    void zxInit(JNIEnv *env, jclass, jobject asset, jstring savePath, jboolean error) {
         auto autoSavePath = env->GetStringUTFChars(savePath, nullptr);
         LOG_DEBUG("savePath: %s error: %i", autoSavePath, error);
 
@@ -129,7 +129,7 @@ extern "C" {
         // инициализировать пути к системным папкам
         FOLDER_FILES = env->GetStringUTFChars(filesDir, nullptr);
         FOLDER_CACHE = env->GetStringUTFChars(cacheDir, nullptr);
-        zx = new zxSpeccy();
+        new zxSpeccy();
         LOG_DEBUG("filesDir: %s cacheDir: %s", FOLDER_FILES.c_str(), FOLDER_CACHE.c_str());
     }
 
@@ -175,7 +175,7 @@ extern "C" {
         }
     }
 
-    long zxInt(JNIEnv*, jclass, jint idx, jint mask, jboolean read, jint value) {
+    jlong zxInt(JNIEnv*, jclass, jint idx, jint mask, jboolean read, jint value) {
         auto ret = (long)(*(uint32_t*)(opts + idx));
         if(!read) {
             ret &= ~mask; ret |= (value & mask);
@@ -212,7 +212,7 @@ extern "C" {
         return ret;
     }
 
-    jint zxUpdateAudio(JNIEnv* env, jobject, jobject byte_buffer) {
+    jint zxUpdateAudio(JNIEnv* env, jclass, jobject byte_buffer) {
         auto buf = (uint8_t *)env->GetDirectBufferAddress(byte_buffer);
         return zx->snd->execute(buf);
     }

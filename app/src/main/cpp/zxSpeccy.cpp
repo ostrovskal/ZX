@@ -61,7 +61,9 @@ ZX_MACHINE machines[] = {
 };
 
 zxSpeccy::zxSpeccy() : pauseBetweenTapeBlocks(0), cpu(nullptr), snd(nullptr), gpu(nullptr) {
+
     // инициализация системы
+    zx              = this;
     RAMbs           = new uint8_t[ZX_TOTAL_RAM];
     _MODEL     		= &opts[MODEL];
     _STATE     		= &opts[STATE]; *_STATE = 0;
@@ -94,22 +96,22 @@ zxSpeccy::zxSpeccy() : pauseBetweenTapeBlocks(0), cpu(nullptr), snd(nullptr), gp
     addDev(new zxDevBeta128());     // rw
     addDev(new zxDevTape());        // r
 
-    for(uint16_t port = 0; port <= 65535; ++port) {
+    for(int port = 0; port < 65536; port++) {
         uint8_t rdevs(0), wdevs(0);
         for(int d = 0; d < 8; ++d) {
             auto dev = access_devs[d + 0];
-            if(dev && dev->checkRead(port)) rdevs |= numBits[d];
+            if(dev && dev->checkRead((uint16_t)port)) rdevs |= numBits[d];
             dev = access_devs[d + 8];
-            if(dev && dev->checkWrite(port)) wdevs |= numBits[d];
+            if(dev && dev->checkWrite((uint16_t)port)) wdevs |= numBits[d];
         }
         map_devs[port] = rdevs;
         map_devs[port + 65536] = wdevs;
     }
     for(int i = 0; i < 256; ++i) {
-        zxDev** dev = cache_devs[i];
+        zxDev** dev = &cache_devs[i * 10];
         for(int d = 0; d < 8; ++d) {
             if(i & numBits[d]) {
-                *(dev + 256) = access_devs[d + 8];
+                *(dev + 2560) = access_devs[d + 8];
                 *dev++ = access_devs[d];
             }
         }
@@ -159,7 +161,7 @@ bool zxSpeccy::load(const char *path) {
         case ZX_CMD_IO_CSW:
         case ZX_CMD_IO_TZX:
             ret = devs[DEV_TAPE]->open(ptr, size, type);
-            if(ret && opts[ZX_PROP_TRAP_TAPE] && (opts[PORT_7FFD] & 32) && type == ZX_CMD_IO_TAP) {
+            if(ret && (opts[PORT_7FFD] & 32)) {
                 if((ptr = (uint8_t*)zxFile::readFile("tapLoad48.ezx", TMP_BUF, true, &size))) {
                     ret = zxFormats::openSnapshot(ptr, size, ZX_CMD_IO_EZX);
                 }
@@ -258,7 +260,6 @@ void zxSpeccy::changeModel(uint8_t _new) {
 
 void zxSpeccy::reset() {
     // сброс устройств
-    snd->reset();
     for(int i = 0 ; i < DEV_COUNT; i++) devs[i]->reset();
     // очищаем регистры/порты
     ssh_memzero(opts, STATE);
@@ -351,8 +352,19 @@ void zxSpeccy::trap() {
 
 void zxSpeccy::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
     uint16_t port = (A8A15 << 8) | A0A7;
-    zxDev** dl = cache_devs[map_devs[port + 65536] + 256];
-    while(*dl) (*dl++)->write(port, val);
+    if(port == 0xFE) {
+    	port = port;
+    }
+	zxDev** dl = &cache_devs[map_devs[port + 65536] * 10 + 2560];
+	while(*dl) (*dl++)->write(port, val);
+/*
+    auto m = map_devs[port + 65536];
+	for(int d = 0; d < 8; d++) {
+		if(m & numBits[d]) {
+			access_devs[d + 8]->write(port, val);
+		}
+	}
+*/
     if(checkSTATE(ZX_DEBUG)) checkBPs(port, ZX_BP_WPORT);
 }
 
@@ -369,7 +381,7 @@ uint8_t zxSpeccy::readPort(uint8_t A0A7, uint8_t A8A15) {
             }
         }
     } else {
-        zxDev** dl = cache_devs[map_devs[port]];
+        zxDev** dl = &cache_devs[map_devs[port] * 10];
         while(*dl) (*dl++)->read(port, &ret);
     }
     if(checkSTATE(ZX_DEBUG)) checkBPs(port, ZX_BP_RPORT);
@@ -500,31 +512,16 @@ int zxSpeccy::getAddressCpuReg(const char *value) {
     return ret;
 }
 
-int zxSpeccy::tapeOperations(int ops, int) {
-    /*
-    jstring zxTapeBlock(JNIEnv* env, jclass, jint idx, jshortArray data) {
-        auto arr = (uint16_t *) env->GetPrimitiveArrayCritical(data, nullptr);
-        auto name = zx->tape->getBlockData(idx, arr);
-        env->ReleasePrimitiveArrayCritical((jarray)data, arr, JNI_ABORT);
-        return env->NewStringUTF(name);
-    }
-
-     *
-     */
+int zxSpeccy::tapeOperations(int ops, int index) {
     int ret(0);
+    auto tape = (zxDevTape*)devs[DEV_TAPE];
     switch(ops) {
-        case ZX_TAPE_OPS_COUNT:
-            break;
-        case ZX_TAPE_OPS_RESET:
-            break;
-        case ZX_TAPE_OPS_BLOCKC:
-            break;
-        case ZX_TAPE_OPS_BLOCKP:
-            break;
-        case ZX_TAPE_OPS_TRAP_LOAD:
-            break;
-        case ZX_TAPE_OPS_TRAP_SAVE:
-            break;
+        case ZX_TAPE_OPS_COUNT:     ret = tape->countBlocks; break;
+        case ZX_TAPE_OPS_RESET:     tape->reset(); break;
+        case ZX_TAPE_OPS_BLOCKC:    tape->blockData(index, (uint16_t*)&opts[ZX_PROP_VALUES_TAPE]); break;
+        case ZX_TAPE_OPS_BLOCKP:    tape->blockData(index, (uint16_t*)&opts[ZX_PROP_VALUES_TAPE + 128]); break;
+        case ZX_TAPE_OPS_TRAP_LOAD: tape->trapLoad(); break;
+        case ZX_TAPE_OPS_TRAP_SAVE: tape->trapSave(); break;
     }
     return ret;
 }

@@ -4,6 +4,7 @@
 
 #include "zxCommon.h"
 #include "zxDevs.h"
+#include "zxFormats.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //                                       МЫШЬ                                                  //
@@ -1084,3 +1085,193 @@ void zxDevBeta128::trap(uint16_t pc) {
 //                                      МАГНИТОФОН                                             //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+zxDevTape::zxDevTape() : countBlocks(0), currentBlock(0) {
+    memset(blocks, 0, sizeof(blocks));
+    closeTape();
+}
+
+void zxDevTape::stopTape() {
+    currentBlock = 0;
+    edge_change = 0x7FFFFFFFFFFFFFFFLL;
+    tape_bit = 0x40;
+}
+
+void zxDevTape::reset() {
+    zxDevSound::reset();
+    edge_change = 0x7FFFFFFFFFFFFFFFLL;
+    tape_bit = 0x40;
+    currentBlock = 0;
+}
+
+void zxDevTape::startTape() {
+    if(!countBlocks) return;
+    edge_change = *zxDevUla::_TICK;
+    tape_bit = 0x40;
+}
+
+void zxDevTape::closeTape() {
+    for(int i = 0 ; i < countBlocks; i++) {
+        SAFE_A_DELETE(blocks[i]->data);
+    }
+    countBlocks = 0;
+    reset();
+}
+
+void zxDevTape::makeBlock(uint8_t* data, uint32_t size, uint32_t pilot_t, uint32_t s1_t, uint32_t s2_t, uint32_t zero_t,
+                              uint32_t one_t, uint32_t pilot_len, uint32_t pause, uint8_t last) {
+    auto blk = new TAPE_BLOCK();
+    blocks[countBlocks++] = blk;
+    blk->type_impulse = 0;
+    blk->type = 0;
+    blk->data = new uint8_t[size]; memcpy(blk->data, data, size);
+    blk->data_size = size;
+    blk->pilot_len = pilot_len; blk->pilot_t = pilot_t;
+    blk->s1_t = s1_t; blk->s2_t = s2_t;
+    blk->zero_t = zero_t; blk->one_t = one_t;
+    blk->pause = pause; blk->last = last;
+}
+
+
+uint8_t zxDevTape::tapeBit() {
+    uint32_t cur = *zxDevUla::_TICK;
+    while(cur > edge_change) {
+        auto pulse = getImpulse();
+        tape_bit ^= 0x40;
+        edge_change += pulse;
+    }
+    return tape_bit;
+}
+
+bool zxDevTape::open(uint8_t* ptr, size_t size, int type) {
+    switch(type) {
+        case ZX_CMD_IO_TAP:
+            return zxFormats::openTAP(this, ptr, size);
+        case ZX_CMD_IO_TZX:
+            return zxFormats::openTZX(this, ptr, size);
+        case ZX_CMD_IO_CSW:
+            return zxFormats::openCSW(this, ptr, size);
+        case ZX_CMD_IO_WAV:
+            return zxFormats::openWAV(this, ptr, size);
+    }
+    return false;
+}
+
+uint32_t zxDevTape::getImpulse() {
+    auto blk = blocks[currentBlock];
+    blk->type_impulse++;
+    auto ti = blk->type_impulse;
+    if(ti < blk->pilot_len) return blk->pilot_t;
+    if(ti < (blk->pilot_len + 1)) return blk->s1_t;
+    if(ti < (blk->pilot_len + 2)) return blk->s2_t;
+    if(ti < (blk->pilot_len + 3 + blk->data_size * 16)) {
+        // данные
+        // длина на 0-й бит(855) и на 1-й бит(1710)
+        auto idx = ti - (blk->pilot_len + 3 + blk->data_size * 16);
+        auto impulse = (blk->data[idx / 8] & numBits[(7 - idx % 8)]) ? blk->one_t : blk->zero_t;
+        return impulse;
+    }
+    // next_block
+    blk->type_impulse = 0;
+    currentBlock++;
+    if(currentBlock >= countBlocks) {
+        stopTape();
+    }
+    // pause
+    return blk->pause * 3500;
+}
+
+void zxDevTape::trapSave() {
+//    if(!isTrap) return;
+
+    auto cpu = zx->cpu;
+    auto a = *cpu->_A;
+    auto len = (uint16_t) (*cpu->_DE + 2);
+    auto ix = *cpu->_IX;
+
+    TMP_BUF[0] = a;
+    for (int i = 0; i < len - 2; i++) {
+        auto b = rm8((uint16_t) (ix + i));
+        a ^= b;
+        TMP_BUF[i + 1] = b;
+    }
+    TMP_BUF[len - 1] = a;
+//    addBlock(TMP_BUF, len);
+}
+
+void zxDevTape::trapLoad() {
+    if (currentBlock < countBlocks) {
+        auto blk = blocks[currentBlock];
+        auto len = blk->data_size - 2;
+        auto data = blk->data + 1;
+
+        auto cpu = zx->cpu;
+        auto de = *cpu->_DE;
+        auto ix = *cpu->_IX;
+        if (de != len) LOG_INFO("В перехватчике LOAD отличаются блоки - block: %i (DE: %i != SIZE: %i)!", currentBlock, de, len);
+        if (de < len) len = *cpu->_DE;
+        for (int i = 0; i < len; i++) ::wm8(realPtr((uint16_t) (ix + i)), data[i]);
+        LOG_DEBUG("trapLoad PC: %i load: %i type: %i addr: %i size: %i", zxSpeccy::PC, *cpu->_F & 1, *cpu->_A, ix, len);
+        *cpu->_AF = 0x00B3;
+        *cpu->_BC = 0xB001;
+        opts[_RH] = 0; opts[_RL] = data[len];
+//        if (nextBlock()) updateImpulseBuffer(false);
+        zx->pauseBetweenTapeBlocks = 50;
+        modifySTATE(ZX_PAUSE, 0);
+    } else {
+    }
+
+}
+
+/*
+Формат стандартного заголовочного блока Бейсика такой:
+1 байт  - флаговый, для блока заголовка всегда равен 0 (для блока данных за ним равен 255)
+1 байт  - тип Бейсик блока, 0 - бейсик программа, 1 - числовой массив, 2 - символьный массив, 3 - кодовый блок
+10 байт - имя блока
+2 байта - длина блока данных, следующего за заголовком (без флагового байта и байта контрольной суммы)
+2 байта - Параметр 1, для Бейсик-программы - номер стартовой строки Бейсик-программы, заданный параметром LINE (или число >=32768,
+            если стартовая строка не была задана.
+            Для кодового блока - начальный адрес блока в памяти.
+            Для массивов данных - 14й-байт хранит односимвольное имя массива
+2 байта - Параметр 2. Для Бейсик-программы - хранит размер собственно Бейсик-програмы, без инициализированных переменных,
+            хранящихся в памяти на момент записи Бейсик-программы.
+            Для остальных блоков содержимое этого параметра не значимо, и я почти уверен, что это не два байта ПЗУ.
+            Скорее всего, они просто не инициализируются при записи.
+1 байт - контрольная сумма заголовочного блока.
+*/
+// 0 - длина блока
+// 1 - контрольная сумма
+// 2 - флаг(0/255)
+// 3 - тип блока(0-3)
+// 4 - длина информационного блока
+// 5 - 2(0) - стартовая строка/ 2(3) - адрес/ 2(2) - имя массива
+// 6 - 2(0) - размер basic-проги
+void zxDevTape::blockData(int index, uint16_t* data) {
+    auto name = (char*)(data + 20);
+    memset(name, 32, 10);
+    memset(data, 255, 10 * 2);
+
+    if(index < countBlocks && index >= 0) {
+        auto addr = blocks[index]->data;
+        auto size = blocks[index]->data_size - 2;
+        data[0] = (uint16_t)size;
+        data[1] = addr[size + 1];
+        data[2] = addr[0];
+        if(data[2] == 0) {
+            data[3] = addr[1];
+            data[4] = *(uint16_t *) (addr + 12);
+            data[5] = *(uint16_t *) (addr + 14);
+            data[6] = *(uint16_t *) (addr + 16);
+            memcpy(name, &addr[2], 10);
+            for(int i = 9 ; i > 0; i--) {
+                auto ch = addr[2 + i];
+                if(ch != ' ') break;
+                name[i] = 0;
+            }
+        }
+        data[7] = (uint16_t)(index < currentBlock);
+    }
+}
+
+uint8_t* zxDevTape::state(uint8_t* ptr, bool restore) {
+    return ptr;
+}

@@ -6,7 +6,7 @@
 #include "zxCommon.h"
 
 uint8_t*    TMP_BUF     = nullptr;
-zxSpeccy*      zx         = nullptr;
+zxSpeccy*   zx          = nullptr;
 uint8_t*    opts        = nullptr;
 uint8_t*    labels      = nullptr;
 BREAK_POINT* bps        = nullptr;

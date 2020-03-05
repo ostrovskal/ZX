@@ -450,18 +450,13 @@ bool zxFormats::openTAP(zxDevTape* tape, uint8_t* ptr, size_t size) {
     auto buf = ptr;
     tape->closeTape();
     while(buf < ptr + size) {
-        uint32_t size = wordLE(buf);
+        uint32_t size = *(uint16_t*)buf;
         ptr += 2;
         if(!size) break;
-        allocInfocell();
-        desc(buf, size, tapeinfo[tape_infosize].desc);
-        tape_infosize++;
-        makeBlock(buf, size, 2168, 667, 735, 855, 1710, (*buf < 4) ? 8064 : 3220, 1000);
+        tape->makeBlock(buf, size, 2168, 667, 735, 855, 1710, (*buf < 4) ? 8064 : 3220, 1000);
         buf += size;
     }
-    findTapeSizes();
     return (buf == ptr + size);
-    //return tape->load(ptr, false) != nullptr;
 }
 
 uint8_t* zxFormats::saveTAP(zxDevTape* tape) {
@@ -470,6 +465,7 @@ uint8_t* zxFormats::saveTAP(zxDevTape* tape) {
 }
 
 bool zxFormats::openTZX(zxDevTape* tape, uint8_t* ptr, size_t) {
+/*
     byte* ptr = (byte*)data;
     CloseTape();
     dword size, pause, i, j, n, t, t0;
@@ -779,6 +775,7 @@ bool zxFormats::openTZX(zxDevTape* tape, uint8_t* ptr, size_t) {
         Reserve(1), tape_image[tape_imagesize++] = FindPulse(350000); // small pause [rqd for 3ddeathchase]
     FindTapeSizes();
     return (ptr == (const byte*)data + data_size);
+*/
     return false;
 }
 
@@ -787,6 +784,7 @@ uint8_t* zxFormats::saveTZX(zxDevTape* tape) {
 }
 
 bool zxFormats::openCSW(zxDevTape* tape, uint8_t* ptr, size_t) {
+/*
     const byte* buf = (const byte*)data;
     const dword Z80FQ = 3500000;
     CloseTape();
@@ -812,6 +810,7 @@ bool zxFormats::openCSW(zxDevTape* tape, uint8_t* ptr, size_t) {
     tape_image[tape_imagesize++] = FindPulse(Z80FQ / 10);
     FindTapeSizes();
     return true;
+*/
     return false;
 }
 

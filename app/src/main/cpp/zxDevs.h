@@ -44,13 +44,13 @@ public:
     // проверка на порт для чтения
     virtual bool    checkRead(uint16_t port) const override { return (port & 0xFF) == 0xFF; }
     // проверка на порт на запись
-    virtual bool    checkWrite(uint16_t port) const override { return !(port & 1) || (!(port & 2) && !(port & 0x8000)); }
+    virtual bool    checkWrite(uint16_t port) const override { return !(port & 1) || !(port & 0x8002); }
     // запись в порт
     virtual void    write(uint16_t port, uint8_t val) override;
     // чтение из порта
     virtual void    read(uint16_t port, uint8_t* ret) override { *ret = attr; }
     // сброс устройства
-    virtual void    reset() override { attr = 0xFF; *_FE = 0b11100111; *_VID = 5; colorBorder = 7; }
+    virtual void    reset() override;
     // обновление
     virtual int     update(int param = 0) override;
     // тип устройства
@@ -75,7 +75,7 @@ public:
     zxDevMem();
     virtual ~zxDevMem();
     // проверка на порт на запись
-    virtual bool    checkWrite(uint16_t port) const override { return !(port & 2) && !(port & 0x8000); }
+    virtual bool    checkWrite(uint16_t port) const override { return !(port & 0x8002); }
     // запись в порт
     virtual void    write(uint16_t port, uint8_t val) override;
     // сброс устройства
@@ -192,7 +192,6 @@ public:
     virtual int     access() const override { return ACCESS_READ | ACCESS_WRITE; }
     // восстановление/сохранение состояния
     virtual uint8_t* state(uint8_t* ptr, bool restore) override;
-
     // монтировать образ
     virtual bool    open(uint8_t* ptr, size_t size, int type) override;
     // сохранение диска
@@ -467,18 +466,61 @@ protected:
 };
 
 class zxDevTape : public zxDevSound {
+    friend class zxSpeccy;
 public:
+    struct TAPE_BLOCK {
+        // тип блока
+        uint8_t type;
+        // тип импульса(пилот, после пилота, данные, последний байт, пауза)
+        uint32_t type_impulse;
+        // данные
+        uint8_t* data;
+        // длина данных
+        uint32_t data_size;
+        // длины импульсов
+        uint32_t pilot_t, s1_t, s2_t;
+        uint32_t zero_t, one_t, pilot_len;
+        uint32_t pause, last;
+    };
+    zxDevTape();
+    virtual ~zxDevTape() { closeTape(); }
     // проверка на порт для чтения
     virtual bool    checkRead(uint16_t port) const override { return !(port & 1); }
     // чтение из порта
-    virtual void    read(uint16_t port, uint8_t* ret) override { }
+    virtual void    read(uint16_t port, uint8_t* ret) override { *ret |= tapeBit(); }
     // сброс устройства
-    virtual void    reset() override { }
+    virtual void    reset() override;
     // обновление
     virtual int     update(int param = 0) override { return 0; }
     // тип устройства
     virtual int     type() const override { return DEV_TAPE; }
     // доступ к портам
     virtual int     access() const override { return ACCESS_READ; }
+    // восстановление/сохранение состояния
+    virtual uint8_t* state(uint8_t* ptr, bool restore) override;
+    // открыть
+    virtual bool open(uint8_t* ptr, size_t size, int type) override;
+
+    void blockData(int index, uint16_t *data);
+    void trapSave();
+    void trapLoad();
+    void startTape();
+    void stopTape();
+    void closeTape();
+    void makeBlock( uint8_t* data, uint32_t size, uint32_t pilot_t, uint32_t s1_t, uint32_t s2_t, uint32_t zero_t, uint32_t one_t,
+                    uint32_t pilot_len, uint32_t pause, uint8_t last = 8);
+protected:
+    uint8_t tapeBit();
+    uint32_t getImpulse();
+    // массив блоков
+    TAPE_BLOCK* blocks[128];
+    // всего блоков
+    int countBlocks;
+    // текущий блок
+    int currentBlock;
+    // такты для следующих импульсов
+    uint64_t edge_change;
+    // значение текущего бита(64/0)
+    uint8_t tape_bit;
 };
 

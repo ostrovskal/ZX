@@ -23,9 +23,12 @@ object ZxPreset: Table() {
         // name.type-l,r,u,d,x,y,a,b
         context.assets.open("joys.txt").reader().forEachLine { str ->
             insertOrUpdate( { prgName eq name } ) {
-                values[prgName] = str.substringBefore('.')
-                values[joyType] = str.substringAfter('.').substringBefore('-').toInt()
-                values[joyKeys] = str.substringAfter('-')
+                val prog = str.substringBefore('.')
+                val type = str.substringAfter('.').substringBefore('-').toInt()
+                val keys = str.substringAfter('-')
+                values[prgName] = prog
+                values[joyType] = type
+                values[joyKeys] = keys
             }
         }
     }

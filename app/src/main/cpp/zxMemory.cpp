@@ -65,6 +65,7 @@ void zxDevMem::write(uint16_t port, uint8_t val) {
         // 1   -> 1 - ROM 2, 0 - ROM from 0x7FFD
         // 4   -> 1 - RAM SCORPION/KAY 256K, 0 - from 0x7FFD
         // 6.7 -> SCORPION/KAY 1024K
+	    LOG_INFO("1 port:%X val:%i", port, val);
         *_1FFD = val;
         uint8_t* ram(&mem1FFD[16]);
         switch (model) {
@@ -101,6 +102,7 @@ void zxDevMem::write(uint16_t port, uint8_t val) {
         // 5 - блокировка
         // 6 - pentagon 256K, KAY 1024K
         // 7 - pentagon 512K
+	    LOG_INFO("port:%X val:%i", port, val);
         *_7FFD = val;
         *_RAM = (uint8_t) (val & 7);
         switch (model) {
@@ -135,7 +137,7 @@ int zxDevMem::update(int param) {
         zxFile file;
         auto totalRom   = zxSpeccy::machine->totalRom << 14;
         auto rom        = new uint8_t[totalRom];
-        if(file.open((FOLDER_FILES + "rom.zx").c_str(), zxFile::open_read)) {
+        if(file.open((FOLDER_FILES + "rom.ezx").c_str(), zxFile::open_read)) {
             // trdos rom
             file.set_pos(zxSpeccy::machine->indexTRDOS << 14, zxFile::begin);
             file.read(ROMtr, 1 << 14);

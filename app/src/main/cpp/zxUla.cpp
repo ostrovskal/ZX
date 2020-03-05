@@ -38,13 +38,22 @@ zxDevUla::zxDevUla(): attr(0xFF), deltaTSTATE(0), colorBorder(7), sizeBorder(0),
 
 void zxDevUla::write(uint16_t port, uint8_t val) {
     if(!(port & 1)) {
+	    LOG_INFO("ula port:%X val:%i PC:%i", port, val, zxSpeccy::PC);
         *_FE = val;
         colorBorder = (uint8_t)(val & 7);
-    } else if(!(port & 2) && !(port & 0x8000)) {
+    } else if(!(port & 0x8002)) {
+	    LOG_INFO("mem port:%X val:%i PC:%i", port, val, zxSpeccy::PC);
         *_VID = (uint8_t) ((val & 8) ? 7 : 5);
-        VIDEO   = &zx->RAMbs[*_VID << 14];
-        ATTR    = VIDEO + 6144;
+	    update();
     }
+}
+
+void zxDevUla::reset() {
+    attr = 0xFF;
+    *_FE = 0b11100111;
+    *_VID = 5;
+    colorBorder = 7;
+    update();
 }
 
 int zxDevUla::update(int param) {
@@ -129,6 +138,10 @@ int zxDevUla::update(int param) {
         stateLP     = zxSpeccy::machine->ts[sizeBorder].lp * periodCPU / 10;
         stateRP     = zxSpeccy::machine->ts[sizeBorder].rp * periodCPU / 10;
         stateDP     = zxSpeccy::machine->ts[sizeBorder].dp * periodCPU / 10;
+	    sizeBorder  <<= 4;
+
+	    VIDEO       = &zx->RAMbs[*_VID << 14];
+	    ATTR        = VIDEO + 6144;
     }
     return 0;
 }

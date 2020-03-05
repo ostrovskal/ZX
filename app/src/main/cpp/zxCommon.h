@@ -305,10 +305,10 @@ inline void ssh_skip_spc(char** s) {
 }
 
 // возвращает количество миллисекунд
-inline long currentTimeMillis() {
+inline u_long currentTimeMillis() {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
-    return (((tv.tv_sec * 1000) + (tv.tv_usec / 1000)));
+    return (u_long)(((tv.tv_sec * 1000) + (tv.tv_usec / 1000)));
 }
 
 inline uint8_t* ssh_memset(void* ptr, int set, size_t count) {
