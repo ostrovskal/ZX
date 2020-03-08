@@ -113,7 +113,7 @@ int zxDevUla::update(int param) {
                 }
                 rb++;
             }
-            //attr = 0xFF;
+            attr = 0xFF;
             //*zxSpeccy::_STATE &= ~ZX_SCR;
             for(i = 0 ; i < szBorder; i++) {
                 updateCPU(1, false);

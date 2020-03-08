@@ -585,7 +585,8 @@ class ZxFormSettings : Form() {
                 byIdx<Text>(4).text = ""
                 byIdx<Text>(5).text = ""
                 if(flag == 0) {
-                    byIdx<Text>(3).text = String(ZxWnd.props, ZX_PROP_VALUES_TAPE + 20, 10)
+                    val nameP = String(ZxWnd.props, ZX_PROP_VALUES_TAPE + 20, 10)
+                    byIdx<Text>(3).text = nameP
                     byIdx<Text>(4).text = getString(typeBlock(blk, flag, ZxWnd.read16(ZX_PROP_VALUES_TAPE + 10)))
                     byIdx<Text>(5).text = ZxWnd.read16(ZX_PROP_VALUES_TAPE + 8).toString()
                 } else if(flag == 255) {

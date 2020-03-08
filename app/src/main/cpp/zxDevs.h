@@ -500,8 +500,8 @@ public:
     virtual bool open(uint8_t* ptr, size_t size, int type) override;
 
     void blockData(int index, uint16_t *data);
-    void trapSave();
-    void trapLoad();
+    int trapSave();
+    int trapLoad();
     void startTape();
     void stopTape();
     void closeTape();

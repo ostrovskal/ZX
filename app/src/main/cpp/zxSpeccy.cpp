@@ -483,7 +483,7 @@ int zxSpeccy::tapeOperations(int ops, int index) {
         case ZX_TAPE_OPS_RESET:     tape->reset(); break;
         case ZX_TAPE_OPS_BLOCKC:    tape->blockData(index, (uint16_t*)&opts[ZX_PROP_VALUES_TAPE]); break;
         case ZX_TAPE_OPS_BLOCKP:    tape->blockData(index, (uint16_t*)&opts[ZX_PROP_VALUES_TAPE + 128]); break;
-        case ZX_TAPE_OPS_TRAP_LOAD: tape->trapLoad(); break;
+        case ZX_TAPE_OPS_TRAP_LOAD: ret = tape->trapLoad(); break;
         case ZX_TAPE_OPS_TRAP_SAVE: tape->trapSave(); break;
     }
     return ret;
