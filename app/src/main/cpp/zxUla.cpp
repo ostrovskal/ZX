@@ -79,7 +79,7 @@ int zxDevUla::update(int param) {
 
         attr = 0xFF;
         _ftick = 0;
-        //colorBorder = (uint8_t)(*_FE & 7);
+        colorBorder = (uint8_t)(*_FE & 7);
 
         updateCPU(stateUP, true);
         for(line = 0 ; line < sizeBorder; line++) {
@@ -113,7 +113,7 @@ int zxDevUla::update(int param) {
                 }
                 rb++;
             }
-            attr = 0xFF;
+            //attr = 0xFF;
             //*zxSpeccy::_STATE &= ~ZX_SCR;
             for(i = 0 ; i < szBorder; i++) {
                 updateCPU(1, false);

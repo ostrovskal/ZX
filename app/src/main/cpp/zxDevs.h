@@ -294,7 +294,7 @@ public:
         flush(base_tick + endtick);
     }
     // сброс устройства
-    virtual void    reset() override { memset(buffer, 0, sizeof(buffer)); }
+    virtual void    reset() override {  }
     // обновление
     virtual int     update(int param = 0) override;
 protected:

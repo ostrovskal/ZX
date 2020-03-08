@@ -23,7 +23,7 @@ static uint8_t tbl[] =  { 0,  4,  4,  4,  4,  4,  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 static uint8_t valid[] ={ 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   1,  2,  3,  4,  5,  6,  7,  8,  9 };
 
 void info(const char* msg, const char* file, const char* func, int line, ...) {
-    auto buf = (char*)&TMP_BUF[INDEX_INTERNAL];
+    static char buf[512];
     sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
     va_list varArgs;
     va_start(varArgs, line);
@@ -33,7 +33,7 @@ void info(const char* msg, const char* file, const char* func, int line, ...) {
 }
 
 void debug(const char* msg, const char* file, const char* func, int line, ...) {
-    auto buf = (char*)&TMP_BUF[INDEX_INTERNAL];
+    static char buf[512];
     sprintf(buf, "[%s (%s:%i)] - %s", func, strrchr(file, '/') + 1, line, msg);
     va_list varArgs;
     va_start(varArgs, line);

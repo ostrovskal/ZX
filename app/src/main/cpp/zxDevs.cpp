@@ -247,7 +247,6 @@ void zxDevAY::reset() {
 }
 
 void zxDevAY::applyRegs(uint32_t timestamp) {
-	return;
     for(uint8_t r = 0; r < 16; r++) {
         select(r);
         auto p = opts[AY_AFINE + r];
