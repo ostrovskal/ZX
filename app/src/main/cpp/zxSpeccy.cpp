@@ -72,13 +72,6 @@ zxSpeccy::zxSpeccy() : pauseBetweenTapeBlocks(0), cpu(nullptr), snd(nullptr), gp
     // машина по умолчанию(до загрузки состояния)
     machine = &machines[MODEL_48];
 
-    // создаем устройства
-    cpu         = new zxCPU();
-    gpu         = new zxGPU();
-    snd         = new zxSoundMixer();
-    assembler   = new zxAssembler();
-    debugger    = new zxDebugger();
-
     memset(devs, 0, sizeof(devs));
     memset(access_devs, 0, sizeof(access_devs));
     memset(map_devs, 0, sizeof(map_devs));
@@ -96,7 +89,14 @@ zxSpeccy::zxSpeccy() : pauseBetweenTapeBlocks(0), cpu(nullptr), snd(nullptr), gp
     addDev(new zxDevBeta128());     // rw
     addDev(new zxDevTape());        // r
 
-    for(int port = 0; port < 65536; port++) {
+	// создаем устройства
+	cpu         = new zxCPU();
+	gpu         = new zxGPU();
+	snd         = new zxSoundMixer();
+	assembler   = new zxAssembler();
+	debugger    = new zxDebugger();
+
+	for(int port = 0; port < 65536; port++) {
         uint8_t rdevs(0), wdevs(0);
         for(int d = 0; d < 8; ++d) {
             auto dev = access_devs[d + 0];
@@ -244,6 +244,7 @@ uint8_t* zxSpeccy::saveState() {
 }
 
 void zxSpeccy::update(int filter) {
+	snd->update();
     gpu->updateProps(opts[ZX_PROP_BORDER_SIZE] << 4, filter);
     for(int i = 0 ; i < DEV_COUNT; i++) devs[i]->update();
 }
@@ -259,12 +260,12 @@ void zxSpeccy::changeModel(uint8_t _new) {
 }
 
 void zxSpeccy::reset() {
-    // сброс устройств
-    for(int i = 0 ; i < DEV_COUNT; i++) devs[i]->reset();
     // очищаем регистры/порты
     ssh_memzero(opts, STATE);
     // очищаем ОЗУ
     ssh_memzero(RAMbs, ZX_TOTAL_RAM);
+    // сброс устройств
+    for(int i = 0 ; i < DEV_COUNT; i++) devs[i]->reset();
     // инициализаруем переменные
     *cpu->_SP = 65534;
     // сброс состояния с сохранением статуса отладчика
@@ -277,7 +278,7 @@ int zxSpeccy::execute() {
     // формирование/отображение экрана
     snd->frameStart(0);
     devs[DEV_ULA]->update(1);
-    snd->frameEnd(*zxDevUla::_TICK % machine->tsTotal);
+    snd->frameEnd(zxDevUla::_ftick);
     gpu->updateFrame();
     return devs[DEV_KEYB]->update(0);
 }
@@ -352,38 +353,16 @@ void zxSpeccy::trap() {
 
 void zxSpeccy::writePort(uint8_t A0A7, uint8_t A8A15, uint8_t val) {
     uint16_t port = (A8A15 << 8) | A0A7;
-    if(port == 0xFE) {
-    	port = port;
-    }
 	zxDev** dl = &cache_devs[map_devs[port + 65536] * 10 + 2560];
 	while(*dl) (*dl++)->write(port, val);
-/*
-    auto m = map_devs[port + 65536];
-	for(int d = 0; d < 8; d++) {
-		if(m & numBits[d]) {
-			access_devs[d + 8]->write(port, val);
-		}
-	}
-*/
     if(checkSTATE(ZX_DEBUG)) checkBPs(port, ZX_BP_WPORT);
 }
 
 uint8_t zxSpeccy::readPort(uint8_t A0A7, uint8_t A8A15) {
     uint16_t port = (A8A15 << 8) | A0A7;
     uint8_t ret(0xFF);
-    if(A0A7 == 0xFC) {
-        if(A8A15 == 0xFE && *_MODEL == MODEL_KOMPANION) {
-            auto k = opts[ZX_PROP_PORT_FEFC];
-            if(!(opts[RUS_LAT] & 64)) {
-                ret = k;
-                opts[ZX_PROP_PORT_FEFC] = 255;
-                opts[RUS_LAT] |= 127;
-            }
-        }
-    } else {
-        zxDev** dl = &cache_devs[map_devs[port] * 10];
-        while(*dl) (*dl++)->read(port, &ret);
-    }
+	zxDev** dl = &cache_devs[map_devs[port] * 10];
+	while(*dl) (*dl++)->read(port, &ret);
     if(checkSTATE(ZX_DEBUG)) checkBPs(port, ZX_BP_RPORT);
     return ret;
 }

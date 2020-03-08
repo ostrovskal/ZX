@@ -57,8 +57,10 @@ public:
     virtual int     type() const override { return DEV_ULA; }
     // доступ к портам
     virtual int     access() const override { return ACCESS_READ | ACCESS_WRITE; }
-    // количество тактов
-    static uint32_t* _TICK;
+	// количество тактов
+	static uint32_t* _TICK;
+	// количество тактов в кадре
+	static uint32_t _ftick;
 protected:
     void updateCPU(int todo, bool interrupt);
     uint8_t attr;
@@ -106,19 +108,13 @@ public:
     // проверка на порт для чтения
     virtual bool    checkRead(uint16_t port) const override;
     // чтение из порта
-    virtual void    read(uint16_t port, uint8_t* ret) override { *ret = *buttons; }
-    // сброс устройства
-    virtual void    reset() override;
-    // обновление
-    virtual int     update(int param = 0) override;
+    virtual void    read(uint16_t port, uint8_t* ret) override { *ret = *kempston; }
     // тип устройства
     virtual int     type() const override { return DEV_JOY; }
     // доступ к портам
     virtual int     access() const override { return ACCESS_READ; }
 protected:
-    // старое значение кнопок джойстика
-    uint8_t oldButtons;
-    uint8_t* buttons;
+    uint8_t* kempston;
 };
 
 class zxDevMouse : public zxDev {
@@ -152,6 +148,8 @@ public:
     // обновление
     virtual int     update(int key) override;
 protected:
+	// старое значение кнопок джойстика
+	uint8_t joyButtons;
 };
 
 class zxFDD;

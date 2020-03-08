@@ -59,6 +59,7 @@ struct BREAK_POINT {
 
 class zxSpeccy {
     friend class zxFormats;
+    friend class zxSoundMixer;
 public:
     zxSpeccy();
     ~zxSpeccy();

@@ -68,10 +68,10 @@ class ZxFormSettings : Form() {
             // 22
             "ENTER", "CAPS", "A", "S", "D", "F", "G", "H", "J", "K", "L",
             // 33
-            "SYMBOL", "N/A", "Z", "X", "C", "SPACE", "V", "B", "N", "M", "RU/EN",
-            // 44
+            "SYMBOL", "N/A", "Z", "X", "C", "SPACE", "V", "B", "N", "M",
+            // 43
             "↑", "↓", "←", "→",
-            // 48
+            // 47
             "K←", "K→", "K↑", "K↓", "K*")
 
         private val idNulls         = listOf(R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5, R.id.button6, R.id.button7, R.id.button8)

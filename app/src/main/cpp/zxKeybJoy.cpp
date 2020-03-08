@@ -24,13 +24,26 @@ static uint8_t semiRows[] = {
         /* 32 - sm-[E]*/ 7, 0x02, 0, 0, 0, 0x01, 7, 2,
         /* 34 - Z - V */ 0, 0x02, 0, 0, 0, 0x04, 0, 0, 0, 0x08, 0, 0, 7, 0x01, 0, 0, 0, 0x10, 0, 0,
         /* 39 - B - M */ 7, 0x10, 0, 0, 7, 0x08, 0, 0, 7, 0x04, 0, 0,
-        /* 42 - RU/EN */    0x00, 0, 0, 0,
         /* 43 - cursor*/    4, 0x08, 0, 1, 4, 0x10, 0, 1, 3, 0x10, 0, 1, 4, 0x04, 0, 1,
         /* 47 - KEMPSTON */ 8, 0x02, 0, 0, 8, 0x01, 0, 0, 8, 0x08, 0, 0, 8, 0x04, 0, 0, 8, 0x10, 0, 0
 };
 
+static void execJoyKeys(int i, bool pressed) {
+    int k           = opts[ZX_PROP_JOY_KEYS + i] * 4;
+    auto semiRow    = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 0]);
+    auto semiRowEx  = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 2]);
+    auto bit        = semiRows[k + 1];
+    auto bitEx      = semiRows[k + 3];
+    if (bitEx) opts[semiRowEx] ^= (-pressed ^ opts[semiRowEx]) & bitEx;
+    if (semiRow == ZX_PROP_VALUES_KEMPSTON) pressed = !pressed;
+    opts[semiRow] ^= (-pressed ^ opts[semiRow]) & bit;
+}
+
 void zxDevKeyboard::reset() {
     ssh_memset(&opts[ZX_PROP_VALUES_SEMI_ROW], 255, 8);
+    joyButtons = 0;
+	opts[ZX_PROP_JOY_ACTION_VALUE] = 0;
+	opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
     opts[ZX_PROP_KEY_MODE] = 0;
     opts[ZX_PROP_KEY_CURSOR_MODE] = 255;
 }
@@ -57,14 +70,6 @@ int zxDevKeyboard::update(int key) {
         auto bit = semiRows[idx + 1];
         auto bitEx = semiRows[idx + 3];
         auto mode = opts[ZX_PROP_KEY_MODE];
-        auto ret = (int)(*zx->_MODEL == MODEL_KOMPANION && (key == 43 && action));
-        if(ret) {
-            auto m = opts[RUS_LAT];
-            opts[ZX_PROP_PORT_FEFC] = 255;
-            m ^= 192; // признак режима
-            opts[ZX_PROP_PORT_FEFC] &= ~(m & 128 ? 1 :  2);
-            opts[RUS_LAT] = m;
-        }
         if (!bitEx) {
             if (mode & ZX_CMD_KEY_MODE_CAPS) {
                 bitEx = 1;
@@ -93,8 +98,23 @@ int zxDevKeyboard::update(int key) {
             opts[semiRow] |= bit;
             opts[semiRowEx] |= bitEx;
         }
-        return ret;
+        return 0;
     } else {
+        // опрос джойстика
+        if (opts[ZX_PROP_SHOW_JOY]) {
+            auto buttons = (opts[ZX_PROP_JOY_ACTION_VALUE] << 4) | opts[ZX_PROP_JOY_CROSS_VALUE];
+            if (buttons != joyButtons) {
+	            joyButtons = buttons;
+                // 1. отжать
+                for (int i = 0; i < 8; i++) {
+                    if(!(buttons & numBits[i])) execJoyKeys(i, true);
+                }
+                // 2. нажать
+                for (int i = 0; i < 8; i++) {
+                    if(buttons & numBits[i]) execJoyKeys(i, false);
+                }
+            }
+        }
         // опрос клавиатуры из ПЗУ
         if (opts[ZX_PROP_SHOW_KEY]) {
             static int delay = 0;
@@ -104,42 +124,6 @@ int zxDevKeyboard::update(int key) {
                 uint8_t nmode = MODE_K;
                 auto kmode = opts[ZX_PROP_KEY_MODE];
                 auto omode = opts[ZX_PROP_KEY_CURSOR_MODE];
-                if(*zx->_MODEL == MODEL_KOMPANION) {
-/*
-                    static uint8_t sys[256];
-                    static char tmp[32768];
-                    char* _tmp = tmp;
-                    int idx = 0;
-                    for(int i = 0 ; i < 255; i++) {
-                        if(i < 120 || i > 122) {
-                            int a = 23552 + i;
-                            int n = rm8((uint16_t)a);
-                            int o = sys[i];
-                            if (n != o) {
-                                ssh_strcpy(&_tmp, ssh_ntos(&a, RADIX_DEC));
-                                *_tmp++ = ' ';
-                                ssh_strcpy(&_tmp, ssh_ntos(&n, RADIX_DEC));
-                                *_tmp++ = ' ';
-                                idx++;
-                            }
-                        }
-                    }
-                    if(idx > 0) {
-                        *_tmp = 0;
-                        LOG_INFO("%s", tmp);
-                        LOG_INFO("", 0);
-                    }
-                    memcpy(sys, realPtr(23552), 255);
-*/
-                    // проверить на текущий язык(по информации из знакогенератора)
-                    auto n = ((rm8(23606) << 8) | rm8(23607));// en - 15424, ru - 14656
-                    auto o = opts[RUS_LAT];
-                    auto lng = (uint8_t)(((n == 14656) << 7) | 127);
-                    if(lng != o) {
-                        opts[ZX_PROP_KEY_CURSOR_MODE] = 255;
-                        opts[RUS_LAT] = lng;
-                    }
-                }
                 auto val0 = rm8(23617), val1 = rm8(23658), val2 = rm8(23611);
                 switch (val0) {
                     case 0:
@@ -180,47 +164,13 @@ int zxDevKeyboard::update(int key) {
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //                                     ДЖОЙСТИК                                                //
 /////////////////////////////////////////////////////////////////////////////////////////////////
-static void execJoyKeys(int i, bool pressed) {
-    int k           = opts[ZX_PROP_JOY_KEYS + i] * 4;
-    auto semiRow    = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 0]);
-    auto semiRowEx  = (ZX_PROP_VALUES_SEMI_ROW + semiRows[k + 2]);
-    auto bit        = semiRows[k + 1];
-    auto bitEx      = semiRows[k + 3];
-    if (bitEx) opts[semiRowEx] ^= (-pressed ^ opts[semiRowEx]) & bitEx;
-    if (semiRow == ZX_PROP_VALUES_KEMPSTON) pressed = !pressed;
-    opts[semiRow] ^= (-pressed ^ opts[semiRow]) & bit;
-}
 
 zxDevJoy::zxDevJoy() {
-    buttons = &opts[ZX_PROP_VALUES_KEMPSTON];
-}
-
-void zxDevJoy::reset() {
-    oldButtons = 0;
-    opts[ZX_PROP_JOY_ACTION_VALUE] = 0;
-    opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
+    kempston = &opts[ZX_PROP_VALUES_KEMPSTON];
 }
 
 bool zxDevJoy::checkRead(uint16_t port) const {
     if(port & 0x20) return false;
     port |= 0xfa00;
     return !(port == 0xfadf || port == 0xfbdf || port == 0xffdf);
-}
-
-int zxDevJoy::update(int) {
-    if (opts[ZX_PROP_SHOW_JOY]) {
-        auto buttons = (opts[ZX_PROP_JOY_ACTION_VALUE] << 4) | opts[ZX_PROP_JOY_CROSS_VALUE];
-        if (buttons != oldButtons) {
-            oldButtons = buttons;
-            // 1. отжать
-            for (int i = 0; i < 8; i++) {
-                if(!(buttons & numBits[i])) execJoyKeys(i, true);
-            }
-            // 2. нажать
-            for (int i = 0; i < 8; i++) {
-                if(buttons & numBits[i]) execJoyKeys(i, false);
-            }
-        }
-    }
-    return 0;
 }

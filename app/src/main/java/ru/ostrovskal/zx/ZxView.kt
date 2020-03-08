@@ -11,10 +11,7 @@ import android.view.SurfaceHolder
 import android.view.View
 import ru.ostrovskal.sshstd.Common.ACT_INIT_SURFACE
 import ru.ostrovskal.sshstd.Common.RECEPIENT_FORM
-import ru.ostrovskal.sshstd.utils.action
-import ru.ostrovskal.sshstd.utils.i
-import ru.ostrovskal.sshstd.utils.send
-import ru.ostrovskal.sshstd.utils.toBoolean
+import ru.ostrovskal.sshstd.utils.*
 import ru.ostrovskal.sshstd.widgets.Controller
 import ru.ostrovskal.zx.ZxCommon.*
 import java.nio.ByteBuffer
@@ -36,12 +33,10 @@ class ZxView(context: Context) : GLSurfaceView(context) {
 
         fun update() {
             val size = ZxWnd.zxUpdateAudio(bbuf)
-            if (size != 0) {
-                bbuf.rewind()
-                bbuf.get(buf)
-                bbuf.rewind()
-                track?.write(buf, 0, size)
-            }
+            bbuf.rewind()
+            bbuf.get(buf)
+            bbuf.rewind()
+            track?.write(buf, 0, size)
         }
 
         fun initialize() {

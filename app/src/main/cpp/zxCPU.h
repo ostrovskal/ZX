@@ -77,9 +77,8 @@ enum CPU_REGS {
     STATE,
     CALL0, CALL1,
     // 71
-    RUS_LAT,
     MODEL,
-    // 73
+    // 72
     COUNT_REGS
 };
 

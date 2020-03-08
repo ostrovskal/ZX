@@ -140,12 +140,16 @@ bool zxDevAY::checkWrite(uint16_t port) const {
 }
 
 void zxDevAY::write(uint16_t port, uint8_t val) {
-    if((port & 0xC0FF) == 0xC0FD) select(val);
-    if((port & 0xC000) == 0x8000) _write(*zxDevUla::_TICK, val);
+	if(!opts[ZX_PROP_SND_CHIP_AY]) {
+		if((port & 0xC0FF) == 0xC0FD) select(val);
+		if((port & 0xC000) == 0x8000) _write(zxDevUla::_ftick, val);
+	}
 }
 
 void zxDevAY::read(uint16_t, uint8_t* ret) {
-    *ret = (opts[AY_REG] < 16 ? opts[AY_AFINE + opts[AY_REG]] : (uint8_t)0xFF);
+	if(!opts[ZX_PROP_SND_CHIP_AY]) {
+		*ret = (opts[AY_REG] < 16 ? opts[AY_AFINE + opts[AY_REG]] : (uint8_t) 0xFF);
+	}
 }
 
 void zxDevAY::flush(uint32_t chiptick) {
@@ -275,12 +279,14 @@ bool zxDevYM::checkWrite(uint16_t port) const {
 }
 
 void zxDevYM::write(uint16_t port, uint8_t val) {
-    if((port & 0xC0FF) == 0xC0FD) opts[AY_REG] = (uint8_t)(val & 0x0F);
-    if((port & 0xC000) == 0x8000) _write(val, *zxDevUla::_TICK);
+	if(opts[ZX_PROP_SND_CHIP_AY]) {
+		if((port & 0xC0FF) == 0xC0FD) opts[AY_REG] = (uint8_t) (val & 0x0F);
+		if((port & 0xC000) == 0x8000) _write(val, *zxDevUla::_TICK);
+	}
 }
 
 void zxDevYM::read(uint16_t, uint8_t* ret) {
-    *ret = (opts[AY_REG] < 16 ? opts[AY_AFINE + opts[AY_REG]] : (uint8_t)0xFF);
+	if(opts[ZX_PROP_SND_CHIP_AY]) *ret = opts[AY_AFINE + opts[AY_REG]];
 }
 
 int zxDevYM::update(int) {
@@ -336,18 +342,20 @@ void zxDevYM::reset() {
 }
 
 void zxDevYM::_write(uint8_t val, uint32_t tick) {
-    auto reg = opts[AY_REG];
-    if (reg < 16) {
-        opts[reg + AY_AFINE] = val;
-        if(reg < 14) {
-            if (countSamplers < AY_SAMPLERS) {
-                samplers[countSamplers].tstates = tick;
-                samplers[countSamplers].reg = reg;
-                samplers[countSamplers].val = val;
-                countSamplers++;
-            }
-        }
-    }
+	if(opts[ZX_PROP_SND_CHIP_AY]) {
+		auto reg = opts[AY_REG];
+		if(reg < 16) {
+			opts[reg + AY_AFINE] = val;
+			if(reg < 14) {
+				if(countSamplers < AY_SAMPLERS) {
+					samplers[countSamplers].tstates = tick;
+					samplers[countSamplers].reg = reg;
+					samplers[countSamplers].val = val;
+					countSamplers++;
+				}
+			}
+		}
+	}
 }
 
 void* zxDevYM::ptrData() {
@@ -490,11 +498,12 @@ void zxDevBeeper::write(uint16_t, uint8_t val) {
     auto spk = (short)(((val & 16) >> 4) * volSpk);
     auto mic = (short)(((val & 8)  >> 3) * volMic);
     auto mono = (uint32_t)(spk + mic);
-    updateData(*zxDevUla::_TICK, mono, mono);
+    updateData(zxDevUla::_ftick, mono, mono);
 }
 
 int zxDevBeeper::update(int param) {
-    clock_rate = zxSpeccy::machine->cpuClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1);
+    param = opts[ZX_PROP_SND_VOLUME_BP];
+    zxDevSound::update(zxSpeccy::machine->cpuClock * (opts[ZX_PROP_TURBO_MODE] ? 2 : 1));
     volSpk = (int)((2.5f * param) * 512);
     volMic = volSpk >> 2;
     return 0;

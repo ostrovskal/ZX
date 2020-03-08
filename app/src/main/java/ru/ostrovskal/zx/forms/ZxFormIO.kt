@@ -96,9 +96,9 @@ class ZxFormIO: Form() {
                             var sep = ""
                             val name = file.name
                             when(validNetExt.indexOf(name.substring(name.lastIndexOf('.')))) {
-                                0,6     -> sep = "TAP/"
-                                1,5     -> sep = "Z80/"
-                                2,3,4   -> sep = "TRDOS/"
+                                0,6     -> sep = "TAPE/"
+                                1,5     -> sep = "SNAPSHOT/"
+                                2,3,4   -> sep = "IMAGES/"
                             }
                             dbx.download(file, folderFiles + sep + name)
                         }

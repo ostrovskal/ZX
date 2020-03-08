@@ -71,7 +71,6 @@ public final class ZxCommon {
     public final static int ZX_CPU_MX               = 65;
     public final static int ZX_CPU_MY               = 66;
     public final static int ZX_CPU_STATE            = 68;
-    public final static int ZX_CPU_RL               = 71;
 
     public final static int MENU_IO                 = 1001;
     public final static int MENU_SETTINGS           = 1002;
@@ -131,7 +130,7 @@ public final class ZxCommon {
 
     // 0. Байтовые значения, вычисляемые во время работы программы
     public static final int ZX_PROP_JOY_TYPE        = 90;  // Текущий тип джойстика
-    public static final int ZX_PROP_JOY_KEYS        = 91;  // Привазанные к джойстику коды кнопок клавиатуры (8) 69 - 76
+    public static final int ZX_PROP_JOY_KEYS        = 91;  // Привазанные к джойстику коды кнопок клавиатуры (8) 91 - 98
     public static final int ZX_PROP_JOY_CROSS_VALUE = 99;  // Нажатые кнопки джойстика-крестовины
     public static final int ZX_PROP_JOY_ACTION_VALUE= 100; // Нажатые кнопки джойстика-управления
     public static final int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передаваемое из JNI
@@ -600,7 +599,7 @@ public final class ZxCommon {
             0, 3, 0, 3, 3, 0, 6, 3, 0, 9, 3, 0, 12, 3, 0, 15, 3, 0, 18, 3, 0, 21, 3, 0, 24, 3, 0, 27, 3, 0, 30, 3, 0,
             0, 3, 1, 3, 3, 1, 6, 3, 1, 9, 3, 1, 12, 3, 1, 15, 3, 1, 18, 3, 1, 21, 3, 1, 24, 3, 1, 27, 3, 1, 30, 3, 1,
             0, 3, 2, 3, 3, 2, 6, 3, 2, 9, 3, 2, 12, 3, 2, 15, 3, 2, 18, 3, 2, 21, 3, 2, 24, 3, 2, 27, 3, 2, 30, 3, 2,
-            0, 3, 3, 3, 3, 3, 6, 3, 3, 9, 3, 3, 12, 6, 3, 18, 3, 3, 21, 3, 3, 24, 3, 3, 27, 3, 3, 30, 3, 3
+            0, 3, 3, 3, 3, 3, 6, 3, 3, 9, 3, 3, 12, 9, 3, 21, 3, 3, 24, 3, 3, 27, 3, 3, 30, 3, 3
     };
 
     public static final int[] menuProps     = {
@@ -621,9 +620,7 @@ public final class ZxCommon {
             "*", "=", "<>", "<", ">", ">=", "<=", ",", "/", "?", ".", ":", ";", "&", "%", "+", "-", "_", "'", "\"", "EXP", "LPRINT", "LLIST",
             "BIN", "", "!", "#", "$", "(", ")", "@", "[", "]", "{", "}", "DEF FN", "OPEN", "CLOSE", "FORMAT", "LINE", "ERASE", "MOVE", "CAT",
             "[C]", "[G]", "true", "inv", "SQR", "PI", "[L]", "[E]", "~", "|", "IN", "TILE", "BREAK",
-            "RU", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-            "Ф", "И", "С", "В", "У", "А", "П", "Р", "Ш", "О", "Л", "Д", "Ь", "Т", "Щ", "З", "Й", "К", "Ы", "Е", "Г", "М", "Ц", "Ч", "Н", "Я",
-            "ф", "и", "с", "в", "у", "а", "п", "р", "ш", "о", "л", "д", "ь", "т", "щ", "з", "й", "к", "ы", "е", "г", "м", "ц", "ч", "н", "я"
+            "RU", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
     };
 
     public static final int[] frequency = { 48000, 44100, 22050, 11025 };

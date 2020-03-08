@@ -41,7 +41,7 @@ object ZxPreset: Table() {
         var namePrg = name
         if(name.isBlank()) namePrg = ZxWnd.zxProgramName("")
         // сначала ставим джойстик по умолчанию - а потом загружаем(если есть)
-        setJoy(0, "48,49,50,51,52,38,22,10")
+        setJoy(0, "47,48,49,50,51,38,22,10")
         select(joyType, joyKeys) { where { prgName eq namePrg } }.execute {
             setJoy(integer(0), text(1))
         }

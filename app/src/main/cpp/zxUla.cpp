@@ -13,6 +13,7 @@ static int atrTab[192];
 static uint8_t colTab[512];
 
 uint32_t* zxDevUla::_TICK(nullptr);
+uint32_t zxDevUla::_ftick(0);
 
 zxDevUla::zxDevUla(): attr(0xFF), deltaTSTATE(0), colorBorder(7), sizeBorder(0), VIDEO(nullptr), ATTR(nullptr)  {
     _FE     = &opts[PORT_FE];
@@ -38,13 +39,14 @@ zxDevUla::zxDevUla(): attr(0xFF), deltaTSTATE(0), colorBorder(7), sizeBorder(0),
 
 void zxDevUla::write(uint16_t port, uint8_t val) {
     if(!(port & 1)) {
-	    LOG_INFO("ula port:%X val:%i PC:%i", port, val, zxSpeccy::PC);
         *_FE = val;
         colorBorder = (uint8_t)(val & 7);
     } else if(!(port & 0x8002)) {
-	    LOG_INFO("mem port:%X val:%i PC:%i", port, val, zxSpeccy::PC);
-        *_VID = (uint8_t) ((val & 8) ? 7 : 5);
-	    update();
+	    auto vid = (uint8_t) ((val & 8) ? 7 : 5);
+	    if(vid != *_VID) {
+            *_VID = vid;
+            update();
+	    }
     }
 }
 
@@ -76,6 +78,7 @@ int zxDevUla::update(int param) {
         auto colours = (uint32_t*)&opts[ZX_PROP_COLORS];
 
         attr = 0xFF;
+        _ftick = 0;
         //colorBorder = (uint8_t)(*_FE & 7);
 
         updateCPU(stateUP, true);
@@ -110,6 +113,7 @@ int zxDevUla::update(int param) {
                 }
                 rb++;
             }
+            attr = 0xFF;
             //*zxSpeccy::_STATE &= ~ZX_SCR;
             for(i = 0 ; i < szBorder; i++) {
                 updateCPU(1, false);
@@ -153,11 +157,13 @@ void zxDevUla::updateCPU(int todo, bool interrupt) {
         ticks = zx->stepCPU(true);
         todo -= ticks;
         *_TICK += ticks;
+        _ftick += ticks;
     }
     while(todo > 0) {
         ticks = zx->stepCPU(false);
         todo -= ticks;
         *_TICK += ticks;
+        _ftick += ticks;
     }
     deltaTSTATE = todo;
 }

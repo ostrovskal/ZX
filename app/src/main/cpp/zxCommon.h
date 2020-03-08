@@ -107,7 +107,7 @@ enum ZX_STATE {
 // Разделяемые свойства
 // 0. Байтовые значения, вычисляемые во время работы программы
 //constexpr int ZX_PROP_JOY_TYPE        = 90;// Текущий тип джойстика
-constexpr int ZX_PROP_JOY_KEYS        = 91;  // Привазанные к джойстику коды кнопок клавиатуры (8) 81 - 88
+constexpr int ZX_PROP_JOY_KEYS        = 91;  // Привазанные к джойстику коды кнопок клавиатуры (8) 91 - 98
 constexpr int ZX_PROP_JOY_CROSS_VALUE = 99;  // Нажатые кнопки джойстика-крестовины
 constexpr int ZX_PROP_JOY_ACTION_VALUE= 100; // Нажатые кнопки джойстика-управления
 constexpr int ZX_PROP_KEY_CURSOR_MODE = 101; // Режим курсора (E, G, L, K т.п.)

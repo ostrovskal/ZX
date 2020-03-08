@@ -10,19 +10,19 @@ extern uint8_t* opts;
 
 class zxSoundMixer {
 public:
-    zxSoundMixer() : acpu(&ay), rdy(0), isEnable(true), isAyEnable(true), isBpEnable(true) {}
+    zxSoundMixer();
     void update(uint8_t * ext_buf);
-    void use(uint32_t size, uint8_t * ext_buf = nullptr);
+    void use(uint32_t size, uint8_t* ext_buf = nullptr);
     void update();
-    void reset() { acpu->reset(); bp.reset(); }
+    void reset() { acpu->reset(); beeper->reset(); }
     void frameStart(uint32_t tacts) {
         acpu->frameStart(tacts);
-        bp.frameStart(tacts);
+        beeper->frameStart(tacts);
     }
 
     void frameEnd(uint32_t tacts) {
         acpu->frameEnd(tacts);
-        bp.frameEnd(tacts);
+        beeper->frameEnd(tacts);
     }
     uint32_t ready() const { return rdy; }
 
@@ -39,12 +39,8 @@ protected:
     uint8_t	buffer[65536];
     // размер данных
     uint32_t rdy;
-    // 1 источник - бипер
-    zxDevBeeper bp;
-    // 2 источник - звуковой процессор1
-    zxDevAY ay;
-    // 3 источник - звуковой процессор2
-    zxDevYM ym;
-    // текущий
+    // бипер
+    zxDevSound* beeper;
+    // текущий звуковой процессор
     zxDevSound* acpu;
 };
