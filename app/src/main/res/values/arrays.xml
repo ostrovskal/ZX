@@ -86,7 +86,7 @@
         <item>unusedBool1,true</item>
 
         <item>border_size,3</item>
-        <item>model_type,1</item>
+        <item>model_type,0</item>
         <item>snd_chip_ay,0</item>
         <item>snd_channel_ay,1</item>
         <item>snd_freq,1</item>

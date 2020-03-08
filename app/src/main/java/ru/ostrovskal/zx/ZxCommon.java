@@ -98,14 +98,10 @@ public final class ZxCommon {
     public final static int MENU_MAGIC              = 1023;
     public final static int MENU_SHOW_DEBUGGER      = 1024;
 
-    public final static int MENU_MODEL_48KK         = 1300;
-    public final static int MENU_MODEL_48KS         = 1301;
-    public final static int MENU_MODEL_48KSN        = 1302;
-    public final static int MENU_MODEL_128K         = 1303;
-    public final static int MENU_MODEL_PLUS2        = 1304;
-    public final static int MENU_MODEL_PLUS3        = 1305;
-    public final static int MENU_MODEL_PENTAGON     = 1306;
-    public final static int MENU_MODEL_SCORPION     = 1307;
+    public final static int MENU_MODEL_48KS         = 1300;
+    public final static int MENU_MODEL_128K         = 1301;
+    public final static int MENU_MODEL_PENTAGON     = 1302;
+    public final static int MENU_MODEL_SCORPION     = 1303;
 
     public final static int MENU_MRU_1              = 1400;
     public final static int MENU_MRU_2              = 1401;

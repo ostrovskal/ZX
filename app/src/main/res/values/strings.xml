@@ -21,14 +21,10 @@
     <string name="menuDisk2" translatable="false">B:</string>
     <string name="menuDisk3" translatable="false">C:</string>
     <string name="menuDisk4" translatable="false">D:</string>
-    <string name="menuKompanion">Kompanion 48K</string>
     <string name="menuSinclair48">Sinclair 48K</string>
-    <string name="menuSinclair48n">Sinclair2006 48K</string>
     <string name="menuSinclair128">Sinclair 128K</string>
     <string name="menuPentagon">Pentagon 512K</string>
     <string name="menuScorpion">Scorpion 256K</string>
-    <string name="menuPlus2">Sinclair +2</string>
-    <string name="menuPlus3">Sinclair +3</string>
     <string name="menuMruEmpty" translatable="false">Empty</string>
     <string name="menuKeyJoy">Keyboard/Joystick</string>
     <string name="menuLabel">Label</string>

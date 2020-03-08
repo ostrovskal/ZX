@@ -83,28 +83,12 @@
         <menu>
             <group android:checkableBehavior="single">
                 <item
-                    android:id="@integer/MENU_MODEL_48KK"
-                    android:title="@string/menuKompanion"
-                    android:showAsAction="never" />
-                <item
                     android:id="@integer/MENU_MODEL_48KS"
                     android:title="@string/menuSinclair48"
                     android:showAsAction="never"/>
                 <item
-                    android:id="@integer/MENU_MODEL_48KSN"
-                    android:title="@string/menuSinclair48n"
-                    android:showAsAction="never"/>
-                <item
                     android:id="@integer/MENU_MODEL_128K"
                     android:title="@string/menuSinclair128"
-                    android:showAsAction="never"/>
-                <item
-                    android:id="@integer/MENU_MODEL_PLUS2"
-                    android:title="@string/menuPlus2"
-                    android:showAsAction="never"/>
-                <item
-                    android:id="@integer/MENU_MODEL_PLUS3"
-                    android:title="@string/menuPlus3"
                     android:showAsAction="never"/>
                 <item
                     android:id="@integer/MENU_MODEL_PENTAGON"

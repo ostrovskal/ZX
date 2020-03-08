@@ -94,7 +94,7 @@ int zxDevMem::update(int param) {
             file.set_pos(zxSpeccy::machine->indexRom << 14, zxFile::begin);
             file.read(rom, totalRom);
             file.close();
-            delete[] ROMb; ROMb = rom; ROMe = ROMb + totalRom;
+            delete[] ROMb; ROMb = rom; ROMe = rom + totalRom;
             totalRom >>= 14;
             for(int i = 0 ; i < 4; i++) romPAGES[i] = rom +  ((i >= totalRom ? totalRom - 1 : i) << 14);
         } else {

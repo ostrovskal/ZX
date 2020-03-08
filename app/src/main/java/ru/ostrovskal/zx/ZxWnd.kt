@@ -98,9 +98,7 @@ class ZxWnd : Wnd() {
             props[ZX_CPU_STATE] = state or add
         }
 
-        val modelNames              = listOf(  R.string.menuKompanion, R.string.menuSinclair48, R.string.menuSinclair48,
-                                                        R.string.menuSinclair128, R.string.menuPlus2, R.string.menuPlus3,
-                                                        R.string.menuPentagon, R.string.menuScorpion)
+        val modelNames              = listOf(  R.string.menuSinclair48, R.string.menuSinclair128, R.string.menuPentagon, R.string.menuScorpion)
 
         val props                            = ByteArray(ZX_PROPS_COUNT)
 
@@ -153,9 +151,6 @@ class ZxWnd : Wnd() {
 
         @JvmStatic
         external fun zxDebuggerString(cmd: Int, data: Int, flags: Int): String
-
-        @JvmStatic
-        external fun zxTapeBlock(block: Int, data: ShortArray): String
 
         fun read16(idx: Int) = ((props[idx].toInt() and 0xff) or ((props[idx + 1].toInt() and 0xff) shl 8))
 
@@ -308,11 +303,9 @@ class ZxWnd : Wnd() {
             MENU_PROPS_SOUND, MENU_PROPS_TURBO,
             MENU_PROPS_DEBUGGER, MENU_PROPS_TAPE,
             MENU_PROPS_EXECUTE                      -> updatePropsMenuItem(item)
-            MENU_MODEL_48KK, MENU_MODEL_48KS,
-            MENU_MODEL_48KSN, MENU_MODEL_128K,
-            MENU_MODEL_PENTAGON, MENU_MODEL_SCORPION,
-            MENU_MODEL_PLUS2, MENU_MODEL_PLUS3      -> {
-                props[ZX_PROP_MODEL_TYPE] = (id - MENU_MODEL_48KK).toByte()
+            MENU_MODEL_48KS, MENU_MODEL_128K,
+            MENU_MODEL_PENTAGON, MENU_MODEL_SCORPION-> {
+                props[ZX_PROP_MODEL_TYPE] = (id - MENU_MODEL_48KS).toByte()
                 hand?.send(RECEPIENT_FORM, ZxMessages.ACT_MODEL.ordinal)
             }
             MENU_PROPS_FILTER                    -> {

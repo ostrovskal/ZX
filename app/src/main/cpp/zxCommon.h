@@ -115,7 +115,7 @@ constexpr int ZX_PROP_KEY_MODE        = 102; // Режим клавиатуры 
 constexpr int ZX_PROP_VALUES_SEMI_ROW = 103; // Значения в полурядах клавиатуры (8) 93 - 100
 constexpr int ZX_PROP_VALUES_KEMPSTON = 111; // Значение для кемпстон-джойстика
 constexpr int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передаваемое из JNI
-constexpr int ZX_PROP_PORT_FEFC       = 116; // Значение передаваемое в порт компаньона
+//constexpr int ZX_PROP_PORT_FEFC       = 116; // Значение передаваемое в порт компаньона
 constexpr int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
 constexpr int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
 constexpr int ZX_PROP_VALUES_TAPE     = 410; // Массив значений требуемого сектора
@@ -152,14 +152,10 @@ constexpr int ZX_PROP_BPS             = 192; // значения точек ос
 constexpr int ZX_PROPS_COUNT          = 410; // Размер буфера
 
 // Модели памяти при загрузке *.Z80
-constexpr int MODEL_KOMPANION         = 0; // Компаньон
-constexpr int MODEL_48                = 1; // Синклер 48К
-//constexpr int MODEL_2006              = 2; // Синклер 48К 2006
-constexpr int MODEL_128               = 3; // Синклер 128К
-//constexpr int MODEL_PLUS2             = 4; // Синклер +2
-constexpr int MODEL_PLUS3             = 5; // Синклер +3
-constexpr int MODEL_PENTAGON          = 6; // Пентагон 256К
-constexpr int MODEL_SCORPION          = 7; // Скорпион 256К
+constexpr int MODEL_48                = 0; // Синклер 48К
+constexpr int MODEL_128               = 1; // Синклер 128К
+constexpr int MODEL_PENTAGON          = 2; // Пентагон 256К
+constexpr int MODEL_SCORPION          = 3; // Скорпион 256К
 
 // Режимы курсора
 constexpr uint8_t MODE_K              = 0;
@@ -295,7 +291,7 @@ inline uint8_t rm8(uint16_t address) { return *realPtr(address); }
 inline uint16_t rm16(uint16_t address) { return (rm8(address) | (rm8((uint16_t) (address + 1)) << 8)); }
 
 // пишем в память 8 битное значение
-inline void wm8(uint8_t* address, uint8_t val) { if(address < zxDevMem::ROMb || address > zxDevMem::ROMe) *address = val;}
+inline void wm8(uint8_t* address, uint8_t val) { if(address < zxDevMem::ROMb || address > zxDevMem::ROMe) *address = val; }
 
 // пропуск пробелов
 inline void ssh_skip_spc(char** s) {
