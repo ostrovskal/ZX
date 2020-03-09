@@ -288,7 +288,7 @@ class ZxFormSettings : Form() {
     private val tapePage: TabLayout.Content.() -> View = {
         countTapeBlocks = ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_COUNT, 0, "")
         cellLayout(10, 10) {
-            val r = ribbon(R.id.ribbonMain, false, style_debugger_ribbon) {
+            ribbon(R.id.ribbonMain, false, style_debugger_ribbon) {
                 adapter = TapeAdapter(context, TapeItem())
                 padding = 4.dp
                 backgroundSet(style_backgrnd_io)

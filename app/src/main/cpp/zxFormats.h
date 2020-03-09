@@ -17,12 +17,10 @@ public:
     static bool openTAP(zxDevTape* tape, uint8_t* ptr, size_t size);
     static bool openTZX(zxDevTape* tape, uint8_t* ptr, size_t size);
     static bool openCSW(zxDevTape* tape, uint8_t* ptr, size_t size);
-    static bool openWAV(zxDevTape* tape, uint8_t* ptr, size_t size);
     static uint8_t* saveTAP(zxDevTape* tape);
     static uint8_t* saveTZX(zxDevTape* tape);
     static uint8_t* saveRZX(zxDevTape* tape);
     static uint8_t* saveCSW(zxDevTape* tape);
-    static uint8_t* saveWAV(zxDevTape* tape);
     // диск
     static bool openTRD(zxFDD* fdd, uint8_t* ptr, size_t size);
     static bool openSCL(zxFDD* fdd, uint8_t* ptr, size_t size);

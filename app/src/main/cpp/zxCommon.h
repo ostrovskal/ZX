@@ -66,9 +66,6 @@ void debug(const char* msg, const char* file, const char* func, int line, ...);
 #endif
 
 #define LOG_INFO(m, ...)                info(m, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
-#define align_by(a, b)                  (((uint32_t)(a) + ((b) - 1)) & ~((b) - 1))
-
-//#define SL_SUCCESS(f, m)                if((slres = (f)) != SL_RESULT_SUCCESS) { LOG_INFO(m, slres); return; }
 
 #define LOG_NAME                        "ZX"
 
@@ -237,12 +234,11 @@ constexpr int ZX_CMD_IO_SNA             = 3; //
 constexpr int ZX_CMD_IO_TAP             = 4; //
 constexpr int ZX_CMD_IO_TZX             = 5; //
 constexpr int ZX_CMD_IO_CSW             = 6; //
-constexpr int ZX_CMD_IO_WAV             = 7; //
-constexpr int ZX_CMD_IO_TRD             = 8; //
-constexpr int ZX_CMD_IO_SCL             = 9; //
-constexpr int ZX_CMD_IO_FDI             = 10;//
-constexpr int ZX_CMD_IO_UDI             = 11;//
-constexpr int ZX_CMD_IO_TD0             = 12;//
+constexpr int ZX_CMD_IO_TRD             = 7; //
+constexpr int ZX_CMD_IO_SCL             = 8; //
+constexpr int ZX_CMD_IO_FDI             = 9;//
+constexpr int ZX_CMD_IO_UDI             = 10;//
+constexpr int ZX_CMD_IO_TD0             = 11;//
 
 // Система счистления для преобразования строк/чисел
 constexpr int RADIX_DEC 				= 0;

@@ -140,7 +140,6 @@ bool zxSpeccy::load(const char *path) {
         case ZX_CMD_IO_STATE:
             ret = restoreState(ptr);
             break;
-        case ZX_CMD_IO_WAV:
         case ZX_CMD_IO_TAP:
         case ZX_CMD_IO_CSW:
         case ZX_CMD_IO_TZX:
@@ -174,7 +173,6 @@ bool zxSpeccy::save(const char *path) {
         case ZX_CMD_IO_STATE:
             ret = saveState();
             break;
-        case ZX_CMD_IO_WAV:
         case ZX_CMD_IO_TAP:
         case ZX_CMD_IO_CSW:
         case ZX_CMD_IO_TZX:

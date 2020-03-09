@@ -37,23 +37,19 @@ uint8_t* zxFormats::saveSnapshot(int type) {
 }
 
 bool zxFormats::openZ80(uint8_t* ptr, size_t size) {
-    HEAD1_Z80* head1 = nullptr;
-    HEAD2_Z80* head2 = nullptr;
-    HEAD3_Z80* head3 = nullptr;
     uint8_t model = MODEL_48;
     int version;
     int pages = 3;
 
-    int length = sizeof(HEAD1_Z80);
-    head1 = (HEAD1_Z80*)ptr;
+    auto head = (HEAD_Z80*)ptr;
+    auto length = 30;
     auto buf = &TMP_BUF[INDEX_OPEN];
-    auto isCompressed = (head1->STATE1 & 0x20) == 0x20;
-    auto PC = head1->PC;
+    auto isCompressed = (head->STATE1 & 0x20) == 0x20;
+    auto PC = head->PC;
     if(PC == 0) {
         // версия 2 или 3
-        head2 = (HEAD2_Z80*)ptr;
-        length += head2->length + 2;
-        auto mode = head2->hardMode;
+        auto mode = head->model;
+        length += head->length + 2;
         switch(length) {
             case 55:
                 version = 2;
@@ -66,7 +62,7 @@ bool zxFormats::openZ80(uint8_t* ptr, size_t size) {
             default: LOG_INFO("Недопустимый формат файла!", 0); return false;
         }
         if(model == MODEL_48) {
-            pages = (head2->emulateFlags & 0x80) ? 1 : 3;
+            pages = (head->emulateFlags & 0x80) ? 1 : 3;
         } else if(model == MODEL_128) {
             if(mode == 9) {
                 model = MODEL_PENTAGON;
@@ -80,17 +76,12 @@ bool zxFormats::openZ80(uint8_t* ptr, size_t size) {
             return false;
         }
         LOG_DEBUG("version:%i length:%i model:%i pages:%i mode:%i model:%i", version, length, model, pages, mode, model);
-        if(version >= 3) {
-            head3 = (HEAD3_Z80*)ptr;
-            head2 = &head3->head2;
-        }
-        head1 = &head2->head1;
-        PC = head2->PC;
+        PC = head->PC_;
     }
     ptr += length;
     size -= length;
     // формируем страницы во временном буфере
-    if(head2) {
+    if(length > 30) {
         for(int i = 0 ; i < pages; i++) {
             auto sizeData = *(uint16_t*)ptr; ptr += 2;
             auto numPage = *ptr++ - 3;
@@ -139,23 +130,21 @@ bool zxFormats::openZ80(uint8_t* ptr, size_t size) {
     // меняем модель памяти и иинициализируем регистры
     auto cpu = zx->cpu;
     zx->changeModel(model);
-    *cpu->_BC = head1->BC; *cpu->_DE = head1->DE; *cpu->_HL = head1->HL;
-    *cpu->_A = head1->A; *cpu->_F = head1->F; opts[RA_] = head1->A_; opts[RF_] = head1->F_;
-    *cpu->_SP = head1->SP; *cpu->_IX = head1->IX; *cpu->_IY = head1->IY;
-    *cpu->_I = head1->I; *cpu->_IM = (uint8_t)(head1->STATE2 & 3);
-    *cpu->_IFF1 = head1->IFF1; *cpu->_IFF2 = head1->IFF2;
-    if(head1->STATE1 == 255) head1->STATE1 = 1;
-    *cpu->_R |= (head1->STATE1 << 7) | (head1->R & 0x7F);
-    zx->writePort(0xfe, 0, (uint8_t)(224 | ((head1->STATE1 & 14) >> 1)));
-    memcpy(&opts[RC_], &head1->BC_, 6);
-    *cpu->_PC = PC;
+    *cpu->_BC   = head->BC;     *cpu->_DE   = head->DE; *cpu->_HL = head->HL;
+    *cpu->_A    = head->A;      *cpu->_F    = head->F;  opts[RA_] = head->A_; opts[RF_] = head->F_;
+    *cpu->_SP   = head->SP;     *cpu->_IX   = head->IX; *cpu->_IY = head->IY;
+    *cpu->_I    = head->I;      *cpu->_IM   = head->IM; *cpu->_PC = PC;
+    *cpu->_IFF1 = head->IFF1;   *cpu->_IFF2 = head->IFF2;
+    *cpu->_R    |= ((head->STATE1 & 1) << 7) | (head->R & 0x7F);
+    zx->writePort(0xfe, 0, (uint8_t)(224 | ((head->STATE1 & 14) >> 1)));
+    memcpy(&opts[RC_], &head->BC_, 6);
     LOG_INFO("Z80 Start PC: %i", PC);
-    if(head2) {
-        zx->writePort(0xfd, 0x7f, head2->hardState);
-        memcpy(&opts[AY_AFINE], head2->sndRegs, 16);
-        zx->writePort(0xfd, 0xff, head2->sndChipRegNumber);
+    if(length > 30) {
+        zx->writePort(0xfd, 0x7f, head->_7FFD);
+        memcpy(&opts[AY_AFINE], head->sndRegs, 16);
+        zx->writePort(0xfd, 0xff, head->sndChipRegNumber);
     }
-    if(head3 && length == 87) zx->writePort(0xfd, 0x1f, head3->port1FFD);
+    if(length == 87) zx->writePort(0xfd, 0x1f, head->_1FFD);
     // копируем буфер
     memcpy(zx->RAMbs, buf, ZX_TOTAL_RAM);
     return true;
@@ -163,43 +152,37 @@ bool zxFormats::openZ80(uint8_t* ptr, size_t size) {
 
 uint8_t* zxFormats::saveZ80() {
     static uint8_t models[] = { 0, 0, 0, 4, 4, 4, 9, 10 };
-    static HEAD3_Z80 head;
+    static HEAD_Z80 h_z80;
 
-    auto head2 = &head.head2;
-    auto head1 = &head2->head1;
-    memset(&head, 0, sizeof(HEAD3_Z80));
+    memset(&h_z80, 0, sizeof(HEAD_Z80));
+    auto head = & h_z80;
 
     auto buf = TMP_BUF;
     auto cpu = zx->cpu;
     auto ram = zx->RAMbs;
     // основные
-    head1->BC = *cpu->_BC; head1->DE = *cpu->_DE; head1->HL = *cpu->_HL;
-    head1->A = *cpu->_A; head1->F = *cpu->_F; head1->A_ = opts[RA_]; head1->F_ = opts[RF_];
-    head1->SP = *cpu->_SP; head1->IX = *cpu->_IX; head1->IY = *cpu->_IY; head1->PC = 0;
-    head1->STATE2 = *cpu->_IM; head1->IFF1 = *cpu->_IFF1; head1->IFF2 = *cpu->_IFF2;
-    head1->I = *cpu->_I; head1->R = (uint8_t)(*cpu->_R & 127);
-    head1->STATE1 = (uint8_t)((*cpu->_R & 128) >> 7) | (uint8_t)((opts[PORT_FE] & 7) << 1);
-    memcpy(&head1->BC_, &opts[RC_], 6);
+    head->BC    = *cpu->_BC;    head->DE    = *cpu->_DE;    head->HL   = *cpu->_HL;     head->model = models[*zx->_MODEL];
+    head->A     = *cpu->_A;     head->F     = *cpu->_F;     head->A_   = opts[RA_];     head->F_    = opts[RF_];
+    head->SP    = *cpu->_SP;    head->IX    = *cpu->_IX;    head->IY   = *cpu->_IY;     head->_1FFD = opts[PORT_1FFD];
+    head->IM    = *cpu->_IM;    head->IFF1  = *cpu->_IFF1;  head->IFF2 = *cpu->_IFF2;   head->_7FFD = opts[PORT_7FFD];
+    head->I     = *cpu->_I;     head->length= 55;           head->PC   = 0;             head->PC_   = *cpu->_PC;
+    head->R     = (uint8_t)(*cpu->_R & 127);
+    head->STATE1= (uint8_t)((*cpu->_R & 128) >> 7) | (uint8_t)((opts[PORT_FE] & 7) << 1);
+    memcpy(&head->BC_, &opts[RC_], 6);
     // для режима 128К
-    head2->PC = *cpu->_PC;
-    head2->hardMode = models[*zx->_MODEL];
-    head2->length = 55;
-    head.port1FFD = opts[PORT_1FFD];
-    head2->hardState = opts[PORT_7FFD];
-    head2->sndChipRegNumber = opts[AY_REG];
-    memcpy(head2->sndRegs, &opts[AY_AFINE], 16);
-    ssh_memzero(head2->sndRegs, 16);
+    head->sndChipRegNumber = opts[AY_REG];
+    memcpy(head->sndRegs, &opts[AY_AFINE], 16);
+    ssh_memzero(head->sndRegs, 16);
     // формируем буфер из содержимого страниц
-    ssh_memcpy(&buf, &head, sizeof(HEAD3_Z80));
+    ssh_memcpy(&buf, &head, sizeof(HEAD_Z80));
     // страницы, в зависимости от режима
-    if(head2->hardMode < MODEL_128) {
-        // 4->2 5->7 8->5
+    if(head->model < MODEL_128) {
+        // 4->2 5->0 8->5
         packPage(&buf, &ram[5 << 14], 8);
         packPage(&buf, &ram[2 << 14], 4);
-        packPage(&buf, &ram[7 << 14], 5);
+        packPage(&buf, &ram[0 << 14], 5);
     } else {
         auto count = zxSpeccy::machine->ramPages;
-        LOG_INFO("saveZ80 pages:%i model:%i", count, head2->hardMode);
         for(int i = 0; i < count; i++) {
             packPage(&buf, &ram[i << 14], (uint8_t)(i + 3));
         }
@@ -207,242 +190,78 @@ uint8_t* zxFormats::saveZ80() {
     return buf;
 }
 
-bool zxFormats::openSNA(uint8_t* ptr, size_t) {
-    /*
-bool eZ80Accessor::SetState(const eSnapshot_SNA* s, size_t buf_size)
-{
-	bool sna48 = (buf_size == eSnapshot_SNA::S_48);
-	bool sna128 = (buf_size == eSnapshot_SNA::S_128_5) || (buf_size == eSnapshot_SNA::S_128_6);
-	if(!sna48 && !sna128)
-		return false;
-
-	SetupDevices(sna48);
-	alt.af = SwapWord(s->alt_af);
-	alt.bc = SwapWord(s->alt_bc);
-	alt.de = SwapWord(s->alt_de);
-	alt.hl = SwapWord(s->alt_hl);
-	af = SwapWord(s->af);
-	bc = SwapWord(s->bc);
-	de = SwapWord(s->de);
-	hl = SwapWord(s->hl);
-	ix = SwapWord(s->ix);
-	iy = SwapWord(s->iy);
-	sp = SwapWord(s->sp);
-	pc = SwapWord(s->pc);
-	i = s->i;
-	r_low = s->r;
-	r_hi = s->r & 0x80;
-	im = s->im;
-	iff1 = s->iff1 ? 1 : 0;
-
-	devices->IoWrite(0xfe, s->pFE, t);
-	int p_size = eMemory::PAGE_SIZE;
-	memcpy(memory->Get(eMemory::P_RAM5), s->page5, p_size);
-	memcpy(memory->Get(eMemory::P_RAM2), s->page2, p_size);
-	int p = sna48 ? 0 : (s->p7FFD & 7);
-	memcpy(memory->Get(eMemory::P_RAM0 + p), s->page, p_size);
-
-	if(sna48)
-	{
-		pc = memory->Read(sp) + 0x100 * memory->Read(sp+1);
-		sp += 2;
-		devices->Get<eRom>()->SelectPage(eRom::ROM_48);
-		return true;
-	}
-	devices->IoWrite(0x7ffd, s->p7FFD, t);
-	devices->Get<eRom>()->SelectPage(s->trdos ? eRom::ROM_DOS : eRom::ROM_128_0);
-	const byte* page = s->pages;
-	byte mapped = 0x24 | (1 << (s->p7FFD & 7));
-	for(int i = 0; i < 8; ++i)
-	{
-		if(!(mapped & (1 << i)))
-		{
-			memcpy(memory->Get(eMemory::P_RAM0 + i), page, p_size);
-			page += p_size;
-		}
-	}
+bool zxFormats::openSNA(uint8_t* ptr, size_t size) {
+    auto is48  = (size == HEAD_SNA::S_48);
+    auto is128 = (size == HEAD_SNA::S_128_5 || size == HEAD_SNA::S_128_6);
+    if(!is48 && !is128) return false;
+    zx->changeModel((uint8_t)(is48 ? MODEL_48 : MODEL_128));
+    // устанавливаем основные страницы
+    auto sna = (HEAD_SNA*)ptr;
+    memcpy(&zx->RAMbs[5 << 14], sna->PAGE5, 16384);
+    memcpy(&zx->RAMbs[2 << 14], sna->PAGE2, 16384);
+    opts[RAM] = (uint8_t)(is48 ? 0 : sna->_7FFD & 7);
+    memcpy(&zx->RAMbs[opts[RAM] << 14], sna->PAGEX, 16384);
+    // устанавливаем регистры
+    auto cpu = zx->cpu;
+    zx->writePort(0xFE, 0x00, sna->_FE);
+    *cpu->_AF = sna->AF; *cpu->_BC = sna->BC; *cpu->_DE = sna->DE; *cpu->_HL = sna->HL;
+    *cpu->_IX = sna->IX; *cpu->_IY = sna->IY; *cpu->_SP = sna->SP;
+    *cpu->_I = sna->I; *cpu->_IM = sna->IM; *cpu->_IFF1 = *cpu->_IFF2 = sna->IFF1; *cpu->_R = sna->R;
+    *(uint16_t*)&opts[RC_] = sna->BC_; *(uint16_t*)&opts[RE_] = sna->DE_;
+    *(uint16_t*)&opts[RL_] = sna->HL_; *(uint16_t*)&opts[RF_] = sna->AF_;
+    if(is48) {
+        *cpu->_PC = rm16(*cpu->_SP); *cpu->_SP += 2;
+    } else {
+        *cpu->_PC = sna->PC;
+        zx->writePort(0xFD, 0x7F, sna->_7FFD);
+        if(sna->TRDOS) *zx->_STATE |= ZX_TRDOS;
+        auto pages = &sna->PAGES;
+        auto mapped = 0x24 | (1 << (sna->_7FFD & 7));
+        for(int i = 0; i < 8; ++i) {
+            if(!(mapped & (1 << i))) {
+                memcpy(&zx->RAMbs[i << 14], pages, 16384);
+                pages += 16384;
+            }
+        }
+    }
+    zx->devs[DEV_MEM]->update();
 	return true;
-}
-     *
-     */
-    return false;
 }
 
 uint8_t* zxFormats::saveSNA() {
-    /*
-size_t eZ80Accessor::StoreState(eSnapshot_SNA* s)
-{
-	s->trdos = devices->Get<eRom>()->DosSelected();
-	s->alt_af = alt.af; s->alt_bc = alt.bc;
-	s->alt_de = alt.de; s->alt_hl = alt.hl;
-	s->af = af; s->bc = bc; s->de = de; s->hl = hl;
-	s->ix = ix; s->iy = iy; s->sp = sp; s->pc = pc;
-	s->i = i; s->r = (r_low & 0x7F)+r_hi; s->im = im;
-	s->iff1 = iff1 ? 0xFF : 0;
+    static HEAD_SNA h_sna;
 
-	SwapEndian(s->alt_af);
-	SwapEndian(s->alt_bc);
-	SwapEndian(s->alt_de);
-	SwapEndian(s->alt_hl);
-	SwapEndian(s->af);
-	SwapEndian(s->bc);
-	SwapEndian(s->de);
-	SwapEndian(s->hl);
-	SwapEndian(s->ix);
-	SwapEndian(s->iy);
-	SwapEndian(s->sp);
-	SwapEndian(s->pc);
+    memset(&h_sna, 0, sizeof(HEAD_SNA));
+    auto sna = &h_sna;
 
-	byte p7FFD = memory->Page(3) - eMemory::P_RAM0;
-	if(!devices->Get<eUla>()->FirstScreen())
-		p7FFD |= 0x08;
-	byte pFE = devices->Get<eUla>()->BorderColor();
-	s->p7FFD = p7FFD;
-	s->pFE = pFE;
-	byte mapped = 0x24 | (1 << (p7FFD & 7));
-	if(devices->Get<eRam>()->Mode48k())
-	{
-		mapped = 0xff;
-		s->sp -= 2;
-		memory->Write(s->sp, pc_l);
-		memory->Write(s->sp + 1, pc_h);
-	}
-	memcpy(s->page5, memory->Get(eMemory::P_RAM5), eMemory::PAGE_SIZE);
-	memcpy(s->page2, memory->Get(eMemory::P_RAM2), eMemory::PAGE_SIZE);
-	memcpy(s->page,  memory->Get(eMemory::P_RAM0 + (p7FFD & 7)), eMemory::PAGE_SIZE);
-	byte* page = s->pages;
-	int stored_128_pages = 0;
-	for(byte i = 0; i < 8; i++)
-	{
-		if(!(mapped & (1 << i)))
-		{
-			memcpy(page, memory->Get(eMemory::P_RAM0 + i), eMemory::PAGE_SIZE);
-			page += eMemory::PAGE_SIZE;
-			++stored_128_pages;
-		}
-	}
-	switch(stored_128_pages)
-	{
-	case 0:
-		return eSnapshot_SNA::S_48;
-	case 6:
-		return eSnapshot_SNA::S_128_6;
-	}
-	return eSnapshot_SNA::S_128_5;
-}
-     *
-     */
-    return nullptr;
-}
-
-bool zxFormats::openWAV(zxDevTape* tape, uint8_t* ptr, size_t size) {
-/*
-    ptr += 14; // skip
-
-    WAV wav;
-
-    wav.wFormatTag		= *(uint16_t*)ptr; ptr += sizeof(uint16_t);
-    // Only PCM files supported!
-    if(wav.wFormatTag != 1)
-        return false;
-
-    wav.nChannels 		= *(uint16_t*)ptr; ptr += sizeof(uint16_t);
-    // Only MONO and STEREO files supported!
-    if(wav.nChannels != 2 && wav.nChannels != 1)
-        return false;
-
-    wav.nSamplesPerSec 	= *(uint32_t*)ptr; ptr += sizeof(uint32_t) + 6;
-    // Supported SamplesPerSec are : 11025, 22050, 44100!
-    if(wav.nSamplesPerSec != 11025 && wav.nSamplesPerSec != 44100 && wav.nSamplesPerSec != 22050)
-        return false;
-
-    wav.wBitsPerSample	= *(uint16_t*)ptr; ptr += sizeof(uint16_t) + 4;
-    // Only 8 and 16 bit files supported!
-    if(wav.wBitsPerSample != 8 && wav.wBitsPerSample != 16)
-        return false;
-
-    auto tape = (zxDevTape*)(zx->devs[DEV_TAPE]);
-
-    tape->reset();
-
-    uint8_t posBit = 0;
-    uint32_t counter = 0;
-
-    auto len32 = *(uint32_t*)ptr; ptr += sizeof(uint32_t);
-    auto true_len = len32;
-
-    if(wav.nSamplesPerSec == 11025) true_len *= 2;
-    if(wav.wBitsPerSample == 16) { true_len /= 2; len32 /= 2; }
-    if(wav.nChannels == 2) { true_len /= 2; len32 /= 2; }
-
-    true_len /= 8;
-    true_len++;
-
-    auto data = new uint8_t[true_len];
-
-    for(uint32_t i = 0; i < len32; i++) {
-        uint16_t value;
-        bool bit;
-        if(wav.nChannels == 1) {
-            if(wav.wBitsPerSample == 16) {
-                value = *(uint16_t*)ptr;
-                ptr += sizeof(uint16_t);
-            } else {
-                value = *ptr++;
-            }
-        } else {
-            if(wav.wBitsPerSample == 16) {
-                auto tmp1 = (*(uint16_t*)ptr) / 2; ptr += sizeof(uint16_t);
-                auto tmp2 = (*(uint16_t*)ptr) / 2; ptr += sizeof(uint16_t);
-                value = (uint16_t)(tmp1 + tmp2);
-            }
-            else {
-                auto tmp1 = (*ptr++) / 2;
-                auto tmp2 = (*ptr++) / 2;
-                value = (uint8_t)(tmp1 + tmp2);
-            }
-        }
-        if(wav.wBitsPerSample == 8) bit = value > 127; else bit = value < 32768;
-        if(wav.nSamplesPerSec == 11025) {
-            tape->expandBit(data, counter++, bit);
-            posBit = (uint8_t)((posBit + 1) & 7);
-        }
-        tape->expandBit(data, counter++, bit);
-        posBit = (uint8_t)((posBit + 1) & 7);
+    // устанавливаем регистры
+    auto cpu = zx->cpu;
+    sna->_FE = opts[PORT_FE];sna->_7FFD = (opts[PORT_7FFD] & 31);
+    sna->TRDOS = *zxSpeccy::_STATE & ZX_TRDOS;     sna->PC = *cpu->_PC;
+    sna->AF = *cpu->_AF;    sna->BC = *cpu->_BC;    sna->DE = *cpu->_DE;    sna->HL = *cpu->_HL;
+    sna->IX = *cpu->_IX;    sna->IY = *cpu->_IY;    sna->SP = *cpu->_SP;    sna->I  = *cpu->_I;
+    sna->IM = *cpu->_IM;    sna->R  = *cpu->_R;     sna->IFF1 = (uint8_t)(*cpu->_IFF1 ? 0xFF : 0x00);
+    sna->BC_= *(uint16_t*)&opts[RC_];               sna->DE_ = *(uint16_t*)&opts[RE_];
+    sna->HL_= *(uint16_t*)&opts[RL_];               sna->AF_ = *(uint16_t*)&opts[RF_];
+    auto mapped = (uint8_t)(0x24 | (1 << sna->_7FFD & 7));
+    if(*zxSpeccy::_MODEL < MODEL_128 || opts[PORT_7FFD] & 32) {
+        mapped = 0xFF;
+        sna->SP -= 2;
+        wm8(realPtr(sna->SP), (uint8_t)(sna->PC & 0xFF));
+        wm8(realPtr((uint16_t)(sna->SP + 1)), (uint8_t)((sna->PC >> 8) & 0xFF));
     }
-*/
-    return true;
-}
-
-uint8_t* zxFormats::saveWAV(zxDevTape* tape) {
-/*
-    auto tape = (zxDevTape*)(zx->devs[DEV_TAPE]);
-    // расчитать размер блока данных
-    auto size = tape->calcSizeBufferImpulse(true);
-    auto buf = new uint8_t[size];
-    zxFile f;
-    if(f.open(zxFile::makePath(nullptr, true).c_str(), zxFile::create_write)) {
-        WAV wav{'FFIR', 0, 'EVAW', ' tmf', 16, 1, 1, (uint32_t)tape->freq, (uint32_t)tape->freq, 1, 8, 'atad', 0};
-        f.write(&wav, sizeof(WAV));
-        int len = 0, root = 0, tmp;
-        size = 0;
-        while(root < tape->countBlocks) {
-            len = 0;
-            tape->makeImpulseBuffer(buf, root, len);
-            for (int i = 0; i < len; i++) {
-                auto bt = (uint8_t)(tape->checkBit(buf, i) ? 250 : 5);
-                // TODO: сделать накопление хотя бы по 8 байт
-                f.write(&bt, 1);
-            }
-            root++;
-            size += len;
+    memcpy(&sna->PAGE5, &zx->RAMbs[5 << 14], 16384);
+    memcpy(&sna->PAGE2, &zx->RAMbs[2 << 14], 16384);
+    memcpy(&sna->PAGEX, &zx->RAMbs[(opts[PORT_7FFD] & 7) << 14], 16384);
+    auto pages = &sna->PAGES;
+    int stored_128_pages = 0;
+    for(int i = 0 ; i < 8; i++) {
+        if(!(mapped & (1 << i))) {
+            memcpy(pages, &zx->RAMbs[i << 14], 16384);
+            pages += 16384;
+            ++stored_128_pages;
         }
-        tmp = (size + 8 + 12 + 16);
-        f.set_pos(4, 0); f.write(&tmp, 4);
-        f.set_pos(sizeof(WAV) - 4, 0); f.write(&size, 4);
-        delete[] buf;
     }
-*/
     return nullptr;
 }
 
@@ -450,9 +269,9 @@ bool zxFormats::openTAP(zxDevTape* tape, uint8_t* ptr, size_t size) {
     auto buf = ptr;
     tape->closeTape();
     while(buf < ptr + size) {
-        uint32_t sz = *(uint16_t*)buf; buf += 2;
+        auto sz = *(uint16_t*)buf; buf += 2;
         if(!sz) break;
-        tape->makeBlock(0, buf, sz, 2168, 667, 735, 855, 1710, (*buf < 4) ? 8064 : 3220, 1000);
+        tape->makeBlock(0, buf, sz, 2168, 667, 735, 855, 1710, (uint16_t)((*buf < 4) ? 8064 : 3220), 1000);
         buf += sz;
     }
     return (buf == ptr + size);

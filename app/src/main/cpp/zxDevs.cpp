@@ -1182,8 +1182,6 @@ bool zxDevTape::open(uint8_t* ptr, size_t size, int type) {
 			return zxFormats::openTZX(this, ptr, size);
 		case ZX_CMD_IO_CSW:
 			return zxFormats::openCSW(this, ptr, size);
-		case ZX_CMD_IO_WAV:
-			return zxFormats::openWAV(this, ptr, size);
 	}
 	return false;
 }
