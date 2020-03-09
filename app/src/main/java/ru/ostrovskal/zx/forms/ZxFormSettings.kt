@@ -294,18 +294,14 @@ class ZxFormSettings : Form() {
                 backgroundSet(style_backgrnd_io)
                 selection = 0
                 itemClickListener = { _, _, p, _ ->
-                    selection = p
-                    //clickRibbon()
+					ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_RESET, p, "");
+					requestLayout()
                 }
             }.lps(0, 0, 10, 8)
             check(R.id.button7, R.string.checkAutoStart) {
                 isChecked = ZxWnd.props[ZX_PROP_BASIC_AUTOSTART].toBoolean
                 setOnClickListener { ZxWnd.props[ZX_PROP_BASIC_AUTOSTART] = isChecked.toByte }
             }.lps(0, 8, 6, 2)
-            button {
-                iconResource = R.integer.I_RESET
-                setOnClickListener { ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_RESET, 0, ""); r.requestLayout() }
-            }.lps(7, 8, 2, 2)
         }
     }
 

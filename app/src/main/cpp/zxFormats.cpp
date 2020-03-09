@@ -452,7 +452,7 @@ bool zxFormats::openTAP(zxDevTape* tape, uint8_t* ptr, size_t size) {
     while(buf < ptr + size) {
         uint32_t sz = *(uint16_t*)buf; buf += 2;
         if(!sz) break;
-        tape->makeBlock(buf, sz, 2168, 667, 735, 855, 1710, (*buf < 4) ? 8064 : 3220, 1000);
+        tape->makeBlock(0, buf, sz, 2168, 667, 735, 855, 1710, (*buf < 4) ? 8064 : 3220, 1000);
         buf += sz;
     }
     return (buf == ptr + size);

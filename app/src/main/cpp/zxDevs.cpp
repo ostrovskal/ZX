@@ -61,7 +61,6 @@ void zxDevSound::flush(uint32_t endtick) {
     uint32_t scale;
     auto tick1 = TICK_F - 1;
     if(!((endtick ^ tick) & ~tick1)) {
-        //same discrete as before
         scale = filter_diff[(endtick & tick1) + TICK_F] - filter_diff[(tick & tick1) + TICK_F];
         s2_l  += mix_l * scale; s2_r  += mix_r * scale;
         scale = filter_diff[endtick & tick1] - filter_diff[tick & tick1];
@@ -1100,22 +1099,23 @@ zxDevTape::zxDevTape() : countBlocks(0), currentBlock(0) {
 }
 
 void zxDevTape::stopTape() {
-    currentBlock = 0;
     edge_change = 0x7FFFFFFFFFFFFFFFLL;
     tape_bit = 0x40;
+	type_impulse = 0;
 }
 
 void zxDevTape::reset() {
     zxDevSound::reset();
-    edge_change = 0x7FFFFFFFFFFFFFFFLL;
-    tape_bit = 0x40;
     currentBlock = 0;
+    stopTape();
 }
 
 void zxDevTape::startTape() {
-    if(!countBlocks) return;
-    edge_change = *zxDevUla::_TICK;
-    tape_bit = 0x40;
+    if(currentBlock < countBlocks) {
+        edge_change = *zxDevUla::_TICK;
+        tape_bit = 0x40;
+	    type_impulse = 0;
+    }
 }
 
 void zxDevTape::closeTape() {
@@ -1126,12 +1126,11 @@ void zxDevTape::closeTape() {
     reset();
 }
 
-void zxDevTape::makeBlock(uint8_t* data, uint32_t size, uint32_t pilot_t, uint32_t s1_t, uint32_t s2_t, uint32_t zero_t,
-                              uint32_t one_t, uint32_t pilot_len, uint32_t pause, uint8_t last) {
+void zxDevTape::makeBlock(uint8_t type, uint8_t* data, uint16_t size, uint16_t pilot_t, uint16_t s1_t, uint16_t s2_t, uint16_t zero_t,
+                          uint16_t one_t, uint16_t pilot_len, uint16_t pause, uint8_t last) {
     auto blk = new TAPE_BLOCK();
     blocks[countBlocks++] = blk;
-    blk->type_impulse = 0;
-    blk->type = 0;
+    blk->type = type;
     blk->data = new uint8_t[size]; memcpy(blk->data, data, size);
     blk->data_size = size;
     blk->pilot_len = pilot_len; blk->pilot_t = pilot_t;
@@ -1140,13 +1139,13 @@ void zxDevTape::makeBlock(uint8_t* data, uint32_t size, uint32_t pilot_t, uint32
     blk->pause = pause; blk->last = last;
 }
 
-
 uint8_t zxDevTape::tapeBit() {
     uint32_t cur = *zxDevUla::_TICK;
     while(cur > edge_change) {
-        auto pulse = getImpulse();
+	    edge_change += getImpulse();
         tape_bit ^= 0x40;
-        edge_change += pulse;
+        //uint32_t mono = tape_bit >> 2;
+        //updateData(zxDevUla::_ftick, mono, mono);
     }
     return tape_bit;
 }
@@ -1167,26 +1166,89 @@ bool zxDevTape::open(uint8_t* ptr, size_t size, int type) {
 
 uint32_t zxDevTape::getImpulse() {
     auto blk = blocks[currentBlock];
-    blk->type_impulse++;
-    auto ti = blk->type_impulse;
-    if(ti < blk->pilot_len) return blk->pilot_t;
-    if(ti < (blk->pilot_len + 1)) return blk->s1_t;
-    if(ti < (blk->pilot_len + 2)) return blk->s2_t;
-    if(ti < (blk->pilot_len + 3 + blk->data_size * 16)) {
+    uint32_t impulse = 0, idx = 0;
+    type_impulse++;
+    auto len = (uint32_t)(blk->pilot_len - 1);
+    if(type_impulse <= len) impulse = blk->pilot_t;
+    else if(type_impulse == (len + 1)) impulse = blk->s1_t;
+    else if(type_impulse == (len + 2)) impulse = blk->s2_t;
+    else if(type_impulse < ((len + 3) + blk->data_size * 16)) {
         // данные
         // длина на 0-й бит(855) и на 1-й бит(1710)
-        auto idx = ti - (blk->pilot_len + 3 + blk->data_size * 16);
-        auto impulse = (blk->data[idx / 8] & numBits[(7 - idx % 8)]) ? blk->one_t : blk->zero_t;
-        return impulse;
+        idx = type_impulse - (len + 3);
+        impulse = (blk->data[idx / 16] & numBits[7 - ((idx % 16) >> 1)]) ? blk->one_t : blk->zero_t;
+    } else {
+        // next_block
+        type_impulse = 0;
+        currentBlock++;
+        // pause
+        impulse = (uint32_t)(blk->pause * 3500);
     }
-    // next_block
-    blk->type_impulse = 0;
-    currentBlock++;
-    if(currentBlock >= countBlocks) {
-        stopTape();
-    }
-    // pause
-    return blk->pause * 3500;
+    return impulse;
+}
+
+void zxDevTape::setCurrentBlock(int index) {
+	if(index >= countBlocks) index = countBlocks - 1;
+	else if(index < 0) index = 0;
+	currentBlock = (uint8_t)index;
+	stopTape();
+}
+
+uint8_t* zxDevTape::state(uint8_t* ptr, bool restore) {
+	if(restore) {
+		if(ptr[0] != 'S' && ptr[1] != 'E' && ptr[2] != 'R' && ptr[3] != 'G') return ptr;
+		ptr += 4;
+		auto cblks = ptr[0];
+		currentBlock = ptr[1]; tape_bit = ptr[2];
+		type_impulse = ptr[3] | (ptr[4] << 8) | (ptr[5] << 16) | (ptr[6] << 24);
+		edge_change = ptr[7] | (ptr[8] << 8) | (ptr[9] << 16) | (ptr[10] << 24) | (ptr[11] << 32) | (ptr[12] << 40) | (ptr[13] << 48) | (ptr[14] << 56);
+		ptr += 15;
+		for(int i = 0 ; i < cblks; i++) {
+			auto pilot_t    = *(uint16_t*)(ptr + 0);
+            auto s1_t       = *(uint16_t*)(ptr + 2);
+            auto s2_t       = *(uint16_t*)(ptr + 4);
+            auto zero_t     = *(uint16_t*)(ptr + 6);
+            auto one_t      = *(uint16_t*)(ptr + 8);
+            auto pilot_len  = *(uint16_t*)(ptr + 10);
+            auto pause_t    = *(uint16_t*)(ptr + 12);
+            auto size       = *(uint16_t*)(ptr + 14);
+            auto last_t     = ptr[16];
+            auto type       = ptr[17]; ptr += 18;
+            auto data       = ptr; ptr += size;
+			makeBlock(type, data, size, pilot_t, s1_t, s2_t, zero_t, one_t, pilot_len, pause_t, (uint8_t)last_t);
+		}
+	} else {
+		ptr[0]  = 'S'; ptr[1] = 'E'; ptr[2] = 'R'; ptr[3] = 'G'; ptr += 4;
+		ptr[0]  = countBlocks; ptr[1]  = currentBlock; ptr[2] = tape_bit;
+        ptr[3]  = (uint8_t)(type_impulse & 0xFF);
+        ptr[4]  = (uint8_t)((type_impulse >> 8) & 0xFF);
+        ptr[5]  = (uint8_t)((type_impulse >> 16) & 0xFF);
+        ptr[6]  = (uint8_t)((type_impulse >> 24) & 0xFF);
+		ptr[7]  = (uint8_t)(edge_change & 0xFF);
+		ptr[8]  = (uint8_t)((edge_change >> 8)  & 0xFF);
+		ptr[9]  = (uint8_t)((edge_change >> 16) & 0xFF);
+		ptr[10]  = (uint8_t)((edge_change >> 24) & 0xFF);
+		ptr[11]  = (uint8_t)((edge_change >> 32) & 0xFF);
+		ptr[12] = (uint8_t)((edge_change >> 40) & 0xFF);
+		ptr[13] = (uint8_t)((edge_change >> 48) & 0xFF);
+		ptr[14] = (uint8_t)((edge_change >> 56) & 0xFF);
+		ptr += 15;
+		for(int i = 0 ; i < countBlocks; i++) {
+			auto blk = blocks[i];
+            *(uint16_t*)(ptr + 0)  = blk->pilot_t;
+            *(uint16_t*)(ptr + 2)  = blk->s1_t;
+            *(uint16_t*)(ptr + 4)  = blk->s2_t;
+            *(uint16_t*)(ptr + 6)  = blk->zero_t;
+            *(uint16_t*)(ptr + 8)  = blk->one_t;
+            *(uint16_t*)(ptr + 10) = blk->pilot_len;
+            *(uint16_t*)(ptr + 12) = blk->pause;
+            *(uint16_t*)(ptr + 14) = blk->data_size;
+            *(ptr + 16) = blk->last; *(ptr + 17) = blk->type;
+			ptr += 18; memcpy(ptr, blk->data, blk->data_size);
+			ptr += blk->data_size;
+		}
+	}
+    return ptr;
 }
 
 int zxDevTape::trapSave() {
@@ -1282,8 +1344,4 @@ void zxDevTape::blockData(int index, uint16_t* data) {
         }
         data[7] = (uint16_t)(index < currentBlock);
     }
-}
-
-uint8_t* zxDevTape::state(uint8_t* ptr, bool restore) {
-    return ptr;
 }

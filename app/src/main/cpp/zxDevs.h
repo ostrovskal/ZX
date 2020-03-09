@@ -8,7 +8,7 @@
 
 enum DEV_ACCESS { ACCESS_NONE = 0, ACCESS_WRITE, ACCESS_READ };
 enum DEVS {
-    DEV_MEM, DEV_ULA, DEV_KEYB, DEV_JOY, DEV_MOUSE, DEV_BEEPER, DEV_AY, DEV_YM, DEV_COVOX, DEV_DISK, DEV_TAPE, DEV_COUNT
+    DEV_MEM, DEV_ULA, DEV_KEYB, DEV_JOY, DEV_MOUSE, DEV_TAPE, DEV_BEEPER, DEV_AY, DEV_YM, DEV_COVOX, DEV_DISK, DEV_COUNT
 };
 
 class zxDev {
@@ -468,19 +468,21 @@ class zxDevTape : public zxDevSound {
 public:
     struct TAPE_BLOCK {
         // тип блока
-        uint8_t type;
-        // тип импульса(пилот, после пилота, данные, последний байт, пауза)
-        uint32_t type_impulse;
+        uint8_t type, last;
         // данные
         uint8_t* data;
         // длина данных
-        uint32_t data_size;
+        uint16_t data_size;
         // длины импульсов
-        uint32_t pilot_t, s1_t, s2_t;
-        uint32_t zero_t, one_t, pilot_len;
-        uint32_t pause, last;
+        uint16_t pilot_t, s1_t, s2_t;
+        // длина нулевого/единичного бита/пилота
+        uint16_t zero_t, one_t, pilot_len;
+        // длина паузы между блоками
+        uint16_t pause;
     };
+    // конструктор
     zxDevTape();
+    // деструктор
     virtual ~zxDevTape() { closeTape(); }
     // проверка на порт для чтения
     virtual bool    checkRead(uint16_t port) const override { return !(port & 1); }
@@ -498,27 +500,39 @@ public:
     virtual uint8_t* state(uint8_t* ptr, bool restore) override;
     // открыть
     virtual bool open(uint8_t* ptr, size_t size, int type) override;
-
-    void blockData(int index, uint16_t *data);
-    int trapSave();
-    int trapLoad();
+    // запуск загрузки
     void startTape();
+    // остановка загрузки
     void stopTape();
+    // стирание ленты
     void closeTape();
-    void makeBlock( uint8_t* data, uint32_t size, uint32_t pilot_t, uint32_t s1_t, uint32_t s2_t, uint32_t zero_t, uint32_t one_t,
-                    uint32_t pilot_len, uint32_t pause, uint8_t last = 8);
+    // формирование блока ленты
+    void makeBlock( uint8_t type, uint8_t* data, uint16_t size, uint16_t pilot_t, uint16_t s1_t, uint16_t s2_t, uint16_t zero_t, uint16_t one_t,
+                    uint16_t pilot_len, uint16_t pause, uint8_t last = 8);
 protected:
-    uint8_t tapeBit();
+	// перехват сохранения
+	int trapSave();
+	// перехват загрузки
+	int trapLoad();
+	// получение информации о блоке
+	void blockData(int index, uint16_t *data);
+	// установка текущего блока
+	void setCurrentBlock(int index);
+	// бит текущего импульса
+	uint8_t tapeBit();
+	// текущий импульс
     uint32_t getImpulse();
     // массив блоков
     TAPE_BLOCK* blocks[128];
     // всего блоков
-    int countBlocks;
+    uint8_t countBlocks;
     // текущий блок
-    int currentBlock;
+    uint8_t currentBlock;
+	// значение текущего бита(64/0)
+	uint8_t tape_bit;
+	// тип импульса(пилот, после пилота, данные, пауза)
+	uint32_t type_impulse;
     // такты для следующих импульсов
     uint64_t edge_change;
-    // значение текущего бита(64/0)
-    uint8_t tape_bit;
 };
 

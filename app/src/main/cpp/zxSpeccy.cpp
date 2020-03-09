@@ -66,12 +66,12 @@ zxSpeccy::zxSpeccy() : pauseBetweenTapeBlocks(0), cpu(nullptr), snd(nullptr), gp
     addDev(new zxDevKeyboard());    // r
     addDev(new zxDevJoy());         // r
     addDev(new zxDevMouse());       // r
+    addDev(new zxDevTape());        // r
     addDev(new zxDevBeeper());      // w
     addDev(new zxDevCovox());       // w
     addDev(new zxDevAY());          // rw
     addDev(new zxDevYM());          // rw
     addDev(new zxDevBeta128());     // rw
-    addDev(new zxDevTape());        // r
 
 	// создаем устройства
 	cpu         = new zxCPU();
@@ -317,8 +317,9 @@ void zxSpeccy::trap() {
                 if(opts[ROM] == 1) *_STATE |= ZX_TRDOS;
             }
             bool success = false;
-            if (pc == 1218) success = tapeOperations(ZX_TAPE_OPS_TRAP_SAVE, 0) != 0;
-            else if (pc == 1366 || pc == 1378) {
+            if(pc == 0x5E2) ((zxDevTape*)devs[DEV_TAPE])->stopTape();
+            else if (pc == 0x4C2) success = tapeOperations(ZX_TAPE_OPS_TRAP_SAVE, 0) != 0;
+            else if (/*pc == 0x556 || */pc == 0x562) {
 //                zxFormats::saveZ80(*_MODEL >= MODEL_128 ? "tapLoad128.ezx" : "tapLoad48.ezx");
                 success = tapeOperations(ZX_TAPE_OPS_TRAP_LOAD, 0) != 0;
             }
@@ -480,7 +481,7 @@ int zxSpeccy::tapeOperations(int ops, int index) {
     auto tape = (zxDevTape*)devs[DEV_TAPE];
     switch(ops) {
         case ZX_TAPE_OPS_COUNT:     ret = tape->countBlocks; break;
-        case ZX_TAPE_OPS_RESET:     tape->reset(); break;
+        case ZX_TAPE_OPS_RESET:     tape->setCurrentBlock(index); break;
         case ZX_TAPE_OPS_BLOCKC:    tape->blockData(index, (uint16_t*)&opts[ZX_PROP_VALUES_TAPE]); break;
         case ZX_TAPE_OPS_BLOCKP:    tape->blockData(index, (uint16_t*)&opts[ZX_PROP_VALUES_TAPE + 128]); break;
         case ZX_TAPE_OPS_TRAP_LOAD: ret = tape->trapLoad(); break;
