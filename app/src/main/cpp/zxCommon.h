@@ -112,9 +112,8 @@ constexpr int ZX_PROP_VALUES_SEMI_ROW = 103; // Значения в полуря
 constexpr int ZX_PROP_VALUES_KEMPSTON = 111; // Значение для кемпстон-джойстика
 constexpr int ZX_PROP_JNI_RETURN_VALUE= 112; // Значение передаваемое из JNI
 //constexpr int ZX_PROP_PORT_FEFC       = 116; // Значение передаваемое в порт компаньона
-constexpr int ZX_PROP_VALUES_BUTTON   = 322; // Значение для обновления кнопок клавиатуры(текст, иконка) (42 * 2) 322 - 405
+constexpr int ZX_PROP_VALUES_TAPE     = 322; // Массив значений блока ленты
 constexpr int ZX_PROP_VALUES_SECTOR   = 410; // Массив значений требуемого сектора
-constexpr int ZX_PROP_VALUES_TAPE     = 410; // Массив значений требуемого сектора
 
 // 1. Булевы значения
 constexpr int ZX_PROP_FIRST_LAUNCH    = 128; // Признак первого запуска

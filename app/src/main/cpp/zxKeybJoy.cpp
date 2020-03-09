@@ -45,7 +45,7 @@ void zxDevKeyboard::reset() {
 	opts[ZX_PROP_JOY_ACTION_VALUE] = 0;
 	opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
     opts[ZX_PROP_KEY_MODE] = 0;
-    opts[ZX_PROP_KEY_CURSOR_MODE] = 255;
+    opts[ZX_PROP_KEY_CURSOR_MODE] = 0;
 }
 
 void zxDevKeyboard::read(uint16_t port, uint8_t* ret) {
@@ -152,7 +152,6 @@ int zxDevKeyboard::update(int key) {
                 }
                 if (opts[ZX_PROP_KEY_CURSOR_MODE] != nmode) {
                     opts[ZX_PROP_KEY_CURSOR_MODE] = nmode;
-                    memcpy(&opts[ZX_PROP_VALUES_BUTTON], &buttons[nmode * 86], 86);
                     return 1;
                 }
             }
