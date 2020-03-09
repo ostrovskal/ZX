@@ -17,28 +17,31 @@ public:
     void reset() { acpu->reset(); beeper->reset(); }
     void frameStart(uint32_t tacts) {
         acpu->frameStart(tacts);
-        beeper->frameStart(tacts);
+	    beeper->frameStart(tacts);
+	    tape->frameStart(tacts);
     }
 
     void frameEnd(uint32_t tacts) {
         acpu->frameEnd(tacts);
-        beeper->frameEnd(tacts);
+	    beeper->frameEnd(tacts);
+	    tape->frameEnd(tacts);
     }
     uint32_t ready() const { return rdy; }
-
+    // выполнение смешивания
     int execute(uint8_t *buf);
-
+	// признак включенного AY
+	bool isAyEnable;
+	// признак включенного бипера
+	bool isBpEnable;
 protected:
     // признак включенного звука
     bool isEnable;
-    // признак включенного AY
-    bool isAyEnable;
-    // признак включенного бипера
-    bool isBpEnable;
     // выходной буфер
     uint8_t	buffer[65536];
     // размер данных
     uint32_t rdy;
+    // лента
+    zxDevSound* tape;
     // бипер
     zxDevSound* beeper;
     // текущий звуковой процессор

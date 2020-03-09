@@ -33,10 +33,12 @@ class ZxView(context: Context) : GLSurfaceView(context) {
 
         fun update() {
             val size = ZxWnd.zxUpdateAudio(bbuf)
-            bbuf.rewind()
-            bbuf.get(buf)
-            bbuf.rewind()
-            track?.write(buf, 0, size)
+            if(size != 0) {
+                bbuf.rewind()
+                bbuf.get(buf)
+                bbuf.rewind()
+                track?.write(buf, 0, size)
+            }
         }
 
         fun initialize() {

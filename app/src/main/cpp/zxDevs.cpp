@@ -180,40 +180,58 @@ void zxDevAY::flush(uint32_t chiptick) {
 }
 
 void zxDevAY::_write(uint32_t timestamp, uint8_t val) {
-    auto activereg = opts[AY_REG];
-    if(activereg > 15) return;
-    if((1 << activereg) & 0b0010000000101010) val &= 0x0F;
-    if((1 << activereg) & 0b0000011101000000) val &= 0x1F;
-    if(activereg != ESHAPE && opts[AY_AFINE + activereg] == val) return;
-    opts[AY_AFINE + activereg] = val;
-    if(timestamp) flush((timestamp * mult_const) >> MULT_C_1);
-    switch(activereg) {
-        case AFINE: case ACOARSE: fa = (opts[AY_AFINE] | (opts[AY_ACOARSE] << 8)); break;
-        case BFINE: case BCOARSE: fb = (opts[AY_BFINE] | (opts[AY_BCOARSE] << 8)); break;
-        case CFINE: case CCOARSE: fc = (opts[AY_CFINE] | (opts[AY_CCOARSE] << 8)); break;
-        case NOISEPER: fn = (uint32_t)(val * 2); break;
-        case ENABLE:
-            bit0 = (uint32_t)(0 - ((val &  1) != 0));
-            bit1 = (uint32_t)(0 - ((val &  2) != 0));
-            bit2 = (uint32_t)(0 - ((val &  4) != 0));
-            bit3 = (uint32_t)(0 - ((val &  8) != 0));
-            bit4 = (uint32_t)(0 - ((val & 16) != 0));
-            bit5 = (uint32_t)(0 - ((val & 32) != 0));
-            break;
-        case AVOL:
-            ea = (uint32_t)((val & 0x10) ? -1 : 0);
-            va = ((val & 0x0F) * 2 + 1) & ~ea;
-            break;
-        case BVOL:
-            eb = (uint32_t)((val & 0x10)? -1 : 0);
-            vb = ((val & 0x0F) * 2 + 1) & ~eb;
-            break;
-        case CVOL:
-            ec = (uint32_t)((val & 0x10)? -1 : 0);
-            vc = ((val & 0x0F) * 2 + 1) & ~ec;
-            break;
-        case EFINE: case ECOARSE: fe = (opts[AY_EFINE] | (opts[AY_ECOARSE] << 8)); break;
-        case ESHAPE: te = 0; /* attack/decay */ if(opts[AY_ESHAPE] & 4) env = 0, denv = 1; else env = 31, denv = -1; break;
+	if(zx->snd && zx->snd->isAyEnable) {
+        auto activereg = opts[AY_REG];
+        if(activereg > 15) return;
+        if((1 << activereg) & 0b0010000000101010) val &= 0x0F;
+        if((1 << activereg) & 0b0000011101000000) val &= 0x1F;
+        if(activereg != ESHAPE && opts[AY_AFINE + activereg] == val) return;
+        opts[AY_AFINE + activereg] = val;
+        if(timestamp) flush((timestamp * mult_const) >> MULT_C_1);
+        switch(activereg) {
+            case AFINE:
+            case ACOARSE:
+                fa = (opts[AY_AFINE] | (opts[AY_ACOARSE] << 8));
+                break;
+            case BFINE:
+            case BCOARSE:
+                fb = (opts[AY_BFINE] | (opts[AY_BCOARSE] << 8));
+                break;
+            case CFINE:
+            case CCOARSE:
+                fc = (opts[AY_CFINE] | (opts[AY_CCOARSE] << 8));
+                break;
+            case NOISEPER:
+                fn = (uint32_t) (val * 2);
+                break;
+            case ENABLE:
+                bit0 = (uint32_t) (0 - ((val & 1) != 0));
+                bit1 = (uint32_t) (0 - ((val & 2) != 0));
+                bit2 = (uint32_t) (0 - ((val & 4) != 0));
+                bit3 = (uint32_t) (0 - ((val & 8) != 0));
+                bit4 = (uint32_t) (0 - ((val & 16) != 0));
+                bit5 = (uint32_t) (0 - ((val & 32) != 0));
+                break;
+            case AVOL:
+                ea = (uint32_t) ((val & 0x10) ? -1 : 0);
+                va = ((val & 0x0F) * 2 + 1) & ~ea;
+                break;
+            case BVOL:
+                eb = (uint32_t) ((val & 0x10) ? -1 : 0);
+                vb = ((val & 0x0F) * 2 + 1) & ~eb;
+                break;
+            case CVOL:
+                ec = (uint32_t) ((val & 0x10) ? -1 : 0);
+                vc = ((val & 0x0F) * 2 + 1) & ~ec;
+                break;
+            case EFINE:
+            case ECOARSE:
+                fe = (opts[AY_EFINE] | (opts[AY_ECOARSE] << 8));
+                break;
+            case ESHAPE:
+                te = 0; /* attack/decay */ if(opts[AY_ESHAPE] & 4) env = 0, denv = 1; else env = 31, denv = -1;
+                break;
+        }
     }
 }
 
@@ -341,7 +359,7 @@ void zxDevYM::reset() {
 }
 
 void zxDevYM::_write(uint8_t val, uint32_t tick) {
-	if(opts[ZX_PROP_SND_CHIP_AY]) {
+	if(zx->snd && zx->snd->isAyEnable) {
 		auto reg = opts[AY_REG];
 		if(reg < 16) {
 			opts[reg + AY_AFINE] = val;
@@ -494,10 +512,12 @@ void* zxDevYM::ptrData() {
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 void zxDevBeeper::write(uint16_t, uint8_t val) {
-    auto spk = (short)(((val & 16) >> 4) * volSpk);
-    auto mic = (short)(((val & 8)  >> 3) * volMic);
-    auto mono = (uint32_t)(spk + mic);
-    updateData(zxDevUla::_ftick, mono, mono);
+	if(zx->snd && zx->snd->isBpEnable) {
+		auto spk = (short) (((val & 16) >> 4) * volSpk);
+		auto mic = (short) (((val & 8) >> 3) * volMic);
+		auto mono = (uint32_t) (spk + mic);
+		updateData(zxDevUla::_ftick, mono, mono);
+	}
 }
 
 int zxDevBeeper::update(int param) {
@@ -516,7 +536,7 @@ static char buf_str[65536];
 // все дисководы
 static zxFDD fdds[4];
 // текущий сектор
-static zxDisk::TRACK::SECTOR* found_sec;
+static zxDisk::TRACK::SECTOR* found_sec(nullptr);
 
 void zxDevBeta128::log_to_data(bool is_text, const char* title, int trk, int sec, int head) {
     auto s = &buf_str[0];
@@ -1093,31 +1113,6 @@ void zxDevBeta128::trap(uint16_t pc) {
 //                                      МАГНИТОФОН                                             //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-zxDevTape::zxDevTape() : countBlocks(0), currentBlock(0) {
-    memset(blocks, 0, sizeof(blocks));
-    closeTape();
-}
-
-void zxDevTape::stopTape() {
-    edge_change = 0x7FFFFFFFFFFFFFFFLL;
-    tape_bit = 0x40;
-	type_impulse = 0;
-}
-
-void zxDevTape::reset() {
-    zxDevSound::reset();
-    currentBlock = 0;
-    stopTape();
-}
-
-void zxDevTape::startTape() {
-    if(currentBlock < countBlocks) {
-        edge_change = *zxDevUla::_TICK;
-        tape_bit = 0x40;
-	    type_impulse = 0;
-    }
-}
-
 void zxDevTape::closeTape() {
     for(int i = 0 ; i < countBlocks; i++) {
         SAFE_A_DELETE(blocks[i]->data);
@@ -1142,26 +1137,11 @@ void zxDevTape::makeBlock(uint8_t type, uint8_t* data, uint16_t size, uint16_t p
 uint8_t zxDevTape::tapeBit() {
     uint32_t cur = *zxDevUla::_TICK;
     while(cur > edge_change) {
-	    edge_change += getImpulse();
+        if((int)(cur - edge_change) >= 0) write(0, tape_bit >> 3);
         tape_bit ^= 0x40;
-        //uint32_t mono = tape_bit >> 2;
-        //updateData(zxDevUla::_ftick, mono, mono);
+        edge_change += getImpulse();
     }
     return tape_bit;
-}
-
-bool zxDevTape::open(uint8_t* ptr, size_t size, int type) {
-    switch(type) {
-        case ZX_CMD_IO_TAP:
-            return zxFormats::openTAP(this, ptr, size);
-        case ZX_CMD_IO_TZX:
-            return zxFormats::openTZX(this, ptr, size);
-        case ZX_CMD_IO_CSW:
-            return zxFormats::openCSW(this, ptr, size);
-        case ZX_CMD_IO_WAV:
-            return zxFormats::openWAV(this, ptr, size);
-    }
-    return false;
 }
 
 uint32_t zxDevTape::getImpulse() {
@@ -1194,6 +1174,20 @@ void zxDevTape::setCurrentBlock(int index) {
 	stopTape();
 }
 
+bool zxDevTape::open(uint8_t* ptr, size_t size, int type) {
+	switch(type) {
+		case ZX_CMD_IO_TAP:
+			return zxFormats::openTAP(this, ptr, size);
+		case ZX_CMD_IO_TZX:
+			return zxFormats::openTZX(this, ptr, size);
+		case ZX_CMD_IO_CSW:
+			return zxFormats::openCSW(this, ptr, size);
+		case ZX_CMD_IO_WAV:
+			return zxFormats::openWAV(this, ptr, size);
+	}
+	return false;
+}
+
 uint8_t* zxDevTape::state(uint8_t* ptr, bool restore) {
 	if(restore) {
 		if(ptr[0] != 'S' && ptr[1] != 'E' && ptr[2] != 'R' && ptr[3] != 'G') return ptr;
@@ -1201,8 +1195,8 @@ uint8_t* zxDevTape::state(uint8_t* ptr, bool restore) {
 		auto cblks = ptr[0];
 		currentBlock = ptr[1]; tape_bit = ptr[2];
 		type_impulse = ptr[3] | (ptr[4] << 8) | (ptr[5] << 16) | (ptr[6] << 24);
-		edge_change = ptr[7] | (ptr[8] << 8) | (ptr[9] << 16) | (ptr[10] << 24) | (ptr[11] << 32) | (ptr[12] << 40) | (ptr[13] << 48) | (ptr[14] << 56);
-		ptr += 15;
+		edge_change = ptr[7] | (ptr[8] << 8) | (ptr[9] << 16) | (ptr[10] << 24);
+		ptr += 11;
 		for(int i = 0 ; i < cblks; i++) {
 			auto pilot_t    = *(uint16_t*)(ptr + 0);
             auto s1_t       = *(uint16_t*)(ptr + 2);
@@ -1228,11 +1222,7 @@ uint8_t* zxDevTape::state(uint8_t* ptr, bool restore) {
 		ptr[8]  = (uint8_t)((edge_change >> 8)  & 0xFF);
 		ptr[9]  = (uint8_t)((edge_change >> 16) & 0xFF);
 		ptr[10]  = (uint8_t)((edge_change >> 24) & 0xFF);
-		ptr[11]  = (uint8_t)((edge_change >> 32) & 0xFF);
-		ptr[12] = (uint8_t)((edge_change >> 40) & 0xFF);
-		ptr[13] = (uint8_t)((edge_change >> 48) & 0xFF);
-		ptr[14] = (uint8_t)((edge_change >> 56) & 0xFF);
-		ptr += 15;
+		ptr += 11;
 		for(int i = 0 ; i < countBlocks; i++) {
 			auto blk = blocks[i];
             *(uint16_t*)(ptr + 0)  = blk->pilot_t;

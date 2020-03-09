@@ -11,24 +11,29 @@
 
 zxSoundMixer::zxSoundMixer() : rdy(0), isEnable(true), isAyEnable(true), isBpEnable(true) {
 	acpu   = (zxDevSound*)zx->devs[DEV_AY];
-	beeper = (zxDevSound*)zx->devs[DEV_BEEPER];
+    beeper = (zxDevSound*)zx->devs[DEV_BEEPER];
+    tape   = (zxDevSound*)zx->devs[DEV_TAPE];
 }
 
 void zxSoundMixer::update(uint8_t * ext_buf) {
-    auto ready_min = acpu->sizeData();
-    auto ready_s = beeper->sizeData();
-    if(ready_min > ready_s) ready_min = ready_s;
-    if(rdy + ready_min > 65536) { rdy = 0; ready_min = 0; }
-    if(ready_min) {
+    auto ready_a = acpu->sizeData();
+    auto ready_b = beeper->sizeData();
+    auto ready_t = tape->sizeData();
+    if(ready_a > ready_b) ready_a = ready_b;
+    if(ready_a > ready_t) ready_a = ready_t;
+    if(rdy + ready_a > 65536) { rdy = 0; ready_a = 0; }
+    if(ready_a) {
         auto buf = ext_buf ? ext_buf : buffer;
         auto p = (int*)(buf + rdy);
         auto s0 = (int*)acpu->ptrData();
         auto s1 = (int*)beeper->ptrData();
-        for(int i = 0; i < ready_min / 4; i++) *p++ = (*s0++) + (*s1++);
-        rdy += ready_min;
+        auto s2 = (int*)tape->ptrData();
+        for(int i = 0; i < ready_a / 4; i++) *p++ = (*s0++) + (*s1++) + (*s2++);
+        rdy += ready_a;
     }
     acpu->resetData();
     beeper->resetData();
+    tape->resetData();
 }
 
 void zxSoundMixer::use(uint32_t size, uint8_t * ext_buf) {
@@ -53,8 +58,11 @@ void zxSoundMixer::update() {
 }
 
 int zxSoundMixer::execute(uint8_t *buf) {
-    update(buf);
-    auto size = ready();
-    use(size, buf);
-    return size;
+    if(isEnable) {
+        update(buf);
+        auto size = ready();
+        use(size, buf);
+        return size;
+    }
+    return 0;
 }

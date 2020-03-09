@@ -463,7 +463,7 @@ protected:
     uint32_t clockAY;
 };
 
-class zxDevTape : public zxDevSound {
+class zxDevTape : public zxDevBeeper {
     friend class zxSpeccy;
 public:
     struct TAPE_BLOCK {
@@ -481,7 +481,10 @@ public:
         uint16_t pause;
     };
     // конструктор
-    zxDevTape();
+    zxDevTape() : countBlocks(0), currentBlock(0) {
+	    memset(blocks, 0, sizeof(blocks));
+	    closeTape();
+    }
     // деструктор
     virtual ~zxDevTape() { closeTape(); }
     // проверка на порт для чтения
@@ -489,7 +492,7 @@ public:
     // чтение из порта
     virtual void    read(uint16_t port, uint8_t* ret) override { *ret |= tapeBit(); }
     // сброс устройства
-    virtual void    reset() override;
+    virtual void    reset() override { zxDevSound::reset(); currentBlock = 0; stopTape(); }
     // обновление
     virtual int     update(int param = 0) override { return 0; }
     // тип устройства
@@ -501,9 +504,9 @@ public:
     // открыть
     virtual bool open(uint8_t* ptr, size_t size, int type) override;
     // запуск загрузки
-    void startTape();
+    void startTape() { if(currentBlock < countBlocks) { edge_change = *zxDevUla::_TICK; tape_bit = 0x40; type_impulse = 0; } }
     // остановка загрузки
-    void stopTape();
+    void stopTape() { edge_change = 0xFFFFFFFF; tape_bit = 0x40; type_impulse = 0; }
     // стирание ленты
     void closeTape();
     // формирование блока ленты
@@ -533,6 +536,6 @@ protected:
 	// тип импульса(пилот, после пилота, данные, пауза)
 	uint32_t type_impulse;
     // такты для следующих импульсов
-    uint64_t edge_change;
+    uint32_t edge_change;
 };
 
