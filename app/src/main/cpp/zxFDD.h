@@ -17,7 +17,9 @@ extern uint32_t Z80FQ;
 #define _ST_SET(current, next)      states = ((current) | ((next) << 4))
 #define _ST_NEXT                    (uint8_t)((states & 240) >> 4)
 
-inline uint16_t wordBE(const uint8_t* ptr)	{ return ptr[0] << 8 | ptr[1]; }
+extern "C" {
+    inline uint16_t wordBE(const uint8_t* ptr);
+};
 
 class zxDisk {
 public:

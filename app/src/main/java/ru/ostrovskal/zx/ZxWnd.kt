@@ -327,7 +327,7 @@ class ZxWnd : Wnd() {
         val tile = drawable?.tile ?: -1
 
         if(id == MENU_PROPS_KEYBOARD) {
-            if(tile != 81) id = MENU_PROPS_JOYSTICK
+            if(tile != 55) id = MENU_PROPS_JOYSTICK
         }
         val prop = menuProps[id - MENU_PROPS_KEYBOARD]
         val isChecked = !props[prop].toBoolean
@@ -335,7 +335,7 @@ class ZxWnd : Wnd() {
         if(id == MENU_PROPS_KEYBOARD || id == MENU_PROPS_JOYSTICK) {
             props[ZX_PROP_SHOW_KEY] = 0.toByte()
             props[ZX_PROP_SHOW_JOY] = 0.toByte()
-            drawable?.tile = when(tile) { 81 -> 46; 46 -> 40; else -> 81 }
+            drawable?.tile = when(tile) { 55 -> 42; 42 -> 36; else -> 55 }
             hand?.send(RECEPIENT_FORM, ZxMessages.ACT_UPDATE_JOY.ordinal, 50)
         }
         if(id == MENU_PROPS_DEBUGGER) modifyState(if(isChecked) ZX_DEBUGGER else 0, ZX_DEBUGGER)

@@ -294,14 +294,10 @@ class ZxFormSettings : Form() {
                 backgroundSet(style_backgrnd_io)
                 selection = 0
                 itemClickListener = { _, _, p, _ ->
-					ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_RESET, p, "");
+					ZxWnd.zxCmd(ZX_CMD_TAPE_OPS, ZX_TAPE_OPS_RESET, p, "")
 					requestLayout()
                 }
-            }.lps(0, 0, 10, 8)
-            check(R.id.button7, R.string.checkAutoStart) {
-                isChecked = ZxWnd.props[ZX_PROP_BASIC_AUTOSTART].toBoolean
-                setOnClickListener { ZxWnd.props[ZX_PROP_BASIC_AUTOSTART] = isChecked.toByte }
-            }.lps(0, 8, 6, 2)
+            }.lps(0, 0, 10, 10)
         }
     }
 
@@ -510,7 +506,7 @@ class ZxFormSettings : Form() {
 
     class TapeItem : UiComponent() {
         override fun createView(ui: UiCtx) = ui.run {
-            cellLayout(10, 12) {
+            cellLayout(10, 14) {
                 backgroundSet(style_spinner_item_settings)
                 // шапка - заголовок/данные/экран/блок
                 text(R.string.null_text, style_text_header) {
@@ -531,6 +527,13 @@ class ZxFormSettings : Form() {
                 text(R.string.null_text, style_text_tape).lps(0, 8, 10, 2)
                 // параметер
                 text(R.string.null_text, style_text_tape).lps(0, 10, 10, 2)
+                // delete
+                button(style_debugger_action) {
+                    iconResource = R.integer.I_BASKET
+                    setOnClickListener {
+
+                    }
+                }.lps(3, 12, 4, 2)
             }
         }
     }

@@ -148,8 +148,6 @@ public:
     // обновление
     virtual int     update(int key) override;
 protected:
-	// старое значение кнопок джойстика
-	uint8_t joyButtons;
 };
 
 class zxFDD;
@@ -299,7 +297,7 @@ public:
     virtual int     update(int param = 0) override;
 protected:
     // сброс буфера
-    virtual void    resetData() { dstpos = buffer; }
+    virtual void    resetData() { memset(buffer, 0, (size_t)sizeData()); dstpos = buffer; }
     // адрес звуковых данных
     virtual void*   ptrData() { return buffer; }
     // размер готовых данных
@@ -479,6 +477,8 @@ public:
         uint16_t zero_t, one_t, pilot_len;
         // длина паузы между блоками
         uint16_t pause;
+        // места переходов между импульсами
+        int sizes[3];
     };
     // конструктор
     zxDevTape() : countBlocks(0), currentBlock(0) {
@@ -492,9 +492,7 @@ public:
     // чтение из порта
     virtual void    read(uint16_t port, uint8_t* ret) override { *ret |= tapeBit(); }
     // сброс устройства
-    virtual void    reset() override { zxDevSound::reset(); currentBlock = 0; stopTape(); }
-    // обновление
-    virtual int     update(int param = 0) override { return 0; }
+    virtual void    reset() override { zxDevBeeper::reset(); currentBlock = 0; stopTape(); }
     // тип устройства
     virtual int     type() const override { return DEV_TAPE; }
     // доступ к портам
@@ -506,7 +504,7 @@ public:
     // запуск загрузки
     void startTape() { if(currentBlock < countBlocks) { edge_change = *zxDevUla::_TICK; tape_bit = 0x40; type_impulse = 0; } }
     // остановка загрузки
-    void stopTape() { edge_change = 0xFFFFFFFF; tape_bit = 0x40; type_impulse = 0; }
+    void stopTape() { edge_change = 0x7FFFFFFFFFFFFFFFLL; tape_bit = 0x40; type_impulse = 0; }
     // стирание ленты
     void closeTape();
     // формирование блока ленты
@@ -536,6 +534,6 @@ protected:
 	// тип импульса(пилот, после пилота, данные, пауза)
 	uint32_t type_impulse;
     // такты для следующих импульсов
-    uint32_t edge_change;
+    uint64_t edge_change;
 };
 

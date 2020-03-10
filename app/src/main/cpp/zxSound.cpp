@@ -22,6 +22,7 @@ void zxSoundMixer::update(uint8_t * ext_buf) {
     if(ready_a > ready_b) ready_a = ready_b;
     if(ready_a > ready_t) ready_a = ready_t;
     if(rdy + ready_a > 65536) { rdy = 0; ready_a = 0; }
+//    LOG_INFO("a:%i b:%i t:%i", ready_a, ready_b, ready_t);
     if(ready_a) {
         auto buf = ext_buf ? ext_buf : buffer;
         auto p = (int*)(buf + rdy);

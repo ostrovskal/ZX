@@ -53,7 +53,43 @@ extern BREAK_POINT*			            bps;
 extern uint8_t                          numBits[8];
 extern uint32_t                         frequencies[];
 
-inline uint16_t wordLE(const uint8_t* ptr)	{ return ptr[0] | ptr[1] << 8; }
+inline uint16_t wordLE(const uint8_t* ptr)	{
+    return (ptr[0] | (ptr[1] << 8));
+}
+inline uint16_t wordBE(const uint8_t* ptr)	{
+    return ((ptr[0] << 8) | ptr[1]);
+}
+inline uint32_t dwordLE(const uint8_t* ptr)	{
+    return (ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24));
+}
+inline uint32_t dwordBE(const uint8_t* ptr)	{
+    return (ptr[3] | (ptr[2] << 8) | (ptr[1] << 16) | (ptr[0] << 24));
+}
+inline uint64_t qwordLE(const uint8_t* ptr) {
+    uint64_t _1 = (ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24));
+    uint64_t _2 = (ptr[4] | (ptr[5] << 8) | (ptr[6] << 16) | (ptr[7] << 24));
+    return (_1 | (_2 << 32L));
+}
+inline uint64_t qwordBE(const uint8_t* ptr) {
+    uint64_t _1 = (ptr[3] | (ptr[2] << 8) | (ptr[1] << 16) | (ptr[0] << 24));
+    uint64_t _2 = (ptr[7] | (ptr[6] << 8) | (ptr[5] << 16) | (ptr[4] << 24));
+    return (_2 | (_1 << 32L));
+}
+
+#define _wordLE(ptr, val)	(*ptr++) = (uint8_t)(((val) >>  0) & 0xFF); (*ptr++) = (uint8_t)(((val) >>  8) & 0xFF);
+#define _wordBE(ptr, val)	(*ptr++) = (uint8_t)(((val) >>  8) & 0xFF); (*ptr++) = (uint8_t)(((val) >>  0) & 0xFF);
+#define _dwordLE(ptr, val)  (*ptr++) = (uint8_t)(((val) >>  0) & 0xFF); (*ptr++) = (uint8_t)(((val) >>  8) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >> 16) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 24) & 0xFF);
+#define _dwordBE(ptr, val)	(*ptr++) = (uint8_t)(((val) >> 24) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 16) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >>  8) & 0xFF); (*ptr++) = (uint8_t)(((val) >>  0) & 0xFF);
+#define _qwordLE(ptr, val)  (*ptr++) = (uint8_t)(((val) >>  0) & 0xFF); (*ptr++) = (uint8_t)(((val) >>  8) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >> 16) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 24) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >> 32) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 40) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >> 48) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 56) & 0xFF);
+#define _qwordBE(ptr, val)  (*ptr++) = (uint8_t)(((val) >> 56) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 48) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >> 40) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 32) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >> 24) & 0xFF); (*ptr++) = (uint8_t)(((val) >> 16) & 0xFF); \
+                            (*ptr++) = (uint8_t)(((val) >>  8) & 0xFF); (*ptr++) = (uint8_t)(((val) >>  0) & 0xFF);
 
 // вывод отладочной информации
 void info(const char* msg, const char* file, const char* func, int line, ...);

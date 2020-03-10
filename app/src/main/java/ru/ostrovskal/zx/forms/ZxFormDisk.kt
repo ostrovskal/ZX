@@ -86,7 +86,7 @@ class ZxFormDisk : Form() {
                             ZxWnd.zxCmd(ZX_CMD_DISK_OPS, numDisk or (check.toInt shl 7), ZX_DISK_OPS_SET_READONLY, "")
                         }
                     }.lps(10, 14, 5, 2)
-                    editEx(R.id.edit1, R.string.hintName, style_edit_zx) {
+                    editEx(R.id.edit1, R.string.hintName, style_edit_zx, style_zx_editEx) {
                         maxLength = 50
                         changeTextLintener = { update() }
                     }.lps(0, 2, 10, 3)

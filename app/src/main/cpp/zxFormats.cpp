@@ -267,7 +267,6 @@ uint8_t* zxFormats::saveSNA() {
 
 bool zxFormats::openTAP(zxDevTape* tape, uint8_t* ptr, size_t size) {
     auto buf = ptr;
-    tape->closeTape();
     while(buf < ptr + size) {
         auto sz = *(uint16_t*)buf; buf += 2;
         if(!sz) break;
@@ -605,7 +604,6 @@ bool zxFormats::openCSW(zxDevTape* tape, uint8_t* ptr, size_t) {
 /*
     const byte* buf = (const byte*)data;
     const dword Z80FQ = 3500000;
-    CloseTape();
     NamedCell("CSW tape image");
     if(buf[0x1B] != 1)
         return false; // unknown compression type
@@ -613,13 +611,10 @@ bool zxFormats::openCSW(zxDevTape* tape, uint8_t* ptr, size_t) {
     if(!rate)
         return false;
     Reserve(data_size - 0x18);
-    if(!(buf[0x1C] & 1))
-        tape_image[tape_imagesize++] = FindPulse(1);
-    for(const byte* ptr = (const byte*)data + 0x20; ptr < (const byte*)data + data_size;)
-    {
+    if(!(buf[0x1C] & 1)) tape_image[tape_imagesize++] = FindPulse(1);
+    for(const byte* ptr = (const byte*)data + 0x20; ptr < (const byte*)data + data_size;) {
         dword len = *ptr++ * rate;
-        if(!len)
-        {
+        if(!len) {
             len = Dword(ptr) / rate;
             ptr += 4;
         }

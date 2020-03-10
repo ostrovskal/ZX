@@ -41,7 +41,6 @@ static void execJoyKeys(int i, bool pressed) {
 
 void zxDevKeyboard::reset() {
     ssh_memset(&opts[ZX_PROP_VALUES_SEMI_ROW], 255, 8);
-    joyButtons = 0;
 	opts[ZX_PROP_JOY_ACTION_VALUE] = 0;
 	opts[ZX_PROP_JOY_CROSS_VALUE] = 0;
     opts[ZX_PROP_KEY_MODE] = 0;
@@ -103,20 +102,16 @@ int zxDevKeyboard::update(int key) {
         // опрос джойстика
         if (opts[ZX_PROP_SHOW_JOY]) {
             auto buttons = (opts[ZX_PROP_JOY_ACTION_VALUE] << 4) | opts[ZX_PROP_JOY_CROSS_VALUE];
-            if (buttons != joyButtons) {
-	            joyButtons = buttons;
-                // 1. отжать
-                for (int i = 0; i < 8; i++) {
-                    if(!(buttons & numBits[i])) execJoyKeys(i, true);
-                }
-                // 2. нажать
-                for (int i = 0; i < 8; i++) {
-                    if(buttons & numBits[i]) execJoyKeys(i, false);
-                }
+            // 1. отжать
+            for (int i = 0; i < 8; i++) {
+                if(!(buttons & numBits[i])) execJoyKeys(i, true);
             }
-        }
-        // опрос клавиатуры из ПЗУ
-        if (opts[ZX_PROP_SHOW_KEY]) {
+            // 2. нажать
+            for (int i = 0; i < 8; i++) {
+                if(buttons & numBits[i]) execJoyKeys(i, false);
+            }
+        } else if (opts[ZX_PROP_SHOW_KEY]) {
+            // опрос клавиатуры из ПЗУ
             static int delay = 0;
             delay++;
             if(!(delay & 7)) {

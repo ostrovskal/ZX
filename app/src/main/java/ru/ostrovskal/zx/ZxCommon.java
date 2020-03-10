@@ -247,8 +247,8 @@ public final class ZxCommon {
             ATTR_SSH_COLOR_MESSAGE, 0xd2fa64 | COLOR,
             ATTR_SSH_COLOR_WINDOW, 0x030303 | COLOR,
             ATTR_SSH_COLOR_WIRED, 0xffffff | COLOR,
-            ATTR_SSH_ICON_VERT, 10,
-            ATTR_SSH_ICON_HORZ, 10,
+            ATTR_SSH_ICON_VERT, 7,
+            ATTR_SSH_ICON_HORZ, 9,
     };
 
     /** Стиль кнопки клавиатуры */
@@ -438,8 +438,8 @@ public final class ZxCommon {
     };
 
     public static final int[] style_zx_toolbar = {
-            ATTR_SSH_VERT, 10,
-            ATTR_SSH_HORZ, 10,
+            ATTR_SSH_VERT, 7,
+            ATTR_SSH_HORZ, 9,
             ATTR_SSH_TILE, 0,
             ATTR_SSH_BITMAP_NAME, ATTR_SSH_BM_ICONS | THEME
     };
@@ -534,7 +534,7 @@ public final class ZxCommon {
 
     public static final int[] style_zx_editEx              = {
             ATTR_FOCUSABLE, 1, ATTR_CLICKABLE, 1,
-            ATTR_SSH_TILE, 47, ATTR_SSH_HORZ, 10, ATTR_SSH_VERT, 10,
+            ATTR_SSH_TILE, 43, ATTR_SSH_HORZ, 9, ATTR_SSH_VERT, 7,
             ATTR_PADDING, R.dimen.paddingZxEditEx,
             ATTR_SSH_GRAVITY, TILE_GRAVITY_BACKGROUND,
             ATTR_SSH_STATES, TILE_STATE_HOVER,
