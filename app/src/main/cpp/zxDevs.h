@@ -463,6 +463,7 @@ protected:
 
 class zxDevTape : public zxDevBeeper {
     friend class zxSpeccy;
+    friend class zxFormats;
 public:
     struct TAPE_BLOCK {
         // тип блока
@@ -508,8 +509,8 @@ public:
     // стирание ленты
     void closeTape();
     // формирование блока ленты
-    void makeBlock( uint8_t type, uint8_t* data, uint16_t size, uint16_t pilot_t, uint16_t s1_t, uint16_t s2_t, uint16_t zero_t, uint16_t one_t,
-                    uint16_t pilot_len, uint16_t pause, uint8_t last = 8);
+    TAPE_BLOCK* makeBlock(  uint8_t type, uint8_t* data, uint16_t size, uint16_t pilot_t, uint16_t s1_t, uint16_t s2_t, uint16_t zero_t, uint16_t one_t,
+                            uint16_t pilot_len, uint16_t pause, uint8_t last = 8);
 protected:
 	// перехват сохранения
 	int trapSave();

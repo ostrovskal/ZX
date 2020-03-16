@@ -14,28 +14,6 @@ static void packPage(uint8_t** buffer, uint8_t* src, uint8_t page) {
     buf[2] = page;
 }
 
-bool zxFormats::openSnapshot(uint8_t *ptr, size_t size, int type) {
-    switch(type) {
-        case ZX_CMD_IO_EZX:
-        case ZX_CMD_IO_Z80:
-            return openZ80(ptr, size);
-        case ZX_CMD_IO_SNA:
-            return openSNA(ptr, size);
-    }
-    return false;
-}
-
-uint8_t* zxFormats::saveSnapshot(int type) {
-    switch(type) {
-        case ZX_CMD_IO_EZX:
-        case ZX_CMD_IO_Z80:
-            return saveZ80();
-        case ZX_CMD_IO_SNA:
-            return saveSNA();
-    }
-    return nullptr;
-}
-
 bool zxFormats::openZ80(uint8_t* ptr, size_t size) {
     uint8_t model = MODEL_48;
     int version;
@@ -127,7 +105,7 @@ bool zxFormats::openZ80(uint8_t* ptr, size_t size) {
         memcpy(&buf[0 << 14], &buf[2 << 14], 16384);
         memcpy(&buf[2 << 14], &buf[1 << 14], 16384);
     }
-    // меняем модель памяти и иинициализируем регистры
+    // меняем модель памяти и инициализируем регистры
     auto cpu = zx->cpu;
     zx->changeModel(model);
     *cpu->_BC   = head->BC;     *cpu->_DE   = head->DE; *cpu->_HL = head->HL;
@@ -190,288 +168,210 @@ uint8_t* zxFormats::saveZ80() {
     return buf;
 }
 
-bool zxFormats::openSNA(uint8_t* ptr, size_t size) {
-    auto is48  = (size == HEAD_SNA::S_48);
-    auto is128 = (size == HEAD_SNA::S_128_5 || size == HEAD_SNA::S_128_6);
-    if(!is48 && !is128) return false;
-    zx->changeModel((uint8_t)(is48 ? MODEL_48 : MODEL_128));
-    // устанавливаем основные страницы
-    auto sna = (HEAD_SNA*)ptr;
-    memcpy(&zx->RAMbs[5 << 14], sna->PAGE5, 16384);
-    memcpy(&zx->RAMbs[2 << 14], sna->PAGE2, 16384);
-    opts[RAM] = (uint8_t)(is48 ? 0 : sna->_7FFD & 7);
-    memcpy(&zx->RAMbs[opts[RAM] << 14], sna->PAGEX, 16384);
-    // устанавливаем регистры
-    auto cpu = zx->cpu;
-    zx->writePort(0xFE, 0x00, sna->_FE);
-    *cpu->_AF = sna->AF; *cpu->_BC = sna->BC; *cpu->_DE = sna->DE; *cpu->_HL = sna->HL;
-    *cpu->_IX = sna->IX; *cpu->_IY = sna->IY; *cpu->_SP = sna->SP;
-    *cpu->_I = sna->I; *cpu->_IM = sna->IM; *cpu->_IFF1 = *cpu->_IFF2 = sna->IFF1; *cpu->_R = sna->R;
-    *(uint16_t*)&opts[RC_] = sna->BC_; *(uint16_t*)&opts[RE_] = sna->DE_;
-    *(uint16_t*)&opts[RL_] = sna->HL_; *(uint16_t*)&opts[RF_] = sna->AF_;
-    if(is48) {
-        *cpu->_PC = rm16(*cpu->_SP); *cpu->_SP += 2;
-    } else {
-        *cpu->_PC = sna->PC;
-        zx->writePort(0xFD, 0x7F, sna->_7FFD);
-        if(sna->TRDOS) *zx->_STATE |= ZX_TRDOS;
-        auto pages = &sna->PAGES;
-        auto mapped = 0x24 | (1 << (sna->_7FFD & 7));
-        for(int i = 0; i < 8; ++i) {
-            if(!(mapped & (1 << i))) {
-                memcpy(&zx->RAMbs[i << 14], pages, 16384);
-                pages += 16384;
-            }
-        }
-    }
-    zx->devs[DEV_MEM]->update();
-	return true;
-}
-
-uint8_t* zxFormats::saveSNA() {
-    static HEAD_SNA h_sna;
-
-    memset(&h_sna, 0, sizeof(HEAD_SNA));
-    auto sna = &h_sna;
-
-    // устанавливаем регистры
-    auto cpu = zx->cpu;
-    sna->_FE = opts[PORT_FE];sna->_7FFD = (opts[PORT_7FFD] & 31);
-    sna->TRDOS = *zxSpeccy::_STATE & ZX_TRDOS;     sna->PC = *cpu->_PC;
-    sna->AF = *cpu->_AF;    sna->BC = *cpu->_BC;    sna->DE = *cpu->_DE;    sna->HL = *cpu->_HL;
-    sna->IX = *cpu->_IX;    sna->IY = *cpu->_IY;    sna->SP = *cpu->_SP;    sna->I  = *cpu->_I;
-    sna->IM = *cpu->_IM;    sna->R  = *cpu->_R;     sna->IFF1 = (uint8_t)(*cpu->_IFF1 ? 0xFF : 0x00);
-    sna->BC_= *(uint16_t*)&opts[RC_];               sna->DE_ = *(uint16_t*)&opts[RE_];
-    sna->HL_= *(uint16_t*)&opts[RL_];               sna->AF_ = *(uint16_t*)&opts[RF_];
-    auto mapped = (uint8_t)(0x24 | (1 << sna->_7FFD & 7));
-    if(*zxSpeccy::_MODEL < MODEL_128 || opts[PORT_7FFD] & 32) {
-        mapped = 0xFF;
-        sna->SP -= 2;
-        wm8(realPtr(sna->SP), (uint8_t)(sna->PC & 0xFF));
-        wm8(realPtr((uint16_t)(sna->SP + 1)), (uint8_t)((sna->PC >> 8) & 0xFF));
-    }
-    memcpy(&sna->PAGE5, &zx->RAMbs[5 << 14], 16384);
-    memcpy(&sna->PAGE2, &zx->RAMbs[2 << 14], 16384);
-    memcpy(&sna->PAGEX, &zx->RAMbs[(opts[PORT_7FFD] & 7) << 14], 16384);
-    auto pages = &sna->PAGES;
-    int stored_128_pages = 0;
-    for(int i = 0 ; i < 8; i++) {
-        if(!(mapped & (1 << i))) {
-            memcpy(pages, &zx->RAMbs[i << 14], 16384);
-            pages += 16384;
-            ++stored_128_pages;
-        }
-    }
-    return nullptr;
-}
-
 bool zxFormats::openTAP(zxDevTape* tape, uint8_t* ptr, size_t size) {
     auto buf = ptr;
     while(buf < ptr + size) {
         auto sz = *(uint16_t*)buf; buf += 2;
         if(!sz) break;
-        tape->makeBlock(0, buf, sz, 2168, 667, 735, 855, 1710, (uint16_t)((*buf < 4) ? 8064 : 3220), 1000);
+        tape->makeBlock(TZX_NORMAL_BLOCK, buf, sz, 2168, 667, 735, 855, 1710, (uint16_t)((*buf < 4) ? 8064 : 3224), 1000);
         buf += sz;
     }
     return (buf == ptr + size);
 }
 
 uint8_t* zxFormats::saveTAP(zxDevTape* tape) {
-    return nullptr;
-    //return tape->save(0, TMP_BUF, false);
+    auto ptr = TMP_BUF;
+    uint8_t idx = 0;
+    while(idx < tape->countBlocks) {
+        auto blk = tape->blocks[idx++];
+        if(blk->type == TZX_NORMAL_BLOCK) {
+            auto size = blk->data_size;
+            memcpy(ptr, blk->data, size);
+            ptr += size;
+        }
+    }
+    return ptr;
 }
 
-bool zxFormats::openTZX(zxDevTape* tape, uint8_t* ptr, size_t) {
+bool zxFormats::openTZX(zxDevTape* tape, uint8_t* ptr, size_t size) {
+	if(ptr[0] != 'Z' && ptr[1] != 'X' && ptr[2] != 'T' && ptr[3] != 'a' && ptr[4] != 'p' && ptr[5] != 'e' && ptr[6] != '!' && ptr[7] != 0x1A)
+		return false;
+	auto v_minor = ptr[8];
+	auto v_major = ptr[9];
+    auto buf = ptr + 10; auto bufe = ptr + size;
+    uint16_t tmp0, tmp1;
+    while(buf < bufe) {
+        switch(*buf++) {
+            case TZX_NORMAL_BLOCK:
+		        tmp0 = wordLE(buf + 0);
+		        tmp1 = wordLE(buf + 2); buf += 4;
+		        tape->makeBlock(TZX_NORMAL_BLOCK, buf, tmp1, 2168, 667, 735, 855, 1710, (uint16_t)((*buf < 4) ? 8064 : 3223), tmp0);
+		        buf += tmp1;
+                break;
+            case TZX_TURBO_BLOCK:
+		        tmp0 = (uint16_t)(dwordLE(buf + 15) & 0xFFFFFF);
+		        tape->makeBlock(TZX_TURBO_BLOCK, buf + 18, tmp0, wordLE(buf), wordLE(buf + 2), wordLE(buf + 4), wordLE(buf + 6),
+		        		wordLE(buf + 8), wordLE(buf + 10), wordLE(buf + 13), buf[12]);
+		        buf += tmp0 + 18;
+                break;
+            case TZX_PURE_TONE:
+	            tmp0 = wordLE(buf + 0);// длина импульса
+		        tmp1 = wordLE(buf + 2);// количество импульсов
+		        tape->makeBlock(TZX_PURE_TONE, nullptr, 0, tmp0, 0, 0, 0, 0, tmp1, 0, 0);
+		        buf += 4;
+                break;
+            case TZX_SEQ_PULSES_DIFF_LEN:
+		        tmp0 = *buf++;// количество импульсов
+		        tape->makeBlock(TZX_PURE_TONE, buf, 0, (uint16_t)(tmp0 * 2), 0, 0, 0, 0, 0, 0, 0);
+		        buf += tmp0 * 2;
+                break;
+            case TZX_PURE_DATA_BLOCK:
+		        tmp0 = (uint16_t)(dwordLE(buf + 7) & 0xFFFFFF);
+		        tape->makeBlock(TZX_PURE_DATA_BLOCK, buf + 10, tmp0, 0, 0, 0, wordLE(buf), wordLE(buf + 2), 0, wordLE(buf + 5), buf[4]);
+		        buf += tmp0 + 10;
+                break;
+            case TZX_DIRECT_RECORD: {
+	            tmp0 = wordLE(buf);
+	            tmp1 = (uint16_t) (dwordLE(buf + 5) & 0xFFFFFF);
+	            auto pause_t = wordLE(buf + 2);
+	            auto last_t = buf[4];
+	            buf += 8;
 /*
-    byte* ptr = (byte*)data;
-    CloseTape();
-    dword size, pause, i, j, n, t, t0;
-    byte pl, last, *end;
-    byte* p;
-    dword loop_n = 0, loop_p = 0;
-    char nm[512];
-    while(ptr < (const byte*)data + data_size)
-    {
-        switch(*ptr++)
-        {
-            case 0x10: // normal block
-                AllocInfocell();
-                size = Word(ptr + 2);
-                pause = Word(ptr);
-                ptr += 4;
-                Desc(ptr, size, tapeinfo[tape_infosize].desc);
-                tape_infosize++;
-                MakeBlock(ptr, size, 2168, 667, 735, 855, 1710, (*ptr < 4) ? 8064
-                                                                           : 3220, pause);
-                ptr += size;
+		        pl = 0;
+		        n = 0;
+		        // подсчет числа импульсов
+		        for(int i = 0; i < tmp1; i++) {
+			        for(j = 128; j; j >>= 1) {
+				        if((buf[i] ^ pl) & j) n++, pl ^= 0xFF;
+					}
+				}
+		        t = 0;
+		        pl = 0;
+		        Reserve(n + 2);
+		        // поиск импульсов
+		        for(i = 1; i < size; i++, ptr++) {
+			        for(j = 0x80; j; j >>= 1) {
+				        t += t0;
+				        if((*ptr ^ pl) & j) {
+					        tape_image[tape_imagesize++] = FindPulse(t);
+					        pl ^= -1;
+					        t = 0;
+				        }
+			        }
+				}
+		        // поиск импульсов для последнего байта
+		        for(j = 0x80; j != (byte)(0x80 >> last); j >>= 1) {
+			        t += t0;
+			        if((*ptr ^ pl) & j) {
+				        tape_image[tape_imagesize++] = FindPulse(t);
+				        pl ^= -1;
+				        t = 0;
+			        }
+		        }
+		        ptr++;
+		        tape_image[tape_imagesize++] = FindPulse(t); // last pulse ???
+		        if(pause) tape_image[tape_imagesize++] = FindPulse(pause * 3500);
+*/
+            }
                 break;
-            case 0x11: // turbo block
-                AllocInfocell();
-                size = 0xFFFFFF & Dword(ptr + 0x0F);
-                Desc(ptr + 0x12, size, tapeinfo[tape_infosize].desc);
-                tape_infosize++;
-                MakeBlock(ptr + 0x12, size, Word(ptr), Word(ptr + 2),
-                          Word(ptr + 4), Word(ptr + 6), Word(ptr + 8),
-                          Word(ptr + 10), Word(ptr + 13), ptr[12]);
-                // todo: test used bits - ptr+12
-                ptr += size + 0x12;
+            case TZX_PAUSE:
+            	tape->makeBlock(TZX_PAUSE, nullptr, 0, 0, 0, 0, 0, 0, 0, wordLE(buf));
+            	buf += 2;
                 break;
-            case 0x12: // pure tone
-                CreateAppendableBlock();
-                pl = FindPulse(Word(ptr));
-                n = Word(ptr + 2);
-                Reserve(n);
-                for(i = 0; i < n; i++)
-                    tape_image[tape_imagesize++] = pl;
-                ptr += 4;
+            case TZX_GROUP_START:
+	            tmp0 = *buf++;      // длина имени
+		        buf += tmp0;
                 break;
-            case 0x13: // sequence of pulses of different lengths
-                CreateAppendableBlock();
-                n = *ptr++;
-                Reserve(n);
-                for(i = 0; i < n; i++, ptr += 2)
-                    tape_image[tape_imagesize++] = FindPulse(Word(ptr));
+            case TZX_GROUP_END:
                 break;
-            case 0x14: // pure data block
-                CreateAppendableBlock();
-                size = 0xFFFFFF & Dword(ptr + 7);
-                MakeBlock(ptr + 0x0A, size, 0, 0, 0, Word(ptr),
-                          Word(ptr + 2), -1, Word(ptr + 5), ptr[4]);
-                ptr += size + 0x0A;
+            case TZX_JUMP:
+	            NamedCell("* jump");
+	            tmp0 = wordLE(buf);     // смещение к блоку
+		        buf += 2;
                 break;
-            case 0x15: // direct recording
-                size = 0xFFFFFF & Dword(ptr + 5);
-                t0 = Word(ptr);
-                pause = Word(ptr + 2);
-                last = ptr[4];
-                NamedCell("direct recording");
-                ptr += 8;
-                pl = 0;
-                n = 0;
-                for(i = 0; i < size; i++) // count number of pulses
-                    for(j = 0x80; j; j >>= 1)
-                        if((ptr[i] ^ pl) & j)
-                            n++, pl ^= -1;
-                t = 0;
-                pl = 0;
-                Reserve(n + 2);
-                for(i = 1; i < size; i++, ptr++) // find pulses
-                    for(j = 0x80; j; j >>= 1)
-                    {
-                        t += t0;
-                        if((*ptr ^ pl) & j)
-                        {
-                            tape_image[tape_imagesize++] = FindPulse(t);
-                            pl ^= -1;
-                            t = 0;
-                        }
-                    }
-                // find pulses - last byte
-                for(j = 0x80; j != (byte)(0x80 >> last); j >>= 1)
-                {
-                    t += t0;
-                    if((*ptr ^ pl) & j)
-                    {
-                        tape_image[tape_imagesize++] = FindPulse(t);
-                        pl ^= -1;
-                        t = 0;
-                    }
-                }
-                ptr++;
-                tape_image[tape_imagesize++] = FindPulse(t); // last pulse ???
-                if(pause)
-                    tape_image[tape_imagesize++] = FindPulse(pause * 3500);
+            case TZX_LOOP_START:
+            	tmp0 = wordLE(buf);     // количество повторений
+//		        loop_p = tape_imagesize;
+		        buf += 2;
                 break;
-            case 0x20: // pause (silence) or 'stop the tape' command
-                pause = Word(ptr);
-                sprintf(nm, pause ? "pause %d ms" : "stop the tape", pause);
-                NamedCell(nm);
-                Reserve(2);
-                ptr += 2;
-                if(!pause)
-                { // at least 1ms pulse as specified in TZX 1.13
-                    tape_image[tape_imagesize++] = FindPulse(3500);
-                    pause = -1;
-                }
-                else
-                    pause *= 3500;
-                tape_image[tape_imagesize++] = FindPulse(pause);
+            case TZX_LOOP_END:
                 break;
-            case 0x21: // group start
-                n = *ptr++;
-                NamedCell(ptr, n);
-                ptr += n;
-                appendable = 1;
+            case TZX_CALL:
+            	tmp0 = wordLE(buf);     // количество вызовов
+            	buf += 2 + 2 * tmp0;
                 break;
-            case 0x22: // group end
+            case TZX_RETURN:
                 break;
-            case 0x23: // jump to block
-                NamedCell("* jump");
-                ptr += 2;
+            case TZX_SELECT_BLOCK:
+	            sprintf(nm, "* choice: ");
+		        n = ptr[2];
+		        p = ptr + 3;
+		        for(i = 0; i < n; i++)
+		        {
+			        if(i)
+				        strcat(nm, " / ");
+			        char *q = nm + strlen(nm);
+			        size = *(p + 2);
+			        memcpy(q, p + 3, size);
+			        q[size] = 0;
+			        p += size + 3;
+		        }
+		        NamedCell(nm);
+		        ptr += 2 + Word(ptr);
                 break;
-            case 0x24: // loop start
-                loop_n = Word(ptr);
-                loop_p = tape_imagesize;
-                ptr += 2;
+            case TZX_STOP_IF_48K:
+	            NamedCell("* stop if 48K");
+		        ptr += 4 + Dword(ptr);
                 break;
-            case 0x25: // loop end
-                if(!loop_n)
-                    break;
-                size = tape_imagesize - loop_p;
-                Reserve((loop_n - 1) * size);
-                for(i = 1; i < loop_n; i++)
-                    memcpy(tape_image + loop_p + i * size, tape_image + loop_p,
-                           size);
-                tape_imagesize += (loop_n - 1) * size;
-                loop_n = 0;
+            case TZX_TEXT:
+	            n = *ptr++;
+		        NamedCell(ptr, n);
+		        ptr += n;
+		        appendable = 1;
                 break;
-            case 0x26: // call
-                NamedCell("* call");
-                ptr += 2 + 2 * Word(ptr);
+            case TZX_MESSAGE:
+	            NamedCell("- MESSAGE BLOCK ");
+		        end = ptr + 2 + ptr[1];
+		        pl = *end;
+		        *end = 0;
+		        for(p = ptr + 2; p < end; p++)
+			        if(*p == 0x0D)
+				        *p = 0;
+		        for(p = ptr + 2; p < end; p += strlen((char*)p) + 1)
+			        NamedCell(p);
+		        *end = pl;
+		        ptr = end;
+		        NamedCell("-");
                 break;
-            case 0x27: // ret
-                NamedCell("* return");
+            case TZX_ARCHIVE_INFO:
                 break;
-            case 0x28: // select block
-                sprintf(nm, "* choice: ");
-                n = ptr[2];
-                p = ptr + 3;
-                for(i = 0; i < n; i++)
-                {
-                    if(i)
-                        strcat(nm, " / ");
-                    char *q = nm + strlen(nm);
-                    size = *(p + 2);
-                    memcpy(q, p + 3, size);
-                    q[size] = 0;
-                    p += size + 3;
-                }
-                NamedCell(nm);
-                ptr += 2 + Word(ptr);
+            case TZX_HARDWARE_TYPE:
+	            ParseHardware(ptr);
+		        ptr += 1 + 3 * *ptr;
                 break;
-            case 0x2A: // stop if 48k
-                NamedCell("* stop if 48K");
-                ptr += 4 + Dword(ptr);
+            case TZX_EMULATION_INFO:
+	            NamedCell("* emulation info");
+		        ptr += 8;
+                break;
+            case TZX_CUSTOM_INFO:
+                break;
+            case TZX_SNAPSHOT:
+	            NamedCell("* snapshot");
+		        ptr += 4 + (0xFFFFFF & Dword(ptr + 1));
+                break;
+            case TZX_Z:
+	            ptr += 9;
+                break;
+            default:
+	            ptr += data_size;
+                break;
+        }
+    }
+/*
                 break;
             case 0x30: // text description
-                n = *ptr++;
-                NamedCell(ptr, n);
-                ptr += n;
-                appendable = 1;
                 break;
             case 0x31: // message block
-                NamedCell("- MESSAGE BLOCK ");
-                end = ptr + 2 + ptr[1];
-                pl = *end;
-                *end = 0;
-                for(p = ptr + 2; p < end; p++)
-                    if(*p == 0x0D)
-                        *p = 0;
-                for(p = ptr + 2; p < end; p += strlen((char*)p) + 1)
-                    NamedCell(p);
-                *end = pl;
-                ptr = end;
-                NamedCell("-");
                 break;
             case 0x32: // archive info
                 NamedCell("- ARCHIVE INFO ");
@@ -527,12 +427,8 @@ bool zxFormats::openTZX(zxDevTape* tape, uint8_t* ptr, size_t) {
                 ptr += 2 + Word(ptr);
                 break;
             case 0x33: // hardware type
-                ParseHardware(ptr);
-                ptr += 1 + 3 * *ptr;
                 break;
             case 0x34: // emulation info
-                NamedCell("* emulation info");
-                ptr += 8;
                 break;
             case 0x35: // custom info
                 if(!memcmp(ptr, "POKEs           ", 16))
@@ -570,14 +466,10 @@ bool zxFormats::openTZX(zxDevTape* tape, uint8_t* ptr, size_t) {
                 ptr += 0x14 + Dword(ptr + 0x10);
                 break;
             case 0x40: // snapshot
-                NamedCell("* snapshot");
-                ptr += 4 + (0xFFFFFF & Dword(ptr + 1));
                 break;
             case 0x5A: // 'Z'
-                ptr += 9;
                 break;
             default:
-                ptr += data_size;
         }
     }
     for(i = 0; i < tape_infosize; i++)
@@ -591,9 +483,8 @@ bool zxFormats::openTZX(zxDevTape* tape, uint8_t* ptr, size_t) {
     if(tape_imagesize && tape_pulse[tape_image[tape_imagesize - 1]] < 350000)
         Reserve(1), tape_image[tape_imagesize++] = FindPulse(350000); // small pause [rqd for 3ddeathchase]
     FindTapeSizes();
-    return (ptr == (const byte*)data + data_size);
 */
-    return false;
+	return (buf == ptr + size);
 }
 
 uint8_t* zxFormats::saveTZX(zxDevTape* tape) {

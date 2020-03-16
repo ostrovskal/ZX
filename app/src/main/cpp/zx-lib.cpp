@@ -92,10 +92,11 @@ extern "C" {
             const char* file;
             while ((file = AAssetDir_getNextFileName(dir))) {
                 switch(parseExtension(file)) {
-                    case ZX_CMD_IO_Z80:
-                    case ZX_CMD_IO_SNA: path = z80 + file; break;
+                    case ZX_CMD_IO_Z80: path = z80 + file; break;
                     case ZX_CMD_IO_TAP:
+                    case ZX_CMD_IO_CSW:
                     case ZX_CMD_IO_TZX: path = tap + file; break;
+                    case ZX_CMD_IO_TD0:
                     case ZX_CMD_IO_TRD:
                     case ZX_CMD_IO_SCL:
                     case ZX_CMD_IO_UDI:

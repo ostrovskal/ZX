@@ -84,7 +84,7 @@ static void packSegment(uint8_t ** dst, uint32_t count, uint8_t block) {
 int parseExtension(const char* name) {
     auto l = strlen(name);
     const char* ext = (l > 2 ? name + (l - 3) : "123");
-    const char* lst[] = {".zx", ".ezx", "z80", "sna", "tap", "tzx", "csw", "trd", "scl", "fdi", "udi", "td0"};
+    const char* lst[] = {".zx", ".ezx", "z80", "tap", "tzx", "csw", "trd", "scl", "fdi", "udi", "td0"};
     int ret = 0;
     for(auto& e: lst) {
         if(!strcasecmp(ext, e)) break;

@@ -146,14 +146,13 @@ bool zxSpeccy::load(const char *path) {
             ret = devs[DEV_TAPE]->open(ptr, size, type);
             if(ret && (opts[PORT_7FFD] & 32)) {
                 if((ptr = (uint8_t*)zxFile::readFile("tapLoad48.ezx", TMP_BUF, true, &size))) {
-                    ret = zxFormats::openSnapshot(ptr, size, ZX_CMD_IO_EZX);
+                    ret = zxFormats::openZ80(ptr, size);
                 }
             }
             break;
         case ZX_CMD_IO_EZX:
         case ZX_CMD_IO_Z80:
-        case ZX_CMD_IO_SNA:
-            ret = zxFormats::openSnapshot(ptr, size, type);
+            ret = zxFormats::openZ80(ptr, size);
             break;
         case ZX_CMD_IO_TRD:
         case ZX_CMD_IO_SCL:
@@ -187,8 +186,7 @@ bool zxSpeccy::save(const char *path) {
             break;
         case ZX_CMD_IO_EZX:
         case ZX_CMD_IO_Z80:
-        case ZX_CMD_IO_SNA:
-            ret = zxFormats::saveSnapshot(type);
+            ret = zxFormats::saveZ80();
             break;
     }
     if(ret) return zxFile::writeFile(path, TMP_BUF, ret - TMP_BUF, type != ZX_CMD_IO_STATE);

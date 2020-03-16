@@ -1140,12 +1140,14 @@ uint8_t zxDevTape::tapeBit() {
     return tape_bit;
 }
 
-void zxDevTape::makeBlock(uint8_t type, uint8_t* data, uint16_t size, uint16_t pilot_t, uint16_t s1_t, uint16_t s2_t, uint16_t zero_t,
+zxDevTape::TAPE_BLOCK* zxDevTape::makeBlock(uint8_t type, uint8_t* data, uint16_t size, uint16_t pilot_t, uint16_t s1_t, uint16_t s2_t, uint16_t zero_t,
                           uint16_t one_t, uint16_t pilot_len, uint16_t pause, uint8_t last) {
     auto blk = new TAPE_BLOCK();
     blocks[countBlocks++] = blk;
     blk->type = type;
-    blk->data = new uint8_t[size]; memcpy(blk->data, data, size);
+    blk->data = nullptr;
+    blk->data_size = 0;
+    if(data && size) blk->data = new uint8_t[size]; memcpy(blk->data, data, size);
     blk->data_size = size;
     blk->pilot_len = pilot_len; blk->pilot_t = pilot_t;
     blk->s1_t = s1_t; blk->s2_t = s2_t;
@@ -1154,6 +1156,7 @@ void zxDevTape::makeBlock(uint8_t type, uint8_t* data, uint16_t size, uint16_t p
     blk->sizes[0] = pilot_len++;
     blk->sizes[1] = pilot_len++;
     blk->sizes[2] = pilot_len + (size - 1) * 16 + last * 2;
+    return blk;
 }
 
 uint32_t zxDevTape::getImpulse() {

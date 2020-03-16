@@ -265,15 +265,14 @@ constexpr int ZX_DEBUGGER_MODE_DT       = 2; // Список данных
 constexpr int ZX_CMD_IO_STATE           = 0; // Загрузить/сохранить состояние
 constexpr int ZX_CMD_IO_EZX             = 1; //
 constexpr int ZX_CMD_IO_Z80             = 2; //
-constexpr int ZX_CMD_IO_SNA             = 3; //
-constexpr int ZX_CMD_IO_TAP             = 4; //
-constexpr int ZX_CMD_IO_TZX             = 5; //
-constexpr int ZX_CMD_IO_CSW             = 6; //
-constexpr int ZX_CMD_IO_TRD             = 7; //
-constexpr int ZX_CMD_IO_SCL             = 8; //
-constexpr int ZX_CMD_IO_FDI             = 9;//
-constexpr int ZX_CMD_IO_UDI             = 10;//
-constexpr int ZX_CMD_IO_TD0             = 11;//
+constexpr int ZX_CMD_IO_TAP             = 3; //
+constexpr int ZX_CMD_IO_TZX             = 4; //
+constexpr int ZX_CMD_IO_CSW             = 5; //
+constexpr int ZX_CMD_IO_TRD             = 6; //
+constexpr int ZX_CMD_IO_SCL             = 7; //
+constexpr int ZX_CMD_IO_FDI             = 8; //
+constexpr int ZX_CMD_IO_UDI             = 9; //
+constexpr int ZX_CMD_IO_TD0             = 10;//
 
 // Система счистления для преобразования строк/чисел
 constexpr int RADIX_DEC 				= 0;
